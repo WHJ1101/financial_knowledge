@@ -1,6 +1,6 @@
 ---
 name: investment-research
-description: Chinese-first investment research workflow for source-backed industry, market, stock, ETF, and fund analysis. Use when the user asks for 投研分析, 深度调研, 产业链 or 供应链拆解, 热点扫描, A股/港股/美股方向, 个股上涨逻辑, 候选标的比较, 基金/ETF方向, Serenity式研究, 供应链卡点 or 瓶颈分析, challenge this thesis, rank candidates, or what is worth researching now. Produces research-priority rankings, evidence grades, risk and failure conditions, and next verification steps. Research support only; no trade execution.
+description: Chinese-first investment research workflow for source-backed industry, market, stock, ETF, and fund analysis. Use when the user asks for 投研分析, 深度调研, 产业链 or 供应链拆解, 热点扫描, A股/港股/美股方向, 个股上涨逻辑, 候选标的比较, 基金/ETF方向, Serenity式研究, 供应链卡点 or 瓶颈分析, challenge this thesis, rank candidates, or what is worth researching now. Produces concept primers, research-priority rankings, evidence grades, risk and failure conditions, and next verification steps. Research support only; no trade execution.
 ---
 
 # Investment Research
@@ -9,7 +9,7 @@ description: Chinese-first investment research workflow for source-backed indust
 
 Use this skill as a project-local投研分析 workflow inspired by Serenity-style supply-chain bottleneck research. Convert a broad market story into a source-backed chain of reasoning:
 
-`market story -> system change -> value-chain layers -> scarce layers -> candidate universe -> evidence -> ranked research priorities -> failure conditions -> next checks`
+`market story -> concept primer -> system change -> value-chain layers -> scarce layers -> candidate universe -> evidence -> ranked research priorities -> failure conditions -> next checks`
 
 Keep the answer in the user's language. Default to concise Chinese for A股、港股、基金、ETF、产业链 and policy prompts.
 
@@ -26,14 +26,15 @@ Classify the user's request first:
 ## Default Workflow
 
 1. **Set scope**: infer market, theme, time window, and output format. For "现在/近期/最新", treat the default window as 3-12 months and use live/current sources when available.
-2. **Translate story into system change**: identify what demand or policy changed, which old design is strained, and which physical/economic constraint matters: power, bandwidth, latency, heat, yield, material purity, reliability, cycle time, packaging density, permits, grid access, or customer certification.
-3. **Map value-chain layers**: end demand, system integrators, modules/subsystems, chips/devices, process/packaging/testing, equipment/metrology, materials/consumables, physical infrastructure.
-4. **Rank scarce layers first**: look for low supplier count, long qualification, hard expansion, customer certification, specialized equipment, high purity, permits, lead times, capacity reservations, prepayments, or price acceptance.
-5. **Build candidate universe**: cover obvious leaders and less-obvious upstream suppliers. For a broad theme, aim for 20+ candidates when tools and time allow before selecting the final 3-7.
-6. **Gather and grade evidence**: use primary and strong sources first. If the evidence is thin, label the result as an initial pass and name the exact checks still needed.
-7. **Rank research priorities**: separate scarce-layer priority from company priority. Explain what each final candidate constrains or sits closest to.
-8. **Stress test**: state substitution routes, faster competitor expansion, weak demand, poor margins, financing, governance, geopolitics, customer loss, valuation, and the clearest fact that would make the view wrong.
-9. **Give next research moves**: end with concrete source checks, metrics, customer cross-checks, capacity evidence, contract evidence, valuation comparison, and near-term events to monitor.
+2. **Build the concept primer** for deep theme scans or unfamiliar technical topics: define the core object, explain how it works at a useful level, compare it horizontally with adjacent technologies or substitutes, and trace the vertical evolution that changes economics or scarcity. Keep it short enough to support the investment argument; do not turn it into a textbook.
+3. **Translate story into system change**: identify what demand or policy changed, which old design is strained, and which physical/economic constraint matters: power, bandwidth, latency, heat, yield, material purity, reliability, cycle time, packaging density, permits, grid access, or customer certification.
+4. **Map value-chain layers**: end demand, system integrators, modules/subsystems, chips/devices, process/packaging/testing, equipment/metrology, materials/consumables, physical infrastructure.
+5. **Rank scarce layers first**: look for low supplier count, long qualification, hard expansion, customer certification, specialized equipment, high purity, permits, lead times, capacity reservations, prepayments, or price acceptance.
+6. **Build candidate universe**: cover obvious leaders and less-obvious upstream suppliers. For a broad theme, aim for 20+ candidates when tools and time allow before selecting the final 3-7.
+7. **Gather and grade evidence**: use primary and strong sources first. If the evidence is thin, label the result as an initial pass and name the exact checks still needed.
+8. **Rank research priorities**: separate scarce-layer priority from company priority. Explain what each final candidate constrains or sits closest to.
+9. **Stress test**: state substitution routes, faster competitor expansion, weak demand, poor margins, financing, governance, geopolitics, customer loss, valuation, and the clearest fact that would make the view wrong.
+10. **Give next research moves**: end with concrete source checks, metrics, customer cross-checks, capacity evidence, contract evidence, valuation comparison, and near-term events to monitor.
 
 Read `references/deep-research-workflow.md` for a fuller checklist when the user asks for a deep scan, ranked candidates, or "最值得研究".
 
@@ -54,6 +55,13 @@ Read `references/evidence-and-sources.md` when source grading or market-specific
 ## Output Contract
 
 Lead with the judgment. For theme scans, start with layer priority, then company or fund priority. Use a compact table only when it improves comparison.
+
+For deep industry reports, include a short **前置概念/概念地基** section before rankings unless the user explicitly asks for only a quick answer. Cover:
+
+- 基础概念：the object, unit economics, key technical terms, and what problem it solves;
+- 横向对比：adjacent technologies, substitutes, complements, and why this layer matters now;
+- 纵向演进：technology generations, cost/performance curve, process route, product form changes, and how those changes shift bottlenecks;
+- 投资映射：which listed-company layers actually control the object versus merely benefit from the theme.
 
 Preferred Chinese shape:
 

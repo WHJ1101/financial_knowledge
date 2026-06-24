@@ -5,7 +5,7 @@
     "topic": "NAND产业链深度：AI存储、企业级SSD与中美韩标的优先级",
     "type": "industry",
     "typeLabel": "产业链深度",
-    "summary": "NAND 正在从传统消费电子周期，转向 AI 数据中心企业级SSD、高层QLC/TLC、控制器固件和国产3D NAND扩产约束。A股以模组高beta和国产设备材料映射为主，美股和韩股的原厂直接弹性更强。",
+    "summary": "本报告先补齐 NAND 基础概念、横向定位和纵向演进，再判断产业链稀缺层级。NAND 正在从传统消费电子周期，转向 AI 数据中心企业级SSD、高层QLC/TLC、控制器固件和国产3D NAND扩产约束。A股以模组高beta和国产设备材料映射为主，美股和韩股的原厂直接弹性更强。",
     "tags": [
       "产业链",
       "NAND",
@@ -15,15 +15,16 @@
       "美股",
       "韩股"
     ],
-    "status": "new",
+    "status": "read",
     "source": "manual",
     "localDate": "2026-06-24",
     "createdAt": "2026-06-24T06:13:54.000Z",
-    "updatedAt": "2026-06-24T06:13:54.000Z",
+    "updatedAt": "2026-06-24T06:51:14.253Z",
     "file": "2026-06-24/2026-06-24-industry-nand产业链深度-ai存储-企业级ssd与中美韩标的优先级-a9f3c2d1.html",
     "wikiPath": "investing/themes/2026-06-24-nand产业链深度-ai存储-企业级ssd与中美韩标的优先级.html",
     "accent": "#00a676",
     "highlights": [
+      "概念模块：NAND 是非易失性存储，横向不同于DRAM/HBM/NOR/HDD，纵向经历2D到3D、SLC到QLC、消费SSD到企业级AI SSD演进。",
       "优先层级：企业级SSD和高层QLC/TLC NAND原厂、SSD控制器和固件、国产3D NAND扩产相关设备材料。",
       "A股缺少纯3D NAND晶圆原厂，江波龙、佰维存储、德明利是模组高beta，北方华创、中微公司、拓荆科技等是国产扩产映射。",
       "美股优先看 MU、SNDK、SIMO；韩股优先看 SK hynix 和 Samsung，韩国设备材料链需要DART继续核验。"

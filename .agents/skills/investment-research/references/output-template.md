@@ -5,12 +5,13 @@ Use this file when preparing final answers, structured memos, or local report co
 ## Default Answer Shape
 
 1. Lead with the answer.
-2. For theme scans, rank supply-chain layers first.
-3. Name the strongest candidates inside the top layers.
-4. Explain evidence and uncertainty.
-5. Mention popular areas that rank lower and why.
-6. Say what could make the view wrong.
-7. Give next checks.
+2. For deep industry or technical theme scans, add a short concept primer before rankings.
+3. For theme scans, rank supply-chain layers first.
+4. Name the strongest candidates inside the top layers.
+5. Explain evidence and uncertainty.
+6. Mention popular areas that rank lower and why.
+7. Say what could make the view wrong.
+8. Give next checks.
 
 Use prose for reasoning. Use one compact table for ranking or evidence comparison if useful.
 
@@ -27,6 +28,18 @@ Use prose for reasoning. Use one compact table for ranking or evidence compariso
 | 优先级 | 标的/方向 | 卡住的环节 | 产业链位置 | 排序理由 | 证据强度 | 主要风险 |
 |---:|---|---|---|---|---|---|
 | 1 |  |  |  |  | Strong/Medium/Weak/Needs checking |  |
+```
+
+## Concept Primer
+
+Use this before rankings for deep industry reports, technical products, or unfamiliar supply chains:
+
+```markdown
+**概念地基**
+- 基础概念：[这是什么，解决什么问题，核心单位/指标是什么]
+- 横向对比：[和替代/相邻技术相比，优势、短板、应用边界]
+- 纵向演进：[技术代际、工艺路线、成本/性能曲线、产品形态变化]
+- 投资映射：[哪些上市公司真正控制该对象，哪些只是受益或蹭主题]
 ```
 
 ## Single Company Challenge
@@ -80,6 +93,7 @@ When feeding `thinking-mvp`, keep source items compact and dated:
 Suggested report sections:
 
 - 一句话结论；
+- 概念地基：基础概念、横向对比、纵向演进、投资映射；
 - 产业链层级排序；
 - 优先研究名单；
 - 证据强弱；

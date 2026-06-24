@@ -7,6 +7,7 @@ Use this file when the user asks for current opportunities, ranked candidates, "
 For a current theme scan, aim to complete these checks before the final answer:
 
 - cover at least three value-chain layers;
+- include a concept primer for deep or technical themes: basic definition, horizontal positioning, vertical evolution, and investment mapping;
 - rank scarce layers before companies;
 - inspect 25+ sources when tools and time allow;
 - build a starting universe of 20+ candidates when the market is broad enough;
@@ -33,7 +34,20 @@ Infer the missing pieces when reasonable:
 
 Ask only when the missing scope would materially change the answer.
 
-### 2. Convert Theme To System Change
+### 2. Build The Concept Primer
+
+Before the system-change chain, add a compact **Concept Primer** when the theme is a deep industry report, a technical product, or an unfamiliar supply chain.
+
+Cover four blocks:
+
+1. **Basic concept**: what the object is, what problem it solves, core units/metrics, and the minimum technical mechanism needed for investment reasoning.
+2. **Horizontal positioning**: compare substitutes, complements, and adjacent technologies; explain what this layer does that neighboring layers do not.
+3. **Vertical evolution**: trace generations, process routes, product form changes, cost/performance curves, and why the evolution changes bottlenecks.
+4. **Investment mapping**: identify which listed-company layers control the object, supply it, depend on it, or only have theme exposure.
+
+Do not bury the report in textbook detail. The concept primer should make later scarcity and company ranking understandable.
+
+### 3. Convert Theme To System Change
 
 Write the practical chain:
 
@@ -45,7 +59,7 @@ Examples:
 - AI servers -> power density and uptime pressure -> power conversion, transformers, switchgear, liquid cooling -> qualified equipment and components.
 - Humanoid robotics -> actuator and sensing density -> precision reducers, motors, encoders, tactile sensing, batteries -> manufacturing yield and supplier qualification.
 
-### 3. Build The Value-Chain Map
+### 4. Build The Value-Chain Map
 
 Use these layers as a checklist:
 
@@ -60,7 +74,7 @@ Use these layers as a checklist:
 
 Keep buckets granular. For AI半导体, separate compute chips, EDA/IP, memory/storage, equipment, materials, testing, advanced packaging, optical links, PCB/CCL, power, and cooling.
 
-### 4. Search For Scarce Layers
+### 5. Search For Scarce Layers
 
 A scarce layer becomes interesting when several signals stack:
 
@@ -80,7 +94,7 @@ Chinese opening pattern:
 前几层更接近扩产和工艺升级的硬约束，后面几层需要更强订单和财务证据才能往前排。
 ```
 
-### 5. Build The Candidate Universe
+### 6. Build The Candidate Universe
 
 Avoid starting from the hottest tickers. Include names across:
 
@@ -102,7 +116,7 @@ Classify each candidate plainly:
 - has exposure with weak pricing power;
 - has a good story with weak proof.
 
-### 6. Gather Current Evidence
+### 7. Gather Current Evidence
 
 Prioritize:
 
@@ -115,7 +129,7 @@ Prioritize:
 
 For deep current scans, aim for a mix of 10+ filings/announcements, 5+ company or technical sources, and 5+ credible media/trade/association/project records.
 
-### 7. Rank Candidates
+### 8. Rank Candidates
 
 Rank by:
 
@@ -141,7 +155,7 @@ For each final company, answer:
 - What evidence supports that rank?
 - What would make the rank weaker?
 
-### 8. Explain The Answer
+### 9. Explain The Answer
 
 Start with the conclusion:
 
