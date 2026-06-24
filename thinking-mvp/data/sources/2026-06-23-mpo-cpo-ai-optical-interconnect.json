@@ -1,0 +1,119 @@
+[
+  {
+    "title": "OIF Energy Efficient Interfaces: AI data centers need denser, lower-latency electrical and optical interfaces",
+    "summary": "OIF says next-generation AI systems need dense electrical and optical interfaces with better energy efficiency and lower latency; its EEI work includes co-packaged, near-packaged, pluggable, retimed and linear interfaces.",
+    "observedAt": "2026-06-23T15:18:34+08:00",
+    "confidence": "high",
+    "url": "https://www.oiforum.com/technical-work/hot-topics/energy-efficient-interfaces/",
+    "type": "industry",
+    "tags": ["CPO", "EEI", "AI光互联"]
+  },
+  {
+    "title": "OIF Implementation Agreements list: CPO 3.2Tb/s module and co-packaging framework",
+    "summary": "OIF lists the 3.2Tb/s Co-Packaged Module implementation agreement, the Co-Packaging Framework Document and ELSFP agreements under Energy Efficient Interfaces.",
+    "observedAt": "2026-06-23T15:18:34+08:00",
+    "confidence": "high",
+    "url": "https://www.oiforum.com/technical-work/implementation-agreements-ias/",
+    "type": "industry",
+    "tags": ["CPO", "ELSFP", "标准"]
+  },
+  {
+    "title": "OIF 3.2Tb/s CPO Module IA: building block for 51.2Tb/s switch assemblies",
+    "summary": "The OIF CPO module agreement defines a 3.2Tb/s CPO transceiver used as a building block for lower-power 51.2Tb/s switches; variants include 8x400G DR4/FR4 and external-laser options.",
+    "observedAt": "2026-06-23T15:18:34+08:00",
+    "confidence": "high",
+    "url": "https://www.oiforum.com/wp-content/uploads/OIF-Co-Packaging-3.2T-Module-01.0.pdf",
+    "type": "industry",
+    "tags": ["CPO", "51.2T交换机", "光引擎"]
+  },
+  {
+    "title": "OIF Co-Packaging Framework: close placement reduces electrical channel loss",
+    "summary": "The framework explains that putting optical engines close to ASICs minimizes high-speed electrical channel losses and supports higher-speed, lower-power off-chip I/O.",
+    "observedAt": "2026-06-23T15:18:34+08:00",
+    "confidence": "high",
+    "url": "https://www.oiforum.com/wp-content/uploads/OIF-Co-Packaging-FD-01.0.pdf",
+    "type": "industry",
+    "tags": ["CPO", "SerDes", "功耗"]
+  },
+  {
+    "title": "OIF ELSFP IA: external laser packaging for CPO systems",
+    "summary": "The ELSFP specification addresses laser packaging requirements for CPO systems with optical engines, making external laser sources a distinct value-chain layer.",
+    "observedAt": "2026-06-23T15:18:34+08:00",
+    "confidence": "high",
+    "url": "https://www.oiforum.com/wp-content/uploads/OIF-ELSFP-02.0-1.pdf",
+    "type": "industry",
+    "tags": ["ELSFP", "外置光源", "CPO"]
+  },
+  {
+    "title": "NVIDIA photonics reports: CPO switches enter 2026 AI-networking roadmap",
+    "summary": "Industry coverage of NVIDIA's photonics roadmap says Quantum-X and Spectrum-X photonics switches use CPO/silicon photonics to reduce power and support 800G-class ports at very high aggregate bandwidth.",
+    "observedAt": "2026-06-23T15:18:34+08:00",
+    "confidence": "medium",
+    "url": "https://www.tomshardware.com/networking/nvidia-outlines-plans-for-using-light-for-communication-between-ai-gpus-by-2026-silicon-photonics-and-co-packaged-optics-may-become-mandatory-for-next-gen-ai-data-centers",
+    "type": "industry",
+    "tags": ["NVIDIA", "CPO", "AI交换机"]
+  },
+  {
+    "title": "中际旭创 2025 annual report: 100G to 1.6T high-speed optical modules",
+    "summary": "The 2025 annual report states that the company provides 100G, 200G, 400G, 800G and 1.6T high-speed optical modules for cloud data-center customers, and its 1.6T products include EML and silicon-photonics platforms.",
+    "observedAt": "2026-06-23T15:18:34+08:00",
+    "confidence": "high",
+    "url": "https://www.zj-innolight.com/public/static/ajaxuplode/uploadfile/financial/1776659833994705.pdf",
+    "type": "stock",
+    "tags": ["中际旭创", "300308", "800G", "1.6T"]
+  },
+  {
+    "title": "中际旭创 product page: data center and AI interconnect portfolio",
+    "summary": "The company product page lists data-center and AI interconnect products covering 100G, 200G, 400G, 800G and 1.6T, with 800G OSFP/QSFP-DD and 1.6T OSFP product families.",
+    "observedAt": "2026-06-23T15:18:34+08:00",
+    "confidence": "high",
+    "url": "https://products.zj-innolight.com/index/goods/products.html?cid=1",
+    "type": "stock",
+    "tags": ["中际旭创", "300308", "AI互联"]
+  },
+  {
+    "title": "Eoptolink product page: 1.6T OSFP, 800G LPO and NPO/XPO photonics",
+    "summary": "Eoptolink lists 1.6T OSFP transceivers for AI clusters and cloud data centers, 800G LPO modules, plus 6.4T silicon-photonics NPO and 12.8T XPO liquid-cooled optics messaging.",
+    "observedAt": "2026-06-23T15:18:34+08:00",
+    "confidence": "high",
+    "url": "https://www.eoptolink.com/",
+    "type": "stock",
+    "tags": ["新易盛", "300502", "1.6T", "LPO", "NPO"]
+  },
+  {
+    "title": "TFC official site: precision optical components, optical-engine solutions and global manufacturing",
+    "summary": "TFC describes 20 years of high-precision optical-device design and manufacturing, optical active/passive devices, high-speed optical-engine solutions, FAU, micro-optics, fiber connectors, electro-optical integration packaging and manufacturing bases in China and Thailand.",
+    "observedAt": "2026-06-23T15:18:34+08:00",
+    "confidence": "high",
+    "url": "https://www.tfcsz.com/",
+    "type": "stock",
+    "tags": ["天孚通信", "300394", "光器件", "光引擎"]
+  },
+  {
+    "title": "T&S Communications official site: MPO/MTP cables, next-gen multi-fiber interconnects and MT ferrules",
+    "summary": "T&S lists MPO/MTP cables, next-generation multi-fiber interconnects, shuffle assemblies, fiber optic flex circuits, ceramic ferrules, MT ferrules and MPO connector kits, making it a direct A-share mapping for the MPO layer.",
+    "observedAt": "2026-06-23T15:18:34+08:00",
+    "confidence": "high",
+    "url": "https://www.china-tscom.com/",
+    "type": "stock",
+    "tags": ["太辰光", "300570", "MPO", "MTP", "MT插芯"]
+  },
+  {
+    "title": "Yuanjie Semitech official site: datacom DFB/CWDM/LWDM and high-power CW lasers",
+    "summary": "Yuanjie lists DATACOM 10G/25G/50G DFB CWDM/LWDM and high-power CW laser products, with production lines from MOCVD epitaxy to chip manufacturing and automatic testing.",
+    "observedAt": "2026-06-23T15:18:34+08:00",
+    "confidence": "medium",
+    "url": "https://www.yj-semitech.com/",
+    "type": "stock",
+    "tags": ["源杰科技", "688498", "激光芯片", "科创板"]
+  },
+  {
+    "title": "Taclink official site: optical transceivers, amplifiers, components and 1.6T OSFP DR8 launch",
+    "summary": "Taclink describes itself as a supplier of optical transceivers, optical amplifiers, optical components and subsystems, and announced a 1.6T OSFP DR8 optical transceiver at OFC 2026.",
+    "observedAt": "2026-06-23T15:18:34+08:00",
+    "confidence": "medium",
+    "url": "https://www.taclink.com/",
+    "type": "stock",
+    "tags": ["德科立", "688205", "1.6T", "科创板"]
+  }
+]

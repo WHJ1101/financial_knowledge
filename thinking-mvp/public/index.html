@@ -56,14 +56,6 @@
           <span>⌕</span>
           <input id="searchInput" autocomplete="off" placeholder="搜索笔记、标的、任务..." type="search">
         </label>
-        <label class="origin-filter" for="originFilter">
-          <span>产出</span>
-          <select id="originFilter">
-            <option value="all">全部</option>
-            <option value="automation">自动化</option>
-            <option value="manual">手动</option>
-          </select>
-        </label>
         <div class="top-actions">
           <button class="status-pill ok" type="button" disabled><span></span>知识库正常</button>
           <button id="automationButton" class="status-pill" type="button">自动化 暂停</button>
@@ -118,7 +110,17 @@
           <h2>今日聚焦报告</h2>
           <p>按更新时间聚合，点击进入报告阅读页。</p>
         </div>
-        <button id="runDailyButton" class="ghost-button" type="button">执行日更</button>
+        <div class="board-actions">
+          <label class="report-filter">
+            <span>产出</span>
+            <select data-report-origin-filter aria-label="按产出方式筛选报告">
+              <option value="all">全部</option>
+              <option value="automation">自动化</option>
+              <option value="manual">手动</option>
+            </select>
+          </label>
+          <button id="runDailyButton" class="ghost-button" type="button">执行日更</button>
+        </div>
       </div>
       <div id="reportSections" class="report-sections"></div>
     </section>

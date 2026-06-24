@@ -1,0 +1,166 @@
+[
+  {
+    "id": "1782270949152-5b6786ed36cc68",
+    "type": "automation",
+    "message": "Automation enabled",
+    "meta": {
+      "schedule": "08:30 Asia/Shanghai"
+    },
+    "createdAt": "2026-06-24T03:15:49.152Z",
+    "localTime": "周三 · 2026-06-24 11:15:49"
+  },
+  {
+    "id": "1782270948342-77b24c8e404d6",
+    "type": "automation",
+    "message": "Automation paused",
+    "meta": {
+      "schedule": "08:30 Asia/Shanghai"
+    },
+    "createdAt": "2026-06-24T03:15:48.342Z",
+    "localTime": "周三 · 2026-06-24 11:15:48"
+  },
+  {
+    "id": "1782261001927-5a4ebab4907e88",
+    "type": "daily_job",
+    "message": "Daily job created 4 reports",
+    "meta": {
+      "source": "scheduled",
+      "reportIds": [
+        "2026-06-24-market-2026-06-24-a股市场脉搏-成交-风格轮动与资金方向-c14c61ab",
+        "2026-06-24-industry-ai算力产业链-光模块-交换芯片与液冷的订单验证-7d2b2427",
+        "2026-06-24-industry-半导体材料观察-锗-inp与先进封装需求-4dd1b8cd",
+        "2026-06-24-policy-政策日报-低空经济-算力基础设施与设备更新-f45a602b"
+      ]
+    },
+    "createdAt": "2026-06-24T00:30:01.927Z",
+    "localTime": "周三 · 2026-06-24 08:30:01"
+  },
+  {
+    "id": "1782202027196-6adcc8d5a70208",
+    "type": "position",
+    "message": "Saved position: 测试持仓",
+    "meta": {
+      "code": "TEST01",
+      "shares": 100
+    },
+    "createdAt": "2026-06-23T08:07:07.196Z",
+    "localTime": "周二 · 2026-06-23 16:07:07"
+  },
+  {
+    "id": "1782202026386-6ada4d3e9237d",
+    "type": "stock",
+    "message": "Saved stock: 测试标的",
+    "meta": {
+      "code": "TEST01"
+    },
+    "createdAt": "2026-06-23T08:07:06.386Z",
+    "localTime": "周二 · 2026-06-23 16:07:06"
+  },
+  {
+    "id": "1782201989570-6ad504f2474e7",
+    "type": "decision",
+    "message": "Created decision guide: 2026-06-23 每日决策指南",
+    "meta": {
+      "id": "decision-2026-06-23-1782201989570"
+    },
+    "createdAt": "2026-06-23T08:06:29.570Z",
+    "localTime": "周二 · 2026-06-23 16:06:29"
+  },
+  {
+    "id": "1782199948438-c883cf9811dff8",
+    "type": "daily_job",
+    "message": "Daily job created 4 reports",
+    "meta": {
+      "source": "scheduled",
+      "reportIds": [
+        "2026-06-23-market-2026-06-23-a股市场脉搏-成交-风格轮动与资金方向-dc25719e",
+        "2026-06-23-industry-ai算力产业链-光模块-交换芯片与液冷的订单验证-10a7b6f2",
+        "2026-06-23-industry-半导体材料观察-锗-inp与先进封装需求-8f02d966",
+        "2026-06-23-policy-政策日报-低空经济-算力基础设施与设备更新-2b5b19e5"
+      ]
+    },
+    "createdAt": "2026-06-23T07:32:28.438Z",
+    "localTime": "周二 · 2026-06-23 15:32:28"
+  },
+  {
+    "id": "1782199896705-5f6c25c0e46be8",
+    "type": "inbox_sync",
+    "message": "Imported 1 inbox reports",
+    "meta": {
+      "reportIds": [
+        "inbox-对话报告-自动入库验证-7a315a87"
+      ]
+    },
+    "createdAt": "2026-06-23T07:31:36.705Z",
+    "localTime": "周二 · 2026-06-23 15:31:36"
+  },
+  {
+    "id": "1782199866478-d776b6863a277",
+    "type": "automation",
+    "message": "Automation enabled",
+    "meta": {
+      "schedule": "08:30 Asia/Shanghai"
+    },
+    "createdAt": "2026-06-23T07:31:06.479Z",
+    "localTime": "周二 · 2026-06-23 15:31:06"
+  },
+  {
+    "id": "1782199114000-mpo-cpo-report",
+    "type": "manual_research",
+    "message": "Created report: MPO 与 CPO：AI 光互联商业逻辑与 A股/科创板研究优先级 - 产业链深度",
+    "meta": {
+      "reportId": "2026-06-23-industry-mpo-cpo-ai光互联商业逻辑与a股科创板标的-8f6d4c21",
+      "topic": "MPO 与 CPO：AI 光互联商业逻辑与 A股/科创板研究优先级"
+    },
+    "createdAt": "2026-06-23T07:18:34.000Z",
+    "localTime": "周二 · 2026-06-23 15:18:34"
+  },
+  {
+    "id": "1781682864013-cf578547568048",
+    "type": "manual_research",
+    "message": "Created report: 机器人产业链：减速器、传感器与端侧AI落地二次验证 - 产业链深度",
+    "meta": {
+      "reportId": "2026-06-17-industry-机器人产业链-减速器-传感器与端侧ai落地二次验证-c941c892",
+      "topic": "机器人产业链：减速器、传感器与端侧AI落地二次验证"
+    },
+    "createdAt": "2026-06-17T07:54:24.013Z",
+    "localTime": "周三 · 2026-06-17 15:54:24"
+  },
+  {
+    "id": "1781668514747-3ab5870953d15",
+    "type": "daily_job",
+    "message": "Daily job created 4 reports",
+    "meta": {
+      "source": "daily",
+      "reportIds": [
+        "2026-06-17-market-2026-06-17-a股市场脉搏-成交-风格轮动与资金方向-b11e358e",
+        "2026-06-17-industry-ai算力产业链-光模块-交换芯片与液冷的订单验证-befad699",
+        "2026-06-17-industry-半导体材料观察-锗-inp与先进封装需求-1ccda699",
+        "2026-06-17-policy-政策日报-低空经济-算力基础设施与设备更新-f89db6a7"
+      ]
+    },
+    "createdAt": "2026-06-17T03:55:14.747Z",
+    "localTime": "周三 · 2026-06-17 11:55:14"
+  },
+  {
+    "id": "1781668367216-3662879cd7d67",
+    "type": "manual_research",
+    "message": "Created report: 机器人产业链：减速器、传感器与端侧AI落地 - 产业链深度",
+    "meta": {
+      "reportId": "2026-06-17-industry-机器人产业链-减速器-传感器与端侧ai落地-b9c75176",
+      "topic": "机器人产业链：减速器、传感器与端侧AI落地"
+    },
+    "createdAt": "2026-06-17T03:52:47.216Z",
+    "localTime": "周三 · 2026-06-17 11:52:47"
+  },
+  {
+    "id": "1781668283959-f5e1f7f968ed6",
+    "type": "seed",
+    "message": "Created starter reports",
+    "meta": {
+      "count": 5
+    },
+    "createdAt": "2026-06-17T03:51:23.959Z",
+    "localTime": "周三 · 2026-06-17 11:51:23"
+  }
+]

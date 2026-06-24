@@ -1,0 +1,98 @@
+[
+  {
+    "title": "Counterpoint: 2026Q1 NAND revenue hit a record on enterprise SSD demand",
+    "summary": "Counterpoint data cited by PC Gamer says NAND industry revenue in 2026Q1 reached a record level, with enterprise SSDs becoming the core demand driver for AI data centers. This supports the view that the current cycle is led by data-center storage rather than PC or handset replacement.",
+    "observedAt": "2026-06-03T23:08:23+08:00",
+    "confidence": "medium",
+    "type": "industry",
+    "url": "https://www.pcgamer.com/hardware/ssds/nand-flash-makers-earned-a-record-usd46-billion-in-revenues-over-the-first-quarter-of-2026-a-shocking-3-5-times-more-than-last-year/"
+  },
+  {
+    "title": "TrendForce: 2026Q2 NAND contract prices expected to rise faster than DRAM",
+    "summary": "TrendForce data cited by Tom's Hardware points to another sharp NAND contract-price increase in 2026Q2, driven by enterprise SSD allocation, cloud-provider long-term commitments, and limited near-term capacity additions.",
+    "observedAt": "2026-04-01T22:52:40+08:00",
+    "confidence": "medium",
+    "type": "industry",
+    "url": "https://www.tomshardware.com/pc-components/dram/dram-and-nand-contract-prices-to-climb-again-in-q2"
+  },
+  {
+    "title": "Silicon Motion interview: NAND supply is being redirected from retail SSDs to AI data centers",
+    "summary": "Silicon Motion management described a structural shift in SSD demand: memory suppliers are prioritizing AI data-center and OEM allocation, while retail SSD supply has shrunk. This highlights SSD controllers and module makers as second-order beneficiaries.",
+    "observedAt": "2026-06-16T21:30:00+08:00",
+    "confidence": "medium",
+    "type": "industry",
+    "url": "https://www.tomshardware.com/pc-components/ssds/smis-pcie-6-0-ssd-controller-for-consumer-ssds-coming-next-year-but-severe-nand-shortages-will-get-even-worse-in-2027-as-ai-data-centers-swallow-supply-an-interview-with-silicon-motions-svp-nelson-duann"
+  },
+  {
+    "title": "Micron 9650 and 6600 ION: G9 NAND, PCIe Gen6, and high-capacity QLC SSD roadmap",
+    "summary": "Micron's data-center SSD portfolio cited by Tom's Hardware shows how leading NAND vendors are moving toward high-speed PCIe Gen6 SSDs and high-density QLC SSDs for AI and hyperscale workloads.",
+    "observedAt": "2025-07-30T23:05:54+08:00",
+    "confidence": "medium",
+    "type": "stock",
+    "url": "https://www.tomshardware.com/pc-components/ssds/microns-industry-first-pci-6-0-ssd-promises-sequential-reads-up-to-28-000-mb-s-245-tb-ssd-also-coming-for-those-who-need-capacity-more-than-cutting-edge-speed"
+  },
+  {
+    "title": "Micron exits Crucial consumer business to prioritize enterprise and AI customers",
+    "summary": "Micron's wind-down of the Crucial consumer SSD and memory brand, reported by Tom's Hardware, is evidence that large suppliers are reallocating output away from low-margin consumer channels toward strategic enterprise and AI demand.",
+    "observedAt": "2025-12-04T02:52:33+08:00",
+    "confidence": "medium",
+    "type": "stock",
+    "url": "https://www.tomshardware.com/pc-components/dram/micron-is-killing-crucial-ssds-and-memory-in-ai-pivot-company-refocuses-on-hbm-and-enterprise-customers"
+  },
+  {
+    "title": "SanDisk enterprise NAND pricing and AI storage demand",
+    "summary": "Nomura checks cited by Tom's Hardware said enterprise-grade NAND pricing pressure intensified in 2026Q1, with AI storage architectures and hyperscaler procurement as key drivers. This supports SanDisk as a high-beta pure NAND candidate, but the evidence is broker-channel based.",
+    "observedAt": "2026-01-09T18:29:54+08:00",
+    "confidence": "medium",
+    "type": "stock",
+    "url": "https://www.tomshardware.com/pc-components/ssds/sandisk-to-double-price-of-3d-nand-for-enterprise-ssds-in-q1-2026-hyperscalers-to-pay-top-dollar-for-storage-as-ai-continues-to-roll"
+  },
+  {
+    "title": "SanDisk became independent again after Western Digital flash spin-off",
+    "summary": "Public company background cited in market coverage and reference data shows SanDisk was separated from Western Digital as an independent flash-storage company, making SNDK a more direct listed NAND exposure than WDC.",
+    "observedAt": "2026-05-24T12:00:00+08:00",
+    "confidence": "medium",
+    "type": "stock",
+    "url": "https://www.marketwatch.com/story/the-latest-sign-of-sandisks-ascent-its-now-bigger-than-western-digital-which-spun-it-off-dec1a23e"
+  },
+  {
+    "title": "SK hynix 2026Q1 results: strong demand and supply discipline",
+    "summary": "MarketWatch coverage of SK hynix 2026Q1 results says revenue and earnings rose sharply, and management expected demand to outstrip supply for multiple years. This supports the memory-upcycle thesis but must be separated from HBM-specific strength.",
+    "observedAt": "2026-04-23T21:35:00+08:00",
+    "confidence": "medium",
+    "type": "stock",
+    "url": "https://www.marketwatch.com/story/the-good-times-roll-for-sk-hynix-with-record-breaking-quarter-but-living-up-to-expectations-isnt-easy-1f2ae731"
+  },
+  {
+    "title": "SK hynix 321-layer 2Tb QLC NAND mass production",
+    "summary": "SK hynix's 321-layer QLC NAND roadmap cited by Tom's Hardware shows the technical direction of high-capacity SSDs, including potential 244TB-class enterprise products. This is relevant to Solidigm and AI data-center storage density.",
+    "observedAt": "2025-08-26T03:11:11+08:00",
+    "confidence": "medium",
+    "type": "stock",
+    "url": "https://www.tomshardware.com/pc-components/ssds/sk-hynix-announces-mass-production-of-its-2tb-3d-qlc-nand-cheaper-high-capacity-consumer-drives-and-244tb-enterprise-ssds-incoming"
+  },
+  {
+    "title": "Samsung and SK hynix warn of multi-year AI-driven memory shortages",
+    "summary": "Industry coverage of Samsung and SK hynix earnings commentary points to multi-year tightness across memory categories, with enterprise SSD demand rising alongside HBM. The source is secondary, so use it as triangulation rather than sole proof.",
+    "observedAt": "2026-04-30T22:46:57+08:00",
+    "confidence": "medium",
+    "type": "industry",
+    "url": "https://www.tomshardware.com/tech-industry/artificial-intelligence/samsung-and-sk-hynix-warn-ai-driven-memory-shortages-could-last-until-2027-and-beyond-as-hbm-demand-explodes-customers-already-reserving-supply-years-ahead-while-the-wider-dram-market-begins-to-tighten"
+  },
+  {
+    "title": "Longsys and Lexar: AI-ready storage, controller work, and module manufacturing",
+    "summary": "Tom's Hardware's 2026 visit to Lexar and Longsys describes product and manufacturing shifts toward AI-ready storage, controller development, and high-end module differentiation. This supports Longsys as an A-share NAND module candidate but not as a NAND wafer producer.",
+    "observedAt": "2026-04-10T20:00:00+08:00",
+    "confidence": "medium",
+    "type": "stock",
+    "url": "https://www.tomshardware.com/pc-components/storage/30-years-of-lexar-what-a-look-inside-its-r-and-d-labs-and-factory-reveals-about-its-plans-for-an-ai-ready-future"
+  },
+  {
+    "title": "STAR paper: higher-capacity 3D NAND creates new reliability constraints",
+    "summary": "A 2025 storage-architecture paper based on real 3D NAND characterization argues that high-capacity modern SSDs face retention and reliability issues that require stronger controller and firmware techniques. This supports the scarcity of high-end SSD controller and firmware capability.",
+    "observedAt": "2025-11-09T00:00:00+08:00",
+    "confidence": "medium",
+    "type": "industry",
+    "url": "https://arxiv.org/abs/2511.06249"
+  }
+]

@@ -1,0 +1,80 @@
+[
+  {
+    "region": "A股",
+    "name": "上证指数",
+    "code": "000001.SH",
+    "level": "待接入",
+    "change": "待接入",
+    "relatedEtfs": [
+      "华夏上证50ETF",
+      "华泰柏瑞沪深300ETF",
+      "易方达上证科创板50ETF"
+    ]
+  },
+  {
+    "region": "A股",
+    "name": "深证成指",
+    "code": "399001.SZ",
+    "level": "待接入",
+    "change": "待接入",
+    "relatedEtfs": [
+      "易方达深证100ETF",
+      "南方中证500ETF"
+    ]
+  },
+  {
+    "region": "A股",
+    "name": "创业板指",
+    "code": "399006.SZ",
+    "level": "待接入",
+    "change": "待接入",
+    "relatedEtfs": [
+      "易方达创业板ETF",
+      "华安创业板50ETF"
+    ]
+  },
+  {
+    "region": "A股",
+    "name": "科创50",
+    "code": "000688.SH",
+    "level": "待接入",
+    "change": "待接入",
+    "relatedEtfs": [
+      "华夏科创50ETF",
+      "易方达科创板50ETF"
+    ]
+  },
+  {
+    "region": "港股",
+    "name": "恒生指数",
+    "code": "HSI.HK",
+    "level": "待接入",
+    "change": "待接入",
+    "relatedEtfs": [
+      "华夏恒生ETF",
+      "易方达恒生H股ETF"
+    ]
+  },
+  {
+    "region": "美股",
+    "name": "纳斯达克综合指数",
+    "code": "IXIC.US",
+    "level": "待接入",
+    "change": "待接入",
+    "relatedEtfs": [
+      "广发纳指100ETF",
+      "国泰纳斯达克100ETF"
+    ]
+  },
+  {
+    "region": "美股",
+    "name": "标普500",
+    "code": "SPX.US",
+    "level": "待接入",
+    "change": "待接入",
+    "relatedEtfs": [
+      "博时标普500ETF",
+      "易方达标普500ETF"
+    ]
+  }
+]

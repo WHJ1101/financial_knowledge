@@ -15,7 +15,6 @@ const view = document.querySelector("#view");
 const todayTemplate = document.querySelector("#todayTemplate");
 const reportTemplate = document.querySelector("#reportTemplate");
 const searchInput = document.querySelector("#searchInput");
-const originFilter = document.querySelector("#originFilter");
 const automationButton = document.querySelector("#automationButton");
 const syncButton = document.querySelector("#syncButton");
 
@@ -53,12 +52,6 @@ searchInput.addEventListener("input", async (event) => {
   if (!isReportRoute()) renderRoute();
 });
 
-originFilter.addEventListener("change", async (event) => {
-  state.originFilter = event.target.value;
-  await loadReports();
-  if (!isReportRoute()) renderRoute();
-});
-
 automationButton.addEventListener("click", async () => {
   const next = !state.status?.settings?.automationEnabled;
   await postJson("/api/automation/toggle", { enabled: next });
@@ -87,7 +80,6 @@ async function loadStatus() {
 async function loadReports() {
   const params = new URLSearchParams();
   if (state.query) params.set("q", state.query);
-  if (state.originFilter !== "all") params.set("origin", state.originFilter);
   const query = params.toString() ? `?${params.toString()}` : "";
   const payload = await getJson(`/api/reports${query}`);
   state.reports = payload.reports;
@@ -139,11 +131,12 @@ function renderToday() {
   view.replaceChildren(fragment);
 
   document.querySelector("#currentTime").textContent = state.status?.now || "--";
-  document.querySelector("#todayCount").textContent = countVisibleTodayReports();
-  document.querySelector("#unreadCount").textContent = state.reports.filter((report) => report.status !== "read").length;
+  document.querySelector("#todayCount").textContent = state.status?.todayUpdates ?? 0;
+  document.querySelector("#unreadCount").textContent = state.status?.unreadCount ?? 0;
 
   document.querySelector("#researchForm").addEventListener("submit", handleResearchSubmit);
   document.querySelector("#runDailyButton").addEventListener("click", handleDailyRun);
+  bindReportOriginFilters(view);
   renderReportSections();
 }
 
@@ -562,15 +555,21 @@ function buildReportsPanel(title, reports, emptyText) {
   const panel = document.createElement("section");
   panel.className = "board route-panel";
   panel.innerHTML = `
-    <div class="board-head"><div><h2>${escapeHtml(title)}列表</h2><p>点击报告进入阅读页。</p></div></div>
+    <div class="board-head">
+      <div><h2>${escapeHtml(title)}列表</h2><p>点击报告进入阅读页。</p></div>
+      <div class="board-actions">${reportOriginFilterHtml()}</div>
+    </div>
     <div class="report-sections"></div>
   `;
+  bindReportOriginFilters(panel);
   const container = panel.querySelector(".report-sections");
-  if (!reports.length) {
-    container.innerHTML = `<div class="empty-state"><h2>${escapeHtml(emptyText)}</h2><p>后续生成相关报告后会自动出现在这里。</p></div>`;
+  const visibleReports = applyReportOriginFilter(reports);
+  if (!visibleReports.length) {
+    const body = reports.length ? "当前筛选条件下暂无报告。" : "后续生成相关报告后会自动出现在这里。";
+    container.innerHTML = `<div class="empty-state"><h2>${escapeHtml(emptyText)}</h2><p>${escapeHtml(body)}</p></div>`;
     return panel;
   }
-  for (const report of reports.slice(0, 40)) {
+  for (const report of visibleReports.slice(0, 40)) {
     container.appendChild(buildReportRow(report));
   }
   return panel;
@@ -604,19 +603,21 @@ async function renderReport(reportId) {
 function renderReportSections() {
   const container = document.querySelector("#reportSections");
   const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Shanghai" });
-  const todayReports = state.reports.filter((report) => report.localDate === today);
-  const olderReports = state.reports.filter((report) => report.localDate !== today);
+  const visibleReports = applyReportOriginFilter(state.reports);
+  const todayReports = visibleReports.filter((report) => report.localDate === today);
+  const olderReports = visibleReports.filter((report) => report.localDate !== today);
 
   container.replaceChildren();
-  if (!state.reports.length) {
+  if (!visibleReports.length) {
+    const hasReports = state.reports.length > 0;
     container.innerHTML = `
       <div class="empty-state">
-        <h2>还没有报告</h2>
-        <p>执行日更或输入一个调研主题，系统会生成第一批网页报告。</p>
-        <button id="emptyDailyButton" class="ghost-button" type="button">执行日更</button>
+        <h2>${hasReports ? "当前筛选下暂无报告" : "还没有报告"}</h2>
+        <p>${hasReports ? "切换产出方式后可查看其他报告。" : "执行日更或输入一个调研主题，系统会生成第一批网页报告。"}</p>
+        ${hasReports ? "" : `<button id="emptyDailyButton" class="ghost-button" type="button">执行日更</button>`}
       </div>
     `;
-    document.querySelector("#emptyDailyButton").addEventListener("click", handleDailyRun);
+    document.querySelector("#emptyDailyButton")?.addEventListener("click", handleDailyRun);
     return;
   }
 
@@ -795,9 +796,32 @@ function originLabel(origin) {
   }[origin] || "未标注产出方式";
 }
 
-function countVisibleTodayReports() {
-  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Shanghai" });
-  return state.reports.filter((report) => report.localDate === today).length;
+function reportOriginFilterHtml() {
+  return `
+    <label class="report-filter">
+      <span>产出</span>
+      <select data-report-origin-filter aria-label="按产出方式筛选报告">
+        <option value="all"${state.originFilter === "all" ? " selected" : ""}>全部</option>
+        <option value="automation"${state.originFilter === "automation" ? " selected" : ""}>自动化</option>
+        <option value="manual"${state.originFilter === "manual" ? " selected" : ""}>手动</option>
+      </select>
+    </label>
+  `;
+}
+
+function bindReportOriginFilters(root) {
+  root.querySelectorAll("[data-report-origin-filter]").forEach((select) => {
+    select.value = state.originFilter;
+    select.addEventListener("change", (event) => {
+      state.originFilter = event.currentTarget.value;
+      renderRoute();
+    });
+  });
+}
+
+function applyReportOriginFilter(reports) {
+  if (state.originFilter === "all") return reports;
+  return reports.filter((report) => (report.origin || "manual") === state.originFilter);
 }
 
 function formatSchedule(schedule) {

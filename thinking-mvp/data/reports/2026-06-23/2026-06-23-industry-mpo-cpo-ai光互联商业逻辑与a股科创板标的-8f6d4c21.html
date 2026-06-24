@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MPO 与 CPO：AI 光互联商业逻辑与 A股/科创板研究优先级</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --accent: #00a676;
+      --ink: #111827;
+      --muted: #64748b;
+      --line: #dbe4f0;
+      --soft: #f7fafc;
+      --paper: #ffffff;
+      --warn: #92400e;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--soft);
+      color: var(--ink);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.68;
+    }
+    main {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 48px 28px 72px;
+    }
+    article {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 36px;
+    }
+    .eyebrow {
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    h1 {
+      margin: 10px 0 14px;
+      font-size: clamp(30px, 5vw, 46px);
+      line-height: 1.12;
+      letter-spacing: 0;
+    }
+    h2 {
+      font-size: 21px;
+      margin: 0 0 12px;
+    }
+    h3 {
+      font-size: 17px;
+      margin: 18px 0 8px;
+    }
+    p { margin: 10px 0; }
+    a { color: #0369a1; }
+    section {
+      border-top: 1px solid var(--line);
+      margin-top: 30px;
+      padding-top: 24px;
+    }
+    ul, ol {
+      padding-left: 22px;
+      margin: 10px 0 0;
+    }
+    li + li { margin-top: 8px; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 14px;
+      font-size: 14px;
+    }
+    th, td {
+      border: 1px solid var(--line);
+      padding: 10px 12px;
+      vertical-align: top;
+      text-align: left;
+    }
+    th {
+      background: #f1f5f9;
+      font-weight: 700;
+    }
+    .meta {
+      color: var(--muted);
+      font-size: 14px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 18px;
+    }
+    .summary {
+      margin-top: 28px;
+      padding: 18px 20px;
+      border-left: 4px solid var(--accent);
+      background: #f8fbff;
+      border-radius: 6px;
+      font-size: 16px;
+    }
+    .note {
+      color: var(--warn);
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      border-radius: 6px;
+      padding: 12px 14px;
+      margin-top: 14px;
+    }
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 18px;
+    }
+    .tag {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 4px 10px;
+      color: #334155;
+      font-size: 13px;
+      background: #fff;
+    }
+    .two-col {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+    }
+    .box {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 14px 16px;
+      background: #fff;
+    }
+    .box b { display: block; margin-bottom: 4px; }
+    .source-list {
+      display: grid;
+      gap: 12px;
+    }
+    .source-item {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 14px 16px;
+      background: #fff;
+    }
+    .source-item strong { display: block; margin-bottom: 4px; }
+    .source-meta { color: var(--muted); font-size: 13px; }
+    @media (max-width: 640px) {
+      main { padding: 20px 12px 40px; }
+      article { padding: 24px 18px; }
+      table { display: block; overflow-x: auto; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <article>
+      <div class="eyebrow">产业链深度</div>
+      <h1>MPO 与 CPO：AI 光互联商业逻辑与 A股/科创板研究优先级</h1>
+      <div class="meta">
+        <span>生成时间：周二 · 2026-06-23 15:18:34</span>
+        <span>来源：Codex 手动调研</span>
+        <span>路径：investing/themes/2026-06-23-mpo-cpo-ai光互联商业逻辑与a股科创板标的.html</span>
+      </div>
+      <div class="tag-row">
+        <span class="tag">产业链</span>
+        <span class="tag">AI算力</span>
+        <span class="tag">光模块</span>
+        <span class="tag">MPO</span>
+        <span class="tag">CPO</span>
+        <span class="tag">科创板</span>
+      </div>
+
+      <p class="summary">
+        先排产业链层级，再排公司。当前更值得优先研究的不是“谁名字里有 CPO”，而是三类真实约束：800G/1.6T 已经兑现的高速光模块产能，CPO/NPO 需要的光器件、光引擎、外置光源和封装测试能力，以及 MPO/MTP/MT 插芯等高密度光纤连接层。MPO 是连接器/线缆层，CPO 是系统封装架构，两者不是替代关系；AI 集群光纤数量上升会同时推高两边的工艺要求。
+      </p>
+      <p class="note">
+        本报告是研究优先级，不是买卖指令，也不包含仓位建议。需要把估值、持仓拥挤度、客户集中度和最新公告继续核验后，才能进入交易层面的判断。
+      </p>
+
+      <section>
+        <h2>一句话区别</h2>
+        <div class="two-col">
+          <div class="box">
+            <b>MPO</b>
+            <p>Multi-fiber Push-On，是多芯光纤连接器和预端接线缆体系，常见于 MPO/MTP 跳线、主干线缆、shuffle、MT 插芯、光纤阵列和高密度布线。它解决“更多光纤如何低损耗、可维护、可批量连接”的问题。</p>
+          </div>
+          <div class="box">
+            <b>CPO</b>
+            <p>Co-Packaged Optics，是把光引擎放到交换 ASIC 附近甚至同一封装/基板上的系统架构。它解决“电信号在高速板级走线中损耗、功耗、散热和可靠性恶化”的问题。</p>
+          </div>
+        </div>
+        <p>换成商业语言：MPO 是“高密度光路基础设施”，CPO 是“交换芯片光电转换位置前移”。MPO 更像受益于光纤根数和布线复杂度的增长；CPO 更像受益于 51.2T、102.4T、409.6T 交换机和 AI 集群功耗瓶颈的架构升级。</p>
+      </section>
+
+      <section>
+        <h2>底层逻辑</h2>
+        <ol>
+          <li>AI 集群从单机算力转向万卡、十万卡、百万卡互联，瓶颈从“有没有 GPU”外溢到“GPU 之间能不能低延迟、高带宽、低功耗通信”。</li>
+          <li>800G/1.6T 可插拔光模块仍是当下收入兑现的主战场，但越往 200G/lane、224G SerDes 走，板级电损耗和散热压力越大。</li>
+          <li>CPO 把光电转换移近 ASIC，降低电通道损耗和每比特功耗，但它带来新的难点：光引擎良率、外置光源可靠性、封装热管理、盲插清洁、测试维修和多厂商互操作。</li>
+          <li>MPO/MTP/MT 插芯不会因为 CPO 消失。相反，只要光通道数量继续上升，低损耗多芯连接、光纤阵列、flex/shuffle、端面检测和可靠性测试就更重要。</li>
+        </ol>
+      </section>
+
+      <section>
+        <h2>层级排序</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>优先级</th>
+              <th>产业层级</th>
+              <th>为什么排这里</th>
+              <th>A股/科创板映射</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1</td>
+              <td>800G/1.6T 高速光模块与硅光/LPO/NPO 平台</td>
+              <td>当下订单和利润最可见，也是向 CPO 过渡前的主现金流入口。</td>
+              <td>中际旭创、新易盛、德科立、联特科技、剑桥科技、华工科技、光迅科技</td>
+            </tr>
+            <tr>
+              <td>2</td>
+              <td>光器件、光引擎、FAU、微光学、封装测试</td>
+              <td>CPO 真正卡的是光电集成和高良率制造，不是概念标签。</td>
+              <td>天孚通信、光迅科技、源杰科技、仕佳光子、炬光科技</td>
+            </tr>
+            <tr>
+              <td>3</td>
+              <td>MPO/MTP/MT 插芯、光纤阵列、shuffle、数据中心布线</td>
+              <td>光纤根数和端口密度提升带来稳定扩容需求，但 ASP 和竞争强度要谨慎。</td>
+              <td>太辰光、天孚通信</td>
+            </tr>
+            <tr>
+              <td>4</td>
+              <td>纯 CPO 系统平台、交换 ASIC、先进封装</td>
+              <td>全球卡点在 NVIDIA/Broadcom/TSMC/Marvell 等，A股多数是间接受益。</td>
+              <td>国内上市映射偏弱，更多看上游供应链切入证据</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>研究优先级</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>优先级</th>
+              <th>标的</th>
+              <th>卡住的环节</th>
+              <th>排序理由</th>
+              <th>证据强度</th>
+              <th>主要风险</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1</td>
+              <td>中际旭创 300308</td>
+              <td>800G/1.6T 高速光模块、硅光平台、AI 数据中心客户</td>
+              <td>收入和现金流兑现最强，年报披露 100G-1.6T 产品与行业领先地位。它是“现在能卖货”的核心代表。</td>
+              <td>Strong</td>
+              <td>估值拥挤、客户集中、出口限制、CPO 对可插拔模块节奏的替代风险。</td>
+            </tr>
+            <tr>
+              <td>2</td>
+              <td>天孚通信 300394</td>
+              <td>光器件、FAU、微光学、光引擎、光电集成封装</td>
+              <td>更接近 CPO/NPO 的制造瓶颈。公司官网强调高速光引擎、FAU、微光学、光电集成封装和全球化产能。</td>
+              <td>Strong/Medium</td>
+              <td>需核验光引擎和 AI 数据中心收入占比，客户认证和扩产良率决定弹性。</td>
+            </tr>
+            <tr>
+              <td>3</td>
+              <td>新易盛 300502</td>
+              <td>800G/1.6T 光模块、LPO、NPO/XPO 光互联平台</td>
+              <td>产品页直接覆盖 1.6T OSFP、800G LPO、6.4T NPO 和 12.8T XPO 叙事，具备从可插拔到近封装/更高密度形态的路线延展。</td>
+              <td>Strong/Medium</td>
+              <td>高预期估值、客户结构、治理与外部监管扰动、真实量产节奏。</td>
+            </tr>
+            <tr>
+              <td>4</td>
+              <td>太辰光 300570</td>
+              <td>MPO/MTP 线缆、MT 插芯、fiber flex、shuffle、高密度连接</td>
+              <td>它是 MPO 主题中最直接的 A股映射之一。CPO 与 1.6T 扩容都需要更高密度、更低损耗的光路连接和布线系统。</td>
+              <td>Strong/Medium</td>
+              <td>被动连接件竞争强，需核验 AI 数据中心客户、产品毛利和订单持续性。</td>
+            </tr>
+            <tr>
+              <td>5</td>
+              <td>源杰科技 688498</td>
+              <td>DFB/CWDM/LWDM、高功率 CW 激光器、光芯片</td>
+              <td>科创板上游光源映射。CPO 的外置光源和高速光模块都需要激光器，但公司当前公开产品以 10G/25G/50G 为主，需要验证高端导入。</td>
+              <td>Medium</td>
+              <td>高速代际差距、海外龙头竞争、客户认证时间、收入结构可能仍偏传统。</td>
+            </tr>
+            <tr>
+              <td>6</td>
+              <td>德科立 688205</td>
+              <td>光模块、光放大器、光器件和子系统</td>
+              <td>科创板中具备高速光模块和光传输产品映射，官网披露 OFC 2026 推出 1.6T OSFP DR8，适合作为二线验证对象。</td>
+              <td>Medium/Needs checking</td>
+              <td>规模、客户、毛利和量产能力需要公告与财报进一步验证。</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>降权方向</h2>
+        <ul>
+          <li>只讲 CPO 但没有光引擎、激光器、微光学、封装测试、客户认证证据的公司，先降权。</li>
+          <li>普通连接器、普通线缆、普通 IDC 建设不等于 MPO/CPO 核心约束，除非能看到数据中心高密度光互联订单和毛利改善。</li>
+          <li>低速 PON/电信侧产品不能直接推导为 AI 数据中心 800G/1.6T 受益，需要看产品代际和客户导入。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>反证条件</h2>
+        <ul>
+          <li>海外云厂资本开支放缓，800G/1.6T 订单延后或价格下行快于出货增长。</li>
+          <li>CPO 商业化比预期慢，可插拔模块继续占主导，但市场提前给 CPO 上游过高估值。</li>
+          <li>外置光源、光引擎和封装测试良率不达标，导致 CPO 成本优势被维修和可靠性问题抵消。</li>
+          <li>美国出口管制、军民两用清单、客户认证变动或供应链迁移影响国内厂商海外订单。</li>
+          <li>财报中存货、应收和资本开支先行上升，但毛利率和现金流没有同步改善。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>下一步核验</h2>
+        <ol>
+          <li>逐家公司查 2026 一季报和最新互动/公告：800G、1.6T、LPO、硅光、CPO、NPO 是否进入收入，而不是只停在样品。</li>
+          <li>把中际旭创、新易盛、天孚通信的海外收入、前五大客户、存货、合同负债、毛利率和经营现金流做同比横向比较。</li>
+          <li>对太辰光重点看 MPO/MTP、MT ferrule、flex/shuffle 产品的 AI 数据中心占比和单价趋势。</li>
+          <li>对源杰科技、仕佳光子、德科立等科创板公司重点看高速代际、客户认证、扩产良率和真实量产收入。</li>
+          <li>跟踪 OIF、NVIDIA、Broadcom、Marvell、TSMC 光互联路线，判断 CPO 从样机到批量部署的时间点。</li>
+        </ol>
+      </section>
+
+      <section>
+        <h2>数据源证据</h2>
+        <div class="source-list">
+          <div class="source-item">
+            <strong><a href="https://www.oiforum.com/technical-work/hot-topics/energy-efficient-interfaces/">OIF Energy Efficient Interfaces</a></strong>
+            <span class="source-meta">industry · high · 2026-06-23</span>
+            <p>AI 数据中心需要更高能效、更低延迟的电/光接口，覆盖 co-packaged、near-packaged、pluggable、retimed 和 linear 等路径。</p>
+          </div>
+          <div class="source-item">
+            <strong><a href="https://www.oiforum.com/wp-content/uploads/OIF-Co-Packaging-3.2T-Module-01.0.pdf">OIF 3.2Tb/s CPO Module IA</a></strong>
+            <span class="source-meta">industry · high · 2026-06-23</span>
+            <p>3.2Tb/s CPO module 是 51.2Tb/s switch assembly 的 building block，并定义 8x400G DR4/FR4 等模块形态。</p>
+          </div>
+          <div class="source-item">
+            <strong><a href="https://www.zj-innolight.com/public/static/ajaxuplode/uploadfile/financial/1776659833994705.pdf">中际旭创 2025 年年度报告</a></strong>
+            <span class="source-meta">stock · high · 2026-06-23</span>
+            <p>公司披露向云数据中心客户提供 100G、200G、400G、800G 和 1.6T 高速光模块。</p>
+          </div>
+          <div class="source-item">
+            <strong><a href="https://www.eoptolink.com/">新易盛 Eoptolink 产品页</a></strong>
+            <span class="source-meta">stock · high · 2026-06-23</span>
+            <p>产品线覆盖 1.6T OSFP、800G LPO、6.4T NPO 和 12.8T XPO 等 AI 光互联方向。</p>
+          </div>
+          <div class="source-item">
+            <strong><a href="https://www.tfcsz.com/">天孚通信官网</a></strong>
+            <span class="source-meta">stock · high · 2026-06-23</span>
+            <p>官网列出高速光引擎、FAU、微光学、光电集成封装、测试交付和海外制造布局。</p>
+          </div>
+          <div class="source-item">
+            <strong><a href="https://www.china-tscom.com/">太辰光 T&amp;S Communications 官网</a></strong>
+            <span class="source-meta">stock · high · 2026-06-23</span>
+            <p>产品包括 MPO/MTP cables、next-gen multi-fiber interconnects、MT ferrule、MPO connector kits 和 fiber optic flex circuit。</p>
+          </div>
+          <div class="source-item">
+            <strong><a href="https://www.yj-semitech.com/">源杰科技官网</a></strong>
+            <span class="source-meta">stock · medium · 2026-06-23</span>
+            <p>产品覆盖 DATACOM 10G/25G/50G DFB CWDM/LWDM 和高功率 CW 激光器，并具备 MOCVD 到芯片制造、自动测试产线。</p>
+          </div>
+          <div class="source-item">
+            <strong><a href="https://www.taclink.com/">德科立 Taclink 官网</a></strong>
+            <span class="source-meta">stock · medium · 2026-06-23</span>
+            <p>官网披露光模块、光放大器、光器件和子系统，并在 OFC 2026 推出 1.6T OSFP DR8 optical transceiver。</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>系统状态</h2>
+        <div class="two-col">
+          <div class="box"><b>本地报告落盘</b><span>ok</span></div>
+          <div class="box"><b>数据源采集</b><span>ok · 13 条结构化来源</span></div>
+          <div class="box"><b>LLM 深度分析</b><span>Codex 手动研究，不依赖本地 LLM_API_KEY</span></div>
+          <div class="box"><b>证据引用</b><span>ok · 标准、公司官网、年报、行业报道分层标注</span></div>
+        </div>
+      </section>
+    </article>
+  </main>
+</body>
+</html>

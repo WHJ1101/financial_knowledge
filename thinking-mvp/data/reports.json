@@ -1,0 +1,601 @@
+[
+  {
+    "id": "2026-06-24-industry-nand产业链深度-ai存储-企业级ssd与中美韩标的优先级-a9f3c2d1",
+    "title": "NAND产业链深度：AI存储、企业级SSD与中美韩标的优先级",
+    "topic": "NAND产业链深度：AI存储、企业级SSD与中美韩标的优先级",
+    "type": "industry",
+    "typeLabel": "产业链深度",
+    "summary": "NAND 正在从传统消费电子周期，转向 AI 数据中心企业级SSD、高层QLC/TLC、控制器固件和国产3D NAND扩产约束。A股以模组高beta和国产设备材料映射为主，美股和韩股的原厂直接弹性更强。",
+    "tags": [
+      "产业链",
+      "NAND",
+      "企业级SSD",
+      "AI存储",
+      "A股",
+      "美股",
+      "韩股"
+    ],
+    "status": "new",
+    "source": "manual",
+    "localDate": "2026-06-24",
+    "createdAt": "2026-06-24T06:13:54.000Z",
+    "updatedAt": "2026-06-24T06:13:54.000Z",
+    "file": "2026-06-24/2026-06-24-industry-nand产业链深度-ai存储-企业级ssd与中美韩标的优先级-a9f3c2d1.html",
+    "wikiPath": "investing/themes/2026-06-24-nand产业链深度-ai存储-企业级ssd与中美韩标的优先级.html",
+    "accent": "#00a676",
+    "highlights": [
+      "优先层级：企业级SSD和高层QLC/TLC NAND原厂、SSD控制器和固件、国产3D NAND扩产相关设备材料。",
+      "A股缺少纯3D NAND晶圆原厂，江波龙、佰维存储、德明利是模组高beta，北方华创、中微公司、拓荆科技等是国产扩产映射。",
+      "美股优先看 MU、SNDK、SIMO；韩股优先看 SK hynix 和 Samsung，韩国设备材料链需要DART继续核验。"
+    ],
+    "origin": "manual",
+    "originLabel": "手动产出"
+  },
+  {
+    "id": "2026-06-24-policy-政策日报-低空经济-算力基础设施与设备更新-f45a602b",
+    "title": "政策日报：低空经济、算力基础设施与设备更新",
+    "topic": "政策日报：低空经济、算力基础设施与设备更新",
+    "type": "policy",
+    "typeLabel": "政策扫描",
+    "summary": "政策日报：低空经济、算力基础设施与设备更新 已进入数据源采集与模型研究流程。已采集 11 条证据，重点包括：OIF Energy Efficient Interfaces: AI data centers need denser, lower-latency electrical and optical interfaces、OIF Implementation Agreements list: CPO 3.2Tb/s module and co-packaging framework、OIF 3.2Tb/s CPO Module IA: building block for 51.2Tb/s switch assemblies。配置模型密钥或接口地址后可启用模型深度分析。",
+    "tags": [
+      "政策",
+      "算力",
+      "低空经济"
+    ],
+    "status": "new",
+    "source": "scheduled",
+    "localDate": "2026-06-24",
+    "createdAt": "2026-06-24T00:30:01.925Z",
+    "updatedAt": "2026-06-24T00:30:01.925Z",
+    "file": "2026-06-24/2026-06-24-policy-政策日报-低空经济-算力基础设施与设备更新-f45a602b.html",
+    "wikiPath": "feeds/policy/2026-06-24-政策日报-低空经济-算力基础设施与设备更新.html",
+    "accent": "#7c3aed",
+    "highlights": [
+      "证据层已从 本地数据源：2026-06-23-mpo-cpo-ai-optical-interconnect.json、历史报告 汇总信息，需要继续校验来源时间与覆盖度。",
+      "政策方向 是本次调研的第一观察维度，应优先补齐可复核数据。",
+      "落地节奏 需要和历史区间、同业比较或政策节奏放在一起看。"
+    ],
+    "origin": "automation",
+    "originLabel": "自动化产出"
+  },
+  {
+    "id": "2026-06-24-industry-半导体材料观察-锗-inp与先进封装需求-4dd1b8cd",
+    "title": "半导体材料观察：锗、InP与先进封装需求 - 产业链深度",
+    "topic": "半导体材料观察：锗、InP与先进封装需求",
+    "type": "industry",
+    "typeLabel": "产业链深度",
+    "summary": "半导体材料观察：锗、InP与先进封装需求 已进入数据源采集与模型研究流程。已采集 6 条证据，重点包括：NVIDIA photonics reports: CPO switches enter 2026 AI-networking roadmap、AI算力产业链：光模块、交换芯片与液冷的订单验证 - 产业链深度、半导体材料观察：锗、InP与先进封装需求 - 产业链深度。配置模型密钥或接口地址后可启用模型深度分析。",
+    "tags": [
+      "产业链",
+      "半导体",
+      "锗",
+      "InP",
+      "材料"
+    ],
+    "status": "new",
+    "source": "scheduled",
+    "localDate": "2026-06-24",
+    "createdAt": "2026-06-24T00:30:01.924Z",
+    "updatedAt": "2026-06-24T00:30:01.924Z",
+    "file": "2026-06-24/2026-06-24-industry-半导体材料观察-锗-inp与先进封装需求-4dd1b8cd.html",
+    "wikiPath": "investing/themes/2026-06-24-半导体材料观察-锗-inp与先进封装需求.html",
+    "accent": "#00a676",
+    "highlights": [
+      "证据层已从 本地数据源：2026-06-23-mpo-cpo-ai-optical-interconnect.json、历史报告 汇总信息，需要继续校验来源时间与覆盖度。",
+      "供需位置 是本次调研的第一观察维度，应优先补齐可复核数据。",
+      "订单验证 需要和历史区间、同业比较或政策节奏放在一起看。"
+    ],
+    "origin": "automation",
+    "originLabel": "自动化产出"
+  },
+  {
+    "id": "2026-06-24-industry-ai算力产业链-光模块-交换芯片与液冷的订单验证-7d2b2427",
+    "title": "AI算力产业链：光模块、交换芯片与液冷的订单验证 - 产业链深度",
+    "topic": "AI算力产业链：光模块、交换芯片与液冷的订单验证",
+    "type": "industry",
+    "typeLabel": "产业链深度",
+    "summary": "AI算力产业链：光模块、交换芯片与液冷的订单验证 已进入数据源采集与模型研究流程。已采集 6 条证据，重点包括：NVIDIA photonics reports: CPO switches enter 2026 AI-networking roadmap、半导体材料观察：锗、InP与先进封装需求 - 产业链深度、AI算力产业链：光模块、交换芯片与液冷的订单验证 - 产业链深度。配置模型密钥或接口地址后可启用模型深度分析。",
+    "tags": [
+      "产业链",
+      "AI",
+      "算力",
+      "光模块",
+      "液冷"
+    ],
+    "status": "new",
+    "source": "scheduled",
+    "localDate": "2026-06-24",
+    "createdAt": "2026-06-24T00:30:01.921Z",
+    "updatedAt": "2026-06-24T00:30:01.921Z",
+    "file": "2026-06-24/2026-06-24-industry-ai算力产业链-光模块-交换芯片与液冷的订单验证-7d2b2427.html",
+    "wikiPath": "investing/themes/2026-06-24-ai算力产业链-光模块-交换芯片与液冷的订单验证.html",
+    "accent": "#00a676",
+    "highlights": [
+      "证据层已从 本地数据源：2026-06-23-mpo-cpo-ai-optical-interconnect.json、历史报告 汇总信息，需要继续校验来源时间与覆盖度。",
+      "供需位置 是本次调研的第一观察维度，应优先补齐可复核数据。",
+      "订单验证 需要和历史区间、同业比较或政策节奏放在一起看。"
+    ],
+    "origin": "automation",
+    "originLabel": "自动化产出"
+  },
+  {
+    "id": "2026-06-24-market-2026-06-24-a股市场脉搏-成交-风格轮动与资金方向-c14c61ab",
+    "title": "2026-06-24 A股市场脉搏：成交、风格轮动与资金方向",
+    "topic": "2026-06-24 A股市场脉搏：成交、风格轮动与资金方向",
+    "type": "market",
+    "typeLabel": "市场快览",
+    "summary": "2026-06-24 A股市场脉搏：成交、风格轮动与资金方向 已进入数据源采集与模型研究流程。已采集 12 条证据，重点包括：OIF Energy Efficient Interfaces: AI data centers need denser, lower-latency electrical and optical interfaces、OIF Implementation Agreements list: CPO 3.2Tb/s module and co-packaging framework、OIF 3.2Tb/s CPO Module IA: building block for 51.2Tb/s switch assemblies。配置模型密钥或接口地址后可启用模型深度分析。",
+    "tags": [
+      "市场",
+      "A股"
+    ],
+    "status": "new",
+    "source": "scheduled",
+    "localDate": "2026-06-24",
+    "createdAt": "2026-06-24T00:30:01.891Z",
+    "updatedAt": "2026-06-24T00:30:01.891Z",
+    "file": "2026-06-24/2026-06-24-market-2026-06-24-a股市场脉搏-成交-风格轮动与资金方向-c14c61ab.html",
+    "wikiPath": "feeds/market/2026-06-24-2026-06-24-a股市场脉搏-成交-风格轮动与资金方向.html",
+    "accent": "#2563eb",
+    "highlights": [
+      "证据层已从 本地数据源：2026-06-23-mpo-cpo-ai-optical-interconnect.json、历史报告 汇总信息，需要继续校验来源时间与覆盖度。",
+      "指数结构 是本次调研的第一观察维度，应优先补齐可复核数据。",
+      "成交额 需要和历史区间、同业比较或政策节奏放在一起看。"
+    ],
+    "origin": "automation",
+    "originLabel": "自动化产出"
+  },
+  {
+    "id": "2026-06-23-policy-政策日报-低空经济-算力基础设施与设备更新-2b5b19e5",
+    "title": "政策日报：低空经济、算力基础设施与设备更新",
+    "topic": "政策日报：低空经济、算力基础设施与设备更新",
+    "type": "policy",
+    "typeLabel": "政策扫描",
+    "summary": "政策日报：低空经济、算力基础设施与设备更新 已进入数据源采集与模型研究流程。已采集 10 条证据，重点包括：OIF Energy Efficient Interfaces: AI data centers need denser, lower-latency electrical and optical interfaces、OIF Implementation Agreements list: CPO 3.2Tb/s module and co-packaging framework、OIF 3.2Tb/s CPO Module IA: building block for 51.2Tb/s switch assemblies。配置模型密钥或接口地址后可启用模型深度分析。",
+    "tags": [
+      "政策",
+      "算力",
+      "低空经济"
+    ],
+    "status": "new",
+    "source": "scheduled",
+    "localDate": "2026-06-23",
+    "createdAt": "2026-06-23T07:32:28.434Z",
+    "updatedAt": "2026-06-23T07:32:28.434Z",
+    "file": "2026-06-23/2026-06-23-policy-政策日报-低空经济-算力基础设施与设备更新-2b5b19e5.html",
+    "wikiPath": "feeds/policy/2026-06-23-政策日报-低空经济-算力基础设施与设备更新.html",
+    "accent": "#7c3aed",
+    "highlights": [
+      "证据层已从 本地数据源：2026-06-23-mpo-cpo-ai-optical-interconnect.json、历史报告 汇总信息，需要继续校验来源时间与覆盖度。",
+      "政策方向 是本次调研的第一观察维度，应优先补齐可复核数据。",
+      "落地节奏 需要和历史区间、同业比较或政策节奏放在一起看。"
+    ],
+    "origin": "automation",
+    "originLabel": "自动化产出"
+  },
+  {
+    "id": "2026-06-23-industry-半导体材料观察-锗-inp与先进封装需求-8f02d966",
+    "title": "半导体材料观察：锗、InP与先进封装需求 - 产业链深度",
+    "topic": "半导体材料观察：锗、InP与先进封装需求",
+    "type": "industry",
+    "typeLabel": "产业链深度",
+    "summary": "半导体材料观察：锗、InP与先进封装需求 已进入数据源采集与模型研究流程。已采集 6 条证据，重点包括：NVIDIA photonics reports: CPO switches enter 2026 AI-networking roadmap、AI算力产业链：光模块、交换芯片与液冷的订单验证 - 产业链深度、MPO 与 CPO：AI 光互联商业逻辑与 A股/科创板研究优先级 - 产业链深度。配置模型密钥或接口地址后可启用模型深度分析。",
+    "tags": [
+      "产业链",
+      "半导体",
+      "锗",
+      "InP",
+      "材料"
+    ],
+    "status": "new",
+    "source": "scheduled",
+    "localDate": "2026-06-23",
+    "createdAt": "2026-06-23T07:32:28.431Z",
+    "updatedAt": "2026-06-23T07:32:28.431Z",
+    "file": "2026-06-23/2026-06-23-industry-半导体材料观察-锗-inp与先进封装需求-8f02d966.html",
+    "wikiPath": "investing/themes/2026-06-23-半导体材料观察-锗-inp与先进封装需求.html",
+    "accent": "#00a676",
+    "highlights": [
+      "证据层已从 本地数据源：2026-06-23-mpo-cpo-ai-optical-interconnect.json、历史报告 汇总信息，需要继续校验来源时间与覆盖度。",
+      "供需位置 是本次调研的第一观察维度，应优先补齐可复核数据。",
+      "订单验证 需要和历史区间、同业比较或政策节奏放在一起看。"
+    ],
+    "origin": "automation",
+    "originLabel": "自动化产出"
+  },
+  {
+    "id": "2026-06-23-industry-ai算力产业链-光模块-交换芯片与液冷的订单验证-10a7b6f2",
+    "title": "AI算力产业链：光模块、交换芯片与液冷的订单验证 - 产业链深度",
+    "topic": "AI算力产业链：光模块、交换芯片与液冷的订单验证",
+    "type": "industry",
+    "typeLabel": "产业链深度",
+    "summary": "AI算力产业链：光模块、交换芯片与液冷的订单验证 已进入数据源采集与模型研究流程。已采集 6 条证据，重点包括：NVIDIA photonics reports: CPO switches enter 2026 AI-networking roadmap、MPO 与 CPO：AI 光互联商业逻辑与 A股/科创板研究优先级 - 产业链深度、机器人产业链：减速器、传感器与端侧AI落地二次验证 - 产业链深度。配置模型密钥或接口地址后可启用模型深度分析。",
+    "tags": [
+      "产业链",
+      "AI",
+      "算力",
+      "光模块",
+      "液冷"
+    ],
+    "status": "new",
+    "source": "scheduled",
+    "localDate": "2026-06-23",
+    "createdAt": "2026-06-23T07:32:28.428Z",
+    "updatedAt": "2026-06-23T07:32:28.428Z",
+    "file": "2026-06-23/2026-06-23-industry-ai算力产业链-光模块-交换芯片与液冷的订单验证-10a7b6f2.html",
+    "wikiPath": "investing/themes/2026-06-23-ai算力产业链-光模块-交换芯片与液冷的订单验证.html",
+    "accent": "#00a676",
+    "highlights": [
+      "证据层已从 本地数据源：2026-06-23-mpo-cpo-ai-optical-interconnect.json、历史报告 汇总信息，需要继续校验来源时间与覆盖度。",
+      "供需位置 是本次调研的第一观察维度，应优先补齐可复核数据。",
+      "订单验证 需要和历史区间、同业比较或政策节奏放在一起看。"
+    ],
+    "origin": "automation",
+    "originLabel": "自动化产出"
+  },
+  {
+    "id": "2026-06-23-market-2026-06-23-a股市场脉搏-成交-风格轮动与资金方向-dc25719e",
+    "title": "2026-06-23 A股市场脉搏：成交、风格轮动与资金方向",
+    "topic": "2026-06-23 A股市场脉搏：成交、风格轮动与资金方向",
+    "type": "market",
+    "typeLabel": "市场快览",
+    "summary": "2026-06-23 A股市场脉搏：成交、风格轮动与资金方向 已进入数据源采集与模型研究流程。已采集 10 条证据，重点包括：OIF Energy Efficient Interfaces: AI data centers need denser, lower-latency electrical and optical interfaces、OIF Implementation Agreements list: CPO 3.2Tb/s module and co-packaging framework、OIF 3.2Tb/s CPO Module IA: building block for 51.2Tb/s switch assemblies。配置模型密钥或接口地址后可启用模型深度分析。",
+    "tags": [
+      "市场",
+      "A股"
+    ],
+    "status": "read",
+    "source": "scheduled",
+    "localDate": "2026-06-23",
+    "createdAt": "2026-06-23T07:32:28.419Z",
+    "updatedAt": "2026-06-23T07:41:18.760Z",
+    "file": "2026-06-23/2026-06-23-market-2026-06-23-a股市场脉搏-成交-风格轮动与资金方向-dc25719e.html",
+    "wikiPath": "feeds/market/2026-06-23-2026-06-23-a股市场脉搏-成交-风格轮动与资金方向.html",
+    "accent": "#2563eb",
+    "highlights": [
+      "证据层已从 本地数据源：2026-06-23-mpo-cpo-ai-optical-interconnect.json、历史报告 汇总信息，需要继续校验来源时间与覆盖度。",
+      "指数结构 是本次调研的第一观察维度，应优先补齐可复核数据。",
+      "成交额 需要和历史区间、同业比较或政策节奏放在一起看。"
+    ],
+    "origin": "automation",
+    "originLabel": "自动化产出"
+  },
+  {
+    "id": "2026-06-23-industry-mpo-cpo-ai光互联商业逻辑与a股科创板标的-8f6d4c21",
+    "title": "MPO 与 CPO：AI 光互联商业逻辑与 A股/科创板研究优先级 - 产业链深度",
+    "topic": "MPO 与 CPO：AI 光互联商业逻辑与 A股/科创板研究优先级",
+    "type": "industry",
+    "typeLabel": "产业链深度",
+    "summary": "MPO 是高密度多芯光纤连接器/线缆层，CPO 是把光引擎移近交换 ASIC 的系统封装架构。研究优先级应先看 800G/1.6T 光模块兑现，再看光器件/光引擎/外置光源和 MPO/MTP/MT 插芯等真实约束。",
+    "tags": [
+      "产业链",
+      "AI算力",
+      "光模块",
+      "MPO",
+      "CPO",
+      "科创板"
+    ],
+    "status": "read",
+    "source": "manual",
+    "localDate": "2026-06-23",
+    "createdAt": "2026-06-23T07:18:34.000Z",
+    "updatedAt": "2026-06-23T07:26:31.094Z",
+    "file": "2026-06-23/2026-06-23-industry-mpo-cpo-ai光互联商业逻辑与a股科创板标的-8f6d4c21.html",
+    "wikiPath": "investing/themes/2026-06-23-mpo-cpo-ai光互联商业逻辑与a股科创板标的.html",
+    "accent": "#00a676",
+    "highlights": [
+      "MPO 和 CPO 不是替代关系：MPO 是光纤连接层，CPO 是光电转换位置前移的系统架构。",
+      "优先研究层级：800G/1.6T 光模块、光器件/光引擎/外置光源、MPO/MTP/MT 插芯与高密度布线。",
+      "中际旭创、天孚通信、新易盛、太辰光、源杰科技、德科立分别代表近期兑现、CPO上游、MPO和科创板上游映射。"
+    ],
+    "origin": "manual",
+    "originLabel": "手动产出"
+  },
+  {
+    "id": "2026-06-17-industry-机器人产业链-减速器-传感器与端侧ai落地二次验证-c941c892",
+    "title": "机器人产业链：减速器、传感器与端侧AI落地二次验证 - 产业链深度",
+    "topic": "机器人产业链：减速器、传感器与端侧AI落地二次验证",
+    "type": "industry",
+    "typeLabel": "产业链深度",
+    "summary": "机器人产业链：减速器、传感器与端侧AI落地二次验证 已进入数据源采集与 LLM 研究流程。已采集 4 条证据，重点包括：半导体材料观察：锗、InP与先进封装需求 - 产业链深度、AI算力产业链：光模块、交换芯片与液冷的订单验证 - 产业链深度、机器人产业链：减速器、传感器与端侧AI落地 - 产业链深度。配置 LLM_API_KEY 或 LLM_API_URL 后可启用模型深度分析。",
+    "tags": [
+      "产业链",
+      "AI",
+      "机器人"
+    ],
+    "status": "read",
+    "source": "manual",
+    "localDate": "2026-06-17",
+    "createdAt": "2026-06-17T07:54:23.983Z",
+    "updatedAt": "2026-06-17T07:55:39.320Z",
+    "file": "2026-06-17/2026-06-17-industry-机器人产业链-减速器-传感器与端侧ai落地二次验证-c941c892.html",
+    "wikiPath": "investing/themes/2026-06-17-机器人产业链-减速器-传感器与端侧ai落地二次验证.html",
+    "accent": "#00a676",
+    "highlights": [
+      "证据层已从 vault:reports 汇总信息，需要继续校验来源时间与覆盖度。",
+      "供需位置 是本次调研的第一观察维度，应优先补齐可复核数据。",
+      "订单验证 需要和历史区间、同业比较或政策节奏放在一起看。"
+    ],
+    "origin": "manual",
+    "originLabel": "手动产出"
+  },
+  {
+    "id": "2026-06-17-policy-政策日报-低空经济-算力基础设施与设备更新-f89db6a7",
+    "title": "政策日报：低空经济、算力基础设施与设备更新",
+    "topic": "政策日报：低空经济、算力基础设施与设备更新",
+    "type": "policy",
+    "typeLabel": "政策扫描",
+    "summary": "政策日报：低空经济、算力基础设施与设备更新 的本地模板调研已生成。当前版本用于沉淀研究框架、任务流和报告归档，真实行情、公告、新闻与研报数据源仍待接入。",
+    "tags": [
+      "政策",
+      "算力",
+      "低空经济"
+    ],
+    "status": "read",
+    "source": "daily",
+    "localDate": "2026-06-17",
+    "createdAt": "2026-06-17T03:55:14.746Z",
+    "updatedAt": "2026-06-17T04:42:16.497Z",
+    "file": "2026-06-17/2026-06-17-policy-政策日报-低空经济-算力基础设施与设备更新-f89db6a7.html",
+    "wikiPath": "feeds/policy/2026-06-17-政策日报-低空经济-算力基础设施与设备更新.html",
+    "accent": "#7c3aed",
+    "highlights": [
+      "政策方向 是本次调研的第一观察维度，需要用最新数据验证强弱。",
+      "落地节奏 目前应和历史区间比较，避免只看单日波动。",
+      "受益环节 决定该主题能否从概念扩散到业绩兑现。"
+    ],
+    "origin": "automation",
+    "originLabel": "自动化产出"
+  },
+  {
+    "id": "2026-06-17-industry-半导体材料观察-锗-inp与先进封装需求-1ccda699",
+    "title": "半导体材料观察：锗、InP与先进封装需求 - 产业链深度",
+    "topic": "半导体材料观察：锗、InP与先进封装需求",
+    "type": "industry",
+    "typeLabel": "产业链深度",
+    "summary": "半导体材料观察：锗、InP与先进封装需求 的本地模板调研已生成。当前版本用于沉淀研究框架、任务流和报告归档，真实行情、公告、新闻与研报数据源仍待接入。",
+    "tags": [
+      "产业链",
+      "半导体",
+      "锗",
+      "InP",
+      "材料"
+    ],
+    "status": "new",
+    "source": "daily",
+    "localDate": "2026-06-17",
+    "createdAt": "2026-06-17T03:55:14.745Z",
+    "updatedAt": "2026-06-17T03:55:14.745Z",
+    "file": "2026-06-17/2026-06-17-industry-半导体材料观察-锗-inp与先进封装需求-1ccda699.html",
+    "wikiPath": "investing/themes/2026-06-17-半导体材料观察-锗-inp与先进封装需求.html",
+    "accent": "#00a676",
+    "highlights": [
+      "供需位置 是本次调研的第一观察维度，需要用最新数据验证强弱。",
+      "价格弹性 目前应和历史区间比较，避免只看单日波动。",
+      "订单验证 决定该主题能否从概念扩散到业绩兑现。"
+    ],
+    "origin": "automation",
+    "originLabel": "自动化产出"
+  },
+  {
+    "id": "2026-06-17-industry-ai算力产业链-光模块-交换芯片与液冷的订单验证-befad699",
+    "title": "AI算力产业链：光模块、交换芯片与液冷的订单验证 - 产业链深度",
+    "topic": "AI算力产业链：光模块、交换芯片与液冷的订单验证",
+    "type": "industry",
+    "typeLabel": "产业链深度",
+    "summary": "AI算力产业链：光模块、交换芯片与液冷的订单验证 的本地模板调研已生成。当前版本用于沉淀研究框架、任务流和报告归档，真实行情、公告、新闻与研报数据源仍待接入。",
+    "tags": [
+      "产业链",
+      "AI",
+      "算力",
+      "光模块"
+    ],
+    "status": "new",
+    "source": "daily",
+    "localDate": "2026-06-17",
+    "createdAt": "2026-06-17T03:55:14.745Z",
+    "updatedAt": "2026-06-17T03:55:14.745Z",
+    "file": "2026-06-17/2026-06-17-industry-ai算力产业链-光模块-交换芯片与液冷的订单验证-befad699.html",
+    "wikiPath": "investing/themes/2026-06-17-ai算力产业链-光模块-交换芯片与液冷的订单验证.html",
+    "accent": "#00a676",
+    "highlights": [
+      "供需位置 是本次调研的第一观察维度，需要用最新数据验证强弱。",
+      "价格弹性 目前应和历史区间比较，避免只看单日波动。",
+      "订单验证 决定该主题能否从概念扩散到业绩兑现。"
+    ],
+    "origin": "automation",
+    "originLabel": "自动化产出"
+  },
+  {
+    "id": "2026-06-17-market-2026-06-17-a股市场脉搏-成交-风格轮动与资金方向-b11e358e",
+    "title": "2026-06-17 A股市场脉搏：成交、风格轮动与资金方向",
+    "topic": "2026-06-17 A股市场脉搏：成交、风格轮动与资金方向",
+    "type": "market",
+    "typeLabel": "市场快览",
+    "summary": "2026-06-17 A股市场脉搏：成交、风格轮动与资金方向 的本地模板调研已生成。当前版本用于沉淀研究框架、任务流和报告归档，真实行情、公告、新闻与研报数据源仍待接入。",
+    "tags": [
+      "市场",
+      "A股"
+    ],
+    "status": "new",
+    "source": "daily",
+    "localDate": "2026-06-17",
+    "createdAt": "2026-06-17T03:55:14.742Z",
+    "updatedAt": "2026-06-17T03:55:14.742Z",
+    "file": "2026-06-17/2026-06-17-market-2026-06-17-a股市场脉搏-成交-风格轮动与资金方向-b11e358e.html",
+    "wikiPath": "feeds/market/2026-06-17-2026-06-17-a股市场脉搏-成交-风格轮动与资金方向.html",
+    "accent": "#2563eb",
+    "highlights": [
+      "指数结构 是本次调研的第一观察维度，需要用最新数据验证强弱。",
+      "成交额 目前应和历史区间比较，避免只看单日波动。",
+      "风格轮动 决定该主题能否从概念扩散到业绩兑现。"
+    ],
+    "origin": "automation",
+    "originLabel": "自动化产出"
+  },
+  {
+    "id": "2026-06-17-industry-机器人产业链-减速器-传感器与端侧ai落地-b9c75176",
+    "title": "机器人产业链：减速器、传感器与端侧AI落地 - 产业链深度",
+    "topic": "机器人产业链：减速器、传感器与端侧AI落地",
+    "type": "industry",
+    "typeLabel": "产业链深度",
+    "summary": "机器人产业链：减速器、传感器与端侧AI落地 的本地模板调研已生成。当前版本用于沉淀研究框架、任务流和报告归档，真实行情、公告、新闻与研报数据源仍待接入。",
+    "tags": [
+      "产业链",
+      "AI"
+    ],
+    "status": "read",
+    "source": "manual",
+    "localDate": "2026-06-17",
+    "createdAt": "2026-06-17T03:52:47.214Z",
+    "updatedAt": "2026-06-17T03:54:27.069Z",
+    "file": "2026-06-17/2026-06-17-industry-机器人产业链-减速器-传感器与端侧ai落地-b9c75176.html",
+    "wikiPath": "investing/themes/2026-06-17-机器人产业链-减速器-传感器与端侧ai落地.html",
+    "accent": "#00a676",
+    "highlights": [
+      "供需位置 是本次调研的第一观察维度，需要用最新数据验证强弱。",
+      "价格弹性 目前应和历史区间比较，避免只看单日波动。",
+      "订单验证 决定该主题能否从概念扩散到业绩兑现。"
+    ],
+    "origin": "manual",
+    "originLabel": "手动产出"
+  },
+  {
+    "id": "2026-06-17-policy-新闻联播政策日报-设备更新-算力与新质生产力-ababd95c",
+    "title": "新闻联播政策日报：设备更新、算力与新质生产力",
+    "topic": "新闻联播政策日报：设备更新、算力与新质生产力",
+    "type": "policy",
+    "typeLabel": "政策扫描",
+    "summary": "新闻联播政策日报：设备更新、算力与新质生产力 的本地模板调研已生成。当前版本用于沉淀研究框架、任务流和报告归档，真实行情、公告、新闻与研报数据源仍待接入。",
+    "tags": [
+      "政策",
+      "算力"
+    ],
+    "status": "new",
+    "source": "seed",
+    "localDate": "2026-06-17",
+    "createdAt": "2026-06-17T03:51:23.958Z",
+    "updatedAt": "2026-06-17T03:51:23.958Z",
+    "file": "2026-06-17/2026-06-17-policy-新闻联播政策日报-设备更新-算力与新质生产力-ababd95c.html",
+    "wikiPath": "feeds/policy/2026-06-17-新闻联播政策日报-设备更新-算力与新质生产力.html",
+    "accent": "#7c3aed",
+    "highlights": [
+      "政策方向 是本次调研的第一观察维度，需要用最新数据验证强弱。",
+      "落地节奏 目前应和历史区间比较，避免只看单日波动。",
+      "受益环节 决定该主题能否从概念扩散到业绩兑现。"
+    ],
+    "origin": "manual",
+    "originLabel": "手动产出"
+  },
+  {
+    "id": "2026-06-17-stock-云南锗业-002428-高位冲高回落后的观察点-193faddc",
+    "title": "云南锗业(002428)：高位冲高回落后的观察点 - 个股跟踪",
+    "topic": "云南锗业(002428)：高位冲高回落后的观察点",
+    "type": "stock",
+    "typeLabel": "个股跟踪",
+    "summary": "云南锗业(002428)：高位冲高回落后的观察点 的本地模板调研已生成。当前版本用于沉淀研究框架、任务流和报告归档，真实行情、公告、新闻与研报数据源仍待接入。",
+    "tags": [
+      "个股",
+      "锗"
+    ],
+    "status": "new",
+    "source": "seed",
+    "localDate": "2026-06-17",
+    "createdAt": "2026-06-17T03:51:23.958Z",
+    "updatedAt": "2026-06-17T03:51:23.958Z",
+    "file": "2026-06-17/2026-06-17-stock-云南锗业-002428-高位冲高回落后的观察点-193faddc.html",
+    "wikiPath": "investing/stocks/2026-06-17-云南锗业-002428-高位冲高回落后的观察点.html",
+    "accent": "#d97706",
+    "highlights": [
+      "业绩兑现 是本次调研的第一观察维度，需要用最新数据验证强弱。",
+      "估值锚 目前应和历史区间比较，避免只看单日波动。",
+      "催化事件 决定该主题能否从概念扩散到业绩兑现。"
+    ],
+    "origin": "manual",
+    "originLabel": "手动产出"
+  },
+  {
+    "id": "2026-06-17-market-2026-06-17-a股市场复盘-成交缩量与题材轮动-dade70bc",
+    "title": "2026-06-17 A股市场复盘：成交缩量与题材轮动",
+    "topic": "2026-06-17 A股市场复盘：成交缩量与题材轮动",
+    "type": "market",
+    "typeLabel": "市场快览",
+    "summary": "2026-06-17 A股市场复盘：成交缩量与题材轮动 的本地模板调研已生成。当前版本用于沉淀研究框架、任务流和报告归档，真实行情、公告、新闻与研报数据源仍待接入。",
+    "tags": [
+      "市场",
+      "A股"
+    ],
+    "status": "new",
+    "source": "seed",
+    "localDate": "2026-06-17",
+    "createdAt": "2026-06-17T03:51:23.957Z",
+    "updatedAt": "2026-06-17T03:51:23.957Z",
+    "file": "2026-06-17/2026-06-17-market-2026-06-17-a股市场复盘-成交缩量与题材轮动-dade70bc.html",
+    "wikiPath": "feeds/market/2026-06-17-2026-06-17-a股市场复盘-成交缩量与题材轮动.html",
+    "accent": "#2563eb",
+    "highlights": [
+      "指数结构 是本次调研的第一观察维度，需要用最新数据验证强弱。",
+      "成交额 目前应和历史区间比较，避免只看单日波动。",
+      "风格轮动 决定该主题能否从概念扩散到业绩兑现。"
+    ],
+    "origin": "manual",
+    "originLabel": "手动产出"
+  },
+  {
+    "id": "2026-06-17-industry-inp产业链深度-ai光通信光源-衬底与a股映射-eed730de",
+    "title": "InP产业链深度：AI光通信光源、衬底与A股映射",
+    "topic": "InP产业链深度：AI光通信光源、衬底与A股映射",
+    "type": "industry",
+    "typeLabel": "产业链深度",
+    "summary": "InP产业链深度：AI光通信光源、衬底与A股映射 的本地模板调研已生成。当前版本用于沉淀研究框架、任务流和报告归档，真实行情、公告、新闻与研报数据源仍待接入。",
+    "tags": [
+      "产业链",
+      "AI",
+      "InP",
+      "A股"
+    ],
+    "status": "new",
+    "source": "seed",
+    "localDate": "2026-06-17",
+    "createdAt": "2026-06-17T03:51:23.957Z",
+    "updatedAt": "2026-06-17T03:51:23.957Z",
+    "file": "2026-06-17/2026-06-17-industry-inp产业链深度-ai光通信光源-衬底与a股映射-eed730de.html",
+    "wikiPath": "investing/themes/2026-06-17-inp产业链深度-ai光通信光源-衬底与a股映射.html",
+    "accent": "#00a676",
+    "highlights": [
+      "供需位置 是本次调研的第一观察维度，需要用最新数据验证强弱。",
+      "价格弹性 目前应和历史区间比较，避免只看单日波动。",
+      "订单验证 决定该主题能否从概念扩散到业绩兑现。"
+    ],
+    "origin": "manual",
+    "originLabel": "手动产出"
+  },
+  {
+    "id": "2026-06-17-custom-论文速览-ai-agent-与金融研究工作流-e91e3be4",
+    "title": "论文速览：AI Agent 与金融研究工作流 - 主题调研",
+    "topic": "论文速览：AI Agent 与金融研究工作流",
+    "type": "custom",
+    "typeLabel": "主题调研",
+    "summary": "论文速览：AI Agent 与金融研究工作流 的本地模板调研已生成。当前版本用于沉淀研究框架、任务流和报告归档，真实行情、公告、新闻与研报数据源仍待接入。",
+    "tags": [
+      "研究",
+      "AI"
+    ],
+    "status": "new",
+    "source": "seed",
+    "localDate": "2026-06-17",
+    "createdAt": "2026-06-17T03:51:23.954Z",
+    "updatedAt": "2026-06-17T03:51:23.954Z",
+    "file": "2026-06-17/2026-06-17-custom-论文速览-ai-agent-与金融研究工作流-e91e3be4.html",
+    "wikiPath": "research/themes/2026-06-17-论文速览-ai-agent-与金融研究工作流.html",
+    "accent": "#0f766e",
+    "highlights": [
+      "核心假设 是本次调研的第一观察维度，需要用最新数据验证强弱。",
+      "证据链 目前应和历史区间比较，避免只看单日波动。",
+      "关键变量 决定该主题能否从概念扩散到业绩兑现。"
+    ],
+    "origin": "manual",
+    "originLabel": "手动产出"
+  }
+]
