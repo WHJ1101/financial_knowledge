@@ -1,0 +1,8 @@
+interface:
+  display_name: "投资研究"
+  short_description: "产业链瓶颈式投研分析流程"
+  brand_color: "#0F766E"
+  default_prompt: "Use $investment-research to map a market theme, find scarce layers, rank research priorities, and list evidence and risks."
+
+policy:
+  allow_implicit_invocation: true
