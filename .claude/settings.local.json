@@ -25,7 +25,9 @@
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); [print\\(f\"\"{r[''''code'''']} {r[''''name'''']} {r[''''market'''']} secid={r[''''secid'''']}\"\"\\) for r in d[''''results''''][:3]]\")",
       "Bash(curl:*)",
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); [print\\(f\"\"{r[''''code'''']} {r[''''name'''']} {r[''''market'''']}\"\"\\) for r in d[''''results''''][:3]]\")",
-      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); [print\\(f\"\"{i[''''code'''']} {i[''''name'''']}\"\"\\) for i in d[''''indices'''']]\")"
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); [print\\(f\"\"{i[''''code'''']} {i[''''name'''']}\"\"\\) for i in d[''''indices'''']]\")",
+      "Bash(python3 -c \"import sys,json;d=json.load\\(sys.stdin\\);print\\(json.dumps\\(d,indent=2,ensure_ascii=False\\)\\)\")",
+      "Bash(python3 -c \"import sys,json;d=json.load\\(sys.stdin\\);[print\\(f\"\"{i[''''name'''']}: {i.get\\(''''relatedEtfs'''',[]\\)}\"\"\\) for i in d[''''indices'''']]\")"
     ]
   }
 }

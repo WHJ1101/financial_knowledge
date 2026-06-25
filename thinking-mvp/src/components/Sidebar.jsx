@@ -2,7 +2,6 @@ const NAV = [
   { key: "#today", icon: "◉", label: "今日" },
   { key: "#knowledge", icon: "◎", label: "知识库" },
   { key: "#portfolio", icon: "◈", label: "投资组合" },
-  { key: "#market", icon: "◇", label: "行情" },
   { key: "#decisions", icon: "◆", label: "决策" },
   { key: "#tasks", icon: "⚙", label: "任务" },
   { key: "#settings", icon: "☰", label: "设置" }

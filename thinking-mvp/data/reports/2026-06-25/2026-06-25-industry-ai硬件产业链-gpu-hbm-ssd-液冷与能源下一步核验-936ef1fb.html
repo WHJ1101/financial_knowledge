@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI硬件产业链：GPU、HBM、SSD、液冷与能源下一步核验</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --accent: #0f766e;
+      --ink: #111827;
+      --muted: #64748b;
+      --line: #dbe4f0;
+      --soft: #f7fafc;
+      --paper: #ffffff;
+      --chip: #ecfdf5;
+      --warn: #fff7ed;
+      --blue: #eff6ff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--soft);
+      color: var(--ink);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.65;
+    }
+    main { max-width: 1120px; margin: 0 auto; padding: 48px 28px 72px; }
+    article { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 36px; }
+    .eyebrow { color: var(--accent); font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+    h1 { margin: 10px 0 14px; font-size: clamp(30px, 5vw, 46px); line-height: 1.1; letter-spacing: 0; }
+    h2 { font-size: 21px; margin: 0 0 12px; }
+    h3 { font-size: 16px; margin: 18px 0 8px; }
+    p { margin: 10px 0 0; }
+    a { color: #0f766e; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .meta { color: var(--muted); font-size: 14px; display: flex; flex-wrap: wrap; gap: 10px 18px; }
+    .tag-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+    .tag { border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; color: #334155; font-size: 13px; background: #fff; }
+    .summary { margin-top: 28px; padding: 18px 20px; border-left: 4px solid var(--accent); background: #f8fbff; border-radius: 6px; }
+    .notice { margin-top: 16px; padding: 14px 16px; background: var(--warn); border: 1px solid #fed7aa; border-radius: 6px; color: #7c2d12; }
+    section { border-top: 1px solid var(--line); margin-top: 30px; padding-top: 24px; }
+    ul { padding-left: 22px; margin: 10px 0 0; }
+    li + li { margin-top: 8px; }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: #fff; margin-top: 12px; }
+    table { width: 100%; min-width: 900px; border-collapse: collapse; font-size: 14px; }
+    th, td { padding: 11px 12px; border-bottom: 1px solid var(--line); vertical-align: top; text-align: left; }
+    th { background: #f8fafc; color: #334155; font-weight: 700; white-space: nowrap; }
+    tr:last-child td { border-bottom: 0; }
+    .grade { display: inline-block; padding: 2px 8px; border-radius: 999px; background: var(--chip); color: #047857; font-size: 12px; font-weight: 700; white-space: nowrap; }
+    .medium { background: var(--blue); color: #1d4ed8; }
+    .weak { background: #fff7ed; color: #b45309; }
+    .low { background: #f1f5f9; color: #475569; }
+    .source-list { display: grid; gap: 12px; margin-top: 14px; }
+    .source-item { border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; background: #fff; }
+    .source-item strong { display: block; margin-bottom: 4px; }
+    .source-item p { margin: 8px 0 0; color: #334155; }
+    .source-meta { color: var(--muted); font-size: 13px; }
+    @media (max-width: 640px) {
+      main { padding: 20px 12px 40px; }
+      article { padding: 24px 18px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <article>
+      <div class="eyebrow">产业链深度</div>
+      <h1>AI硬件产业链：GPU、HBM、SSD、液冷与能源下一步核验</h1>
+      <div class="meta">
+        <span>生成时间：周四 · 2026-06-25 12:38</span>
+        <span>来源：对话入库 / 手工投研报告</span>
+        <span>归档：investing/themes/2026-06-25-ai硬件产业链-gpu-hbm-ssd-液冷与能源下一步核验.html</span>
+      </div>
+      <div class="tag-row">
+        <span class="tag">AI硬件</span>
+        <span class="tag">GPU</span>
+        <span class="tag">HBM</span>
+        <span class="tag">SSD</span>
+        <span class="tag">液冷</span>
+        <span class="tag">能源</span>
+        <span class="tag">光互联</span>
+      </div>
+
+      <p class="summary">
+        先排产业链层级，再排公司。当前 AI 硬件主线已经从“GPU 单点瓶颈”扩散到“机柜、集群、园区级瓶颈”。我会优先研究电力基础设施、液冷/热管理、光互联/网络、HBM/先进封装延续，SSD/AI-native storage 放在第五梯队继续核验。原因是前四层更接近真实扩产约束，且公开证据更容易验证；SSD 是真实受益，但普通 NAND 仍有较强周期属性。
+      </p>
+      <p class="notice">
+        本报告是研究优先级，不构成买卖建议。后续结论必须用订单、收入结构、毛利率、产能和客户认证继续校验。
+      </p>
+
+      <section>
+        <h2>概念地基</h2>
+        <ul>
+          <li><strong>基础概念：</strong>AI 硬件不是单一芯片，而是 GPU/ASIC、HBM、先进封装、网络互联、SSD/存储、服务器/整机、机柜级液冷、电力接入和园区能源共同组成的基础设施。</li>
+          <li><strong>横向对比：</strong>GPU/ASIC 解决计算，HBM 解决近端带宽，SSD 解决持久化和数据喂给，光互联/以太网/InfiniBand 解决集群通信，液冷和电力决定机柜密度与项目能否落地。</li>
+          <li><strong>纵向演进：</strong>H100/H200 阶段偏单卡和服务器，Blackwell/GB200/GB300 后转向液冷机柜和 rack-scale 系统，下一阶段会继续向 Rubin、硅光、CPO、园区级电力调度和 AI-native storage 扩散。</li>
+          <li><strong>投资映射：</strong>真正控制卡点的公司，不一定是主题名最热的公司。优先看低供应商数量、长认证周期、高可靠性要求、扩产慢、客户愿意预付款或签长约的层级。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>产业链层级排序</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>优先级</th>
+                <th>层级</th>
+                <th>卡住的环节</th>
+                <th>代表标的池</th>
+                <th>周期/成长判断</th>
+                <th>证据强度</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>1</td>
+                <td>电力/电网/配电</td>
+                <td>可交付 MW/GW、并网队列、变压器、开关柜、UPS、燃机、电缆、施工与运维</td>
+                <td>GE Vernova、Siemens Energy、ABB、Eaton、Schneider、Vertiv、Hubbell、Quanta Services；A股观察思源电气、金盘科技、中国西电、许继电气、特变电工</td>
+                <td>真实约束。设备侧成长属性强，发电侧受政策和燃料周期影响更大</td>
+                <td><span class="grade">Strong</span></td>
+              </tr>
+              <tr>
+                <td>2</td>
+                <td>液冷/热管理</td>
+                <td>高功率机柜散热、CDU、冷板、快接、泵阀、漏液监测、运维服务</td>
+                <td>Vertiv、Schneider、Eaton、Modine、nVent、Delta；A股观察英维克、申菱环境、高澜股份、飞荣达、佳力图</td>
+                <td>渗透率成长明确，但零部件层可能价格竞争，系统方案和服务更有壁垒</td>
+                <td><span class="grade medium">Medium-Strong</span></td>
+              </tr>
+              <tr>
+                <td>3</td>
+                <td>光互联/网络</td>
+                <td>scale-out 通信、交换芯片、光模块、硅光、CPO、外置光源、MPO/连接器</td>
+                <td>Broadcom、Marvell、Arista、Coherent、Lumentum、Corning；A股观察中际旭创、新易盛、天孚通信、太辰光、源杰科技、德科立</td>
+                <td>真成长，但部分龙头估值已经反映高预期，需要看 1.6T/CPO 订单兑现</td>
+                <td><span class="grade">Strong</span></td>
+              </tr>
+              <tr>
+                <td>4</td>
+                <td>HBM/先进封装延续</td>
+                <td>HBM4、TSV 堆叠、良率、封装、测试、CoWoS/先进封装产能</td>
+                <td>SK hynix、Micron、Samsung、TSMC、ASE、Amkor、Advantest、Disco、ASML</td>
+                <td>结构成长叠加存储周期。HBM 比普通 DRAM 更有护城河，但不能脱离 ASP 和扩产周期</td>
+                <td><span class="grade">Strong</span></td>
+              </tr>
+              <tr>
+                <td>5</td>
+                <td>AI-native SSD/存储</td>
+                <td>训练数据喂给、checkpoint、向量库、KV cache/context memory 外溢、高容量低功耗企业级 SSD</td>
+                <td>Micron、Samsung、SK hynix/Solidigm、Kioxia、SanDisk/WDC、Seagate、Silicon Motion、Phison、NetApp、DDN</td>
+                <td>真实增量但证据较早。普通 NAND 仍偏周期，企业级控制器/固件/认证更接近护城河</td>
+                <td><span class="grade medium">Medium</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section>
+        <h2>已发生的主线复盘</h2>
+        <h3>1. GPU / AI 加速平台</h3>
+        <ul>
+          <li><strong>基本概念：</strong>GPU 正在从“加速卡”变成“GPU + HBM + NVLink/NVSwitch + 网络 + DPU + CUDA/库/框架”的平台。</li>
+          <li><strong>横向分析：</strong>AMD GPU、Google TPU、AWS Trainium、定制 ASIC 会切走部分训练和推理场景，但 NVIDIA 的系统交付和软件生态仍是最强约束。</li>
+          <li><strong>纵向分析：</strong>从 H100/H200 到 GB200 NVL72，价值链从单卡转向液冷机柜、网络域和 AI factory。NVIDIA FY2027 Q1 数据中心收入 752 亿美元，同比增长 92%，说明平台需求仍强。</li>
+          <li><strong>标的：</strong>NVIDIA 是核心；延伸看 TSMC、ASML、Broadcom、Marvell、Arista、Astera、Coherent、Lumentum、Corning、Vertiv、Schneider。</li>
+          <li><strong>护城河：</strong>CUDA 只是入口，真正护城河是 CUDA-X/推理库、开发者心智、NVLink 网络、整机参考架构、供应链控制和客户迁移成本。</li>
+          <li><strong>周期还是真成长：</strong>真成长，但会受 hyperscaler capex、出口管制、产品代际切换、推理价格和估值周期影响。</li>
+        </ul>
+
+        <h3>2. DRAM / HBM</h3>
+        <ul>
+          <li><strong>基本概念：</strong>DRAM 是易失性内存；HBM 是把多层 DRAM 通过 TSV 堆叠后贴近 GPU/ASIC，核心是高带宽、低功耗和封装协同。</li>
+          <li><strong>横向分析：</strong>DDR5/CXL 是系统内存，GDDR 是显存性价比路线，HBM 是高端 AI/HPC 的带宽瓶颈解法。</li>
+          <li><strong>纵向分析：</strong>HBM3E 到 HBM4，I/O 宽度、带宽和能效继续提升，瓶颈从“有没有 DRAM 产能”升级到“良率、热、堆叠、封装和客户认证”。</li>
+          <li><strong>标的：</strong>SK hynix、Micron、Samsung；上游看先进封装、测试设备、TSV/键合/清洗/检测、材料和 EUV 设备。</li>
+          <li><strong>护城河：</strong>三家寡头格局、客户联合定义、良率曲线、封装工艺、热管理和长期供应承诺。SK hynix HBM4 公告强调 2,048 I/O、带宽翻倍和能效提升，是护城河从材料到工艺的证据。</li>
+          <li><strong>周期还是真成长：</strong>普通 DRAM 仍强周期，HBM 是结构性成长。如果 HBM 扩产超预期、客户认证扩散、ASP 下行，仍会回到存储周期。</li>
+        </ul>
+
+        <h3>3. NAND / SSD</h3>
+        <ul>
+          <li><strong>基本概念：</strong>NAND/SSD 是非易失性存储，在 AI 中用于训练数据集、checkpoint、对象/向量存储、上下文和 KV cache 外溢。</li>
+          <li><strong>横向分析：</strong>HBM/DRAM 靠近算力、解决实时带宽；SSD 解决容量、持久化和数据喂给；HDD 仍在冷数据和最低成本大容量中有位置。</li>
+          <li><strong>纵向分析：</strong>PCIe 5.0 到 PCIe 6.0、E1.S/E3.S、高层 QLC/TLC、DPU/存储加速正在把企业级 SSD 从通用硬件推向 AI 平台组件。</li>
+          <li><strong>标的：</strong>Micron、Samsung、SK hynix/Solidigm、Kioxia、SanDisk/WDC、Seagate；控制器看 Silicon Motion、Phison；系统看 NetApp、DDN 等。</li>
+          <li><strong>护城河：</strong>普通 NAND 原厂有规模和工艺壁垒，但价格周期强；企业级 SSD 护城河在控制器、固件、可靠性、功耗、散热、客户认证和平台绑定。</li>
+          <li><strong>周期还是真成长：</strong>整体仍偏周期，AI 企业级 SSD 是结构性增量。现阶段我会把它排在电力、液冷、光互联、HBM 之后，等待更强订单和收入结构证据。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>下一步方向判断</h2>
+        <h3>能源/电力：第一优先级</h3>
+        <p>IEA 预计全球数据中心用电从 2024 年约 415TWh 增至 2030 年约 945TWh，并指出若电网风险未解决，约 20% 的规划数据中心项目可能延迟。投资上最接近卡点的是变压器、开关柜、UPS、母线、电缆、燃机、并网工程和电力施工服务，而不是简单买“发电”。</p>
+        <ul>
+          <li><strong>护城河：</strong>认证、交付周期、工程经验、并网资源、全球服务网络和关键设备产能。</li>
+          <li><strong>周期/成长：</strong>配电设备和电力服务偏真成长；燃机、发电资产、电力运营商更受政策、利率和燃料周期影响。</li>
+        </ul>
+
+        <h3>散热/液冷：第二优先级</h3>
+        <p>GB200 NVL72 已经是液冷 rack-scale 架构。液冷的投资重点不是“冷板概念”本身，而是高可靠系统交付、漏液控制、泵阀/CDU/传感器、机柜集成、服务网络和客户认证。</p>
+        <ul>
+          <li><strong>护城河：</strong>系统方案、客户验证周期、失效赔付风险、运维能力和与服务器/OEM/芯片平台的协同设计。</li>
+          <li><strong>周期/成长：</strong>渗透率真成长，但零部件容易价格竞争。系统级供应商优先级高于单一小件。</li>
+        </ul>
+
+        <h3>光互联/网络：第三优先级</h3>
+        <p>AI 训练和推理集群扩张后，带宽、时延、功耗和交换芯片成为第二曲线。NVIDIA 披露 Marvell/NVLink Fusion、Coherent/Corning/Lumentum 等合作，OIF 的 CPO/外置光源标准也在强化这条线。</p>
+        <ul>
+          <li><strong>护城河：</strong>高速产品代际、客户认证、良率、硅光/CPO 工艺、光源稳定性和高速测试能力。</li>
+          <li><strong>周期/成长：</strong>真成长，但热门标的估值高，必须用 1.6T、CPO、客户集中度和毛利率兑现继续核验。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>优先研究标的池</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>优先级</th>
+                <th>标的/方向</th>
+                <th>卡住的环节</th>
+                <th>排序理由</th>
+                <th>主要缺口</th>
+                <th>证据强度</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>1</td>
+                <td>Eaton / Schneider / ABB / Siemens Energy / GE Vernova</td>
+                <td>数据中心电力系统、配电、变压器、开关设备、UPS、能源管理</td>
+                <td>直接对应 IEA 提到的并网和关键电气设备交付瓶颈，且 AI 数据中心项目越大，电力系统占比越高</td>
+                <td>需要逐家公司拆数据中心收入占比、订单积压、book-to-bill、毛利率和交付周期</td>
+                <td><span class="grade medium">Medium-Strong</span></td>
+              </tr>
+              <tr>
+                <td>2</td>
+                <td>Vertiv / nVent / Modine / Delta / 英维克 / 申菱环境</td>
+                <td>液冷系统、CDU、冷板、热交换、机柜和运维</td>
+                <td>GB200 之后高功率机柜推动液冷从可选项变成主流方案；系统供应和服务比单件更稀缺</td>
+                <td>需要确认 AI 液冷收入占比、真实客户、毛利率和售后风险</td>
+                <td><span class="grade medium">Medium</span></td>
+              </tr>
+              <tr>
+                <td>3</td>
+                <td>Coherent / Lumentum / Corning / Marvell / Broadcom</td>
+                <td>高速光学、硅光、外置光源、网络 ASIC、scale-out 网络</td>
+                <td>NVIDIA 官方合作和 OIF 标准同时指向光互联成为集群瓶颈</td>
+                <td>需要拆 AI 数据中心收入、CPO/硅光量产节奏和客户集中度</td>
+                <td><span class="grade">Strong</span></td>
+              </tr>
+              <tr>
+                <td>4</td>
+                <td>中际旭创 / 新易盛 / 天孚通信 / 太辰光 / 源杰科技</td>
+                <td>800G/1.6T 光模块、光器件、MPO/连接器、激光芯片</td>
+                <td>A股映射最直接的一条 AI 硬件链，但市场预期也最充分</td>
+                <td>需要核验 1.6T 出货、CPO 量产、海外客户认证、应收和库存</td>
+                <td><span class="grade">Strong</span></td>
+              </tr>
+              <tr>
+                <td>5</td>
+                <td>SK hynix / Micron / Samsung</td>
+                <td>HBM4、DRAM、NAND、企业级 SSD</td>
+                <td>HBM 是 AI 算力平台的带宽核心；三家寡头结构和客户认证构成强护城河</td>
+                <td>需要防止把普通 DRAM/NAND 上行误判成永久成长，重点看 HBM 收入、ASP、良率、扩产</td>
+                <td><span class="grade">Strong</span></td>
+              </tr>
+              <tr>
+                <td>6</td>
+                <td>Micron / Solidigm / SanDisk / Silicon Motion / Phison</td>
+                <td>企业级 SSD、高容量 QLC、控制器、固件、AI storage</td>
+                <td>AI-native storage 是真实增量，但当前公开证据弱于 HBM、电力和液冷</td>
+                <td>需要拿到企业级 SSD 收入占比、价格、客户长约、控制器份额和毛利率</td>
+                <td><span class="grade medium">Medium</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section>
+        <h2>核验清单</h2>
+        <p>这部分是后续复盘用的“打勾表”。每一项都要尽量用公告、财报、投资者交流纪要、招投标、环评/能评、客户公开材料或上下游交叉验证。</p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>模块</th>
+                <th>要查什么</th>
+                <th>来源路径</th>
+                <th>通过信号</th>
+                <th>降级/反证信号</th>
+                <th>频率</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>总需求</td>
+                <td>hyperscaler capex、AI cloud/neocloud 融资和 GPU 租用率、NVIDIA 数据中心收入和订单可见度</td>
+                <td>10-K/10-Q、财报电话会、云厂商 capex 指引、GPU 租赁平台价格、数据中心项目公告</td>
+                <td>capex 上修、GPU 交付持续紧、推理工作负载增长、租金稳定</td>
+                <td>capex 下修、GPU 利用率下降、租金大幅下滑、客户延迟机柜交付</td>
+                <td>季度 + 月度价格跟踪</td>
+              </tr>
+              <tr>
+                <td>GPU 平台</td>
+                <td>Blackwell/Rubin 量产节奏、NVLink/NVSwitch/网络收入、CUDA/推理软件黏性、出口管制影响</td>
+                <td>NVIDIA 财报、CFO commentary、供应商交叉验证、云实例上线节奏、开发者生态数据</td>
+                <td>数据中心计算和网络收入同步增长，毛利率稳定，平台生态继续扩张</td>
+                <td>替代 ASIC 快速放量、NVIDIA 网络/软件份额下降、中国收入受限扩大</td>
+                <td>季度</td>
+              </tr>
+              <tr>
+                <td>HBM</td>
+                <td>HBM 收入占比、HBM3E/HBM4 客户认证、良率、ASP、产能是否被长约锁定</td>
+                <td>SK hynix/Samsung/Micron 财报、DART/SEC、客户平台规格、封装和测试供应商订单</td>
+                <td>HBM 收入占比提升、ASP 和毛利保持高位、客户预付款或长约增加、HBM4 顺利 ramp</td>
+                <td>客户认证扩散过快、扩产导致 ASP 下行、良率问题拖累交付、普通 DRAM 拖累利润</td>
+                <td>季度 + 产品代际节点</td>
+              </tr>
+              <tr>
+                <td>NAND/SSD</td>
+                <td>企业级 SSD 收入占比、eSSD 合同价、高容量 QLC 出货、控制器份额、firmware/reliability 差异</td>
+                <td>Micron/Samsung/SK hynix/SanDisk/WDC/Seagate 财报，TrendForce/Counterpoint，控制器厂商法说会</td>
+                <td>eSSD 收入和毛利提升、AI 客户长约、控制器 ASP 提升、库存健康</td>
+                <td>消费 NAND 涨价主导、库存和应收恶化、ASP 见顶、企业级 SSD 竞争扩散</td>
+                <td>季度 + 合同价月度</td>
+              </tr>
+              <tr>
+                <td>液冷</td>
+                <td>CDU/冷板/快接/泵阀出货、AI 液冷收入占比、客户认证、漏液/可靠性、服务能力</td>
+                <td>Vertiv/Schneider/Eaton/nVent/Modine 财报，A股年报和互动平台，服务器 OEM 供应链公告</td>
+                <td>液冷订单和 backlog 增长，毛利率高于传统 HVAC，客户从样板转量产</td>
+                <td>收入仍以传统机房空调为主，客户验证停留在 PoC，价格战，售后故障率上升</td>
+                <td>季度 + 项目节点</td>
+              </tr>
+              <tr>
+                <td>电力设备</td>
+                <td>变压器、开关柜、UPS、母线、电缆、燃机订单，book-to-bill，交付周期，数据中心客户占比</td>
+                <td>公司订单公告、财报、招投标、项目备案、PJM/区域电网 interconnection queue、地方能评/环评</td>
+                <td>订单积压创高、交付周期延长、价格接受度提升、现金流和毛利同步改善</td>
+                <td>订单来自低毛利工程总包、应收恶化、扩产后交付周期缩短、项目被监管/社区阻滞</td>
+                <td>季度 + 项目备案月度</td>
+              </tr>
+              <tr>
+                <td>光互联</td>
+                <td>800G/1.6T 出货、CPO/硅光量产、外置光源、交换芯片、客户集中度、良率</td>
+                <td>OIF 标准、NVIDIA/Marvell/Broadcom/Coherent 等公告，A股年报，客户产品页</td>
+                <td>1.6T 出货放量、CPO 进入量产设计、毛利率稳定、海外大客户订单持续</td>
+                <td>客户砍单、LPO/CPO 技术路线反复、价格竞争、应收和库存快于收入增长</td>
+                <td>季度 + 标准/展会节点</td>
+              </tr>
+              <tr>
+                <td>财务质量</td>
+                <td>收入结构、毛利率、库存、应收、合同负债、经营现金流、资本开支和产能利用率</td>
+                <td>年报/季报、问询函、审计意见、同业交叉比较</td>
+                <td>收入、毛利、现金流三者一致改善，库存周转健康，客户集中但付款强</td>
+                <td>只讲主题不披露分部，库存应收快速增加，毛利不升反降，依赖补贴或关联交易</td>
+                <td>季度</td>
+              </tr>
+              <tr>
+                <td>估值和交易拥挤</td>
+                <td>PE/EV-EBITDA 与历史周期高点比较，sell-side 一致预期，空头比例，期权隐含波动</td>
+                <td>行情终端、财务数据库、交易所披露、公司指引</td>
+                <td>估值仍低于收入和利润上修速度，预期差来自新增卡点</td>
+                <td>业绩不再上修但估值继续扩张，热门标的同涨同跌，市场只交易主题标签</td>
+                <td>周度 + 财报季</td>
+              </tr>
+              <tr>
+                <td>A股映射</td>
+                <td>是否真进入核心供应链、AI 业务占比、客户名称、订单可见度、产能建设真实性</td>
+                <td>年报、互动易/上证e互动、招投标、中标公告、环评/能评、客户验厂、海关数据</td>
+                <td>明确客户和产品，AI 相关收入可量化，毛利率/现金流同步改善</td>
+                <td>只用概念表述、客户未披露且收入不变、频繁定增、存货和应收异常</td>
+                <td>月度跟踪 + 季报复盘</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section>
+        <h2>风险与反证</h2>
+        <ul>
+          <li>AI 模型效率或推理成本下降速度超预期，单位算力、电力和存储需求被明显压低。</li>
+          <li>hyperscaler capex 高位后下修，或者 neocloud 融资和客户签约不及预期。</li>
+          <li>HBM/DRAM/NAND 扩产过快导致 ASP 下行，市场把周期高点错当成长中枢。</li>
+          <li>液冷从样板项目进入价格竞争，单一零部件供应商没有议价权。</li>
+          <li>电力项目受监管、社区、土地、PPA、燃料价格和利率影响，收入确认慢于订单。</li>
+          <li>出口管制、地缘政治或客户集中导致某些供应链公司订单突然变化。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>数据源证据</h2>
+        <div class="source-list">
+          <div class="source-item">
+            <strong><a href="https://investor.nvidia.com/news/press-release-details/2026/NVIDIA-Announces-Financial-Results-for-First-Quarter-Fiscal-2027/default.aspx">NVIDIA FY2027 Q1 results</a></strong>
+            <span class="source-meta">NVIDIA Investor Relations · 2026-05-20 · high</span>
+            <p>数据中心收入、AI factory 表述、NVLink Fusion 和光学合作，是 GPU 平台、网络和光互联判断的强证据。</p>
+          </div>
+          <div class="source-item">
+            <strong><a href="https://www.nvidia.com/en-us/data-center/gb200-nvl72/">NVIDIA GB200 NVL72 official product page</a></strong>
+            <span class="source-meta">NVIDIA · 2026-06-25 核验 · high</span>
+            <p>液冷 rack-scale 架构是散热和电力从配套项变成核心卡点的直接证据。</p>
+          </div>
+          <div class="source-item">
+            <strong><a href="https://news.skhynix.com/sk-hynix-completes-worlds-first-hbm4-development-and-readies-mass-production/">SK hynix HBM4 development and mass-production readiness</a></strong>
+            <span class="source-meta">SK hynix Newsroom · 2025-09-12 · high</span>
+            <p>HBM4 的 I/O、带宽、能效和 MR-MUF 工艺支持 HBM 护城河判断。</p>
+          </div>
+          <div class="source-item">
+            <strong><a href="https://www.micron.com/products/memory/hbm/hbm4">Micron HBM4 product page</a></strong>
+            <span class="source-meta">Micron · 2026-06-25 核验 · high</span>
+            <p>HBM4 参数验证行业从容量内存转向带宽和能效内存。</p>
+          </div>
+          <div class="source-item">
+            <strong><a href="https://www.iea.org/reports/energy-and-ai/executive-summary">IEA Energy and AI executive summary</a></strong>
+            <span class="source-meta">IEA · 2025-04-10 · high</span>
+            <p>数据中心用电、并网风险、变压器/电缆交付和燃机周期，是能源排第一的核心依据。</p>
+          </div>
+          <div class="source-item">
+            <strong><a href="https://www.oiforum.com/technical-work/hot-topics/energy-efficient-interfaces/">OIF Energy Efficient Interfaces</a></strong>
+            <span class="source-meta">OIF · 2026-06-23 本地源 · high</span>
+            <p>CPO、外置光源和更高能效接口标准支撑光互联成为 AI 集群瓶颈。</p>
+          </div>
+          <div class="source-item">
+            <strong><a href="https://www.tomshardware.com/pc-components/ssds/microns-industry-first-pci-6-0-ssd-promises-sequential-reads-up-to-28-000-mb-s-245-tb-ssd-also-coming-for-those-who-need-capacity-more-than-cutting-edge-speed">Micron PCIe Gen6 and high-capacity SSD roadmap coverage</a></strong>
+            <span class="source-meta">Tom's Hardware · medium</span>
+            <p>企业级 SSD 和高容量 QLC 是 AI 存储方向的线索，但仍需公司财报和客户长约验证。</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>下一步</h2>
+        <ul>
+          <li>把电力设备、液冷、光互联、HBM、SSD 分别建候选池，逐家公司填入“收入占比、订单、毛利、库存应收、客户认证”。</li>
+          <li>优先补强 A股映射的硬证据：年报分部、互动平台口径、招投标/中标、环评/能评和客户验厂。</li>
+          <li>每个方向至少找一个“热门但应降级”的标的，避免只按股价强弱排序。</li>
+          <li>财报季重点看：NVIDIA 数据中心网络收入、三大存储厂 HBM/eSSD 指引、Vertiv/Schneider/Eaton backlog、光模块龙头 1.6T 订单。</li>
+        </ul>
+      </section>
+    </article>
+  </main>
+</body>
+</html>

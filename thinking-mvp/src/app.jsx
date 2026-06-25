@@ -3,7 +3,6 @@ import { Layout } from "./components/Layout.jsx";
 import { Today } from "./pages/Today.jsx";
 import { Knowledge } from "./pages/Knowledge.jsx";
 import { Portfolio } from "./pages/Portfolio.jsx";
-import { Market } from "./pages/Market.jsx";
 import { Decisions } from "./pages/Decisions.jsx";
 import { Tasks } from "./pages/Tasks.jsx";
 import { Settings } from "./pages/Settings.jsx";
@@ -16,10 +15,7 @@ export function App() {
   useEffect(() => {
     const onChange = () => setRoute(location.hash || "#today");
     window.addEventListener("hashchange", onChange);
-    const timer = setInterval(() => {
-      const h = location.hash;
-      if (h === "#today" || h === "" || h === "#market") loadMarket();
-    }, 60000);
+    const timer = setInterval(() => loadMarket(), 60000);
     return () => { window.removeEventListener("hashchange", onChange); clearInterval(timer); };
   }, []);
 
@@ -30,7 +26,6 @@ export function App() {
     switch (route) {
       case "#knowledge": return <Knowledge />;
       case "#portfolio": return <Portfolio />;
-      case "#market": return <Market />;
       case "#decisions": return <Decisions />;
       case "#tasks": return <Tasks />;
       case "#settings": return <Settings />;

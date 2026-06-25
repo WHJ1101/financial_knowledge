@@ -1,5 +1,40 @@
 [
   {
+    "id": "2026-06-25-industry-ai硬件产业链-gpu-hbm-ssd-液冷与能源下一步核验-936ef1fb",
+    "title": "AI硬件产业链：GPU、HBM、SSD、液冷与能源下一步核验 - 产业链深度",
+    "topic": "AI硬件产业链：GPU、HBM、SSD、液冷与能源下一步核验",
+    "type": "industry",
+    "typeLabel": "产业链深度",
+    "summary": "本报告将 AI 硬件主线从 GPU、HBM/DRAM、NAND/SSD 复盘到下一阶段的电力、液冷、光互联和 AI-native storage。核心判断是：产业链已经从单芯片瓶颈转向机柜、集群和园区级瓶颈；下一步优先研究电力基础设施、液冷/热管理、光互联/网络、HBM/先进封装延续，SSD 暂列第五优先级并重点核验企业级控制器、固件、客户认证和收入结构。",
+    "tags": [
+      "产业链",
+      "AI硬件",
+      "GPU",
+      "HBM",
+      "SSD",
+      "液冷",
+      "能源",
+      "光互联"
+    ],
+    "status": "new",
+    "source": "chat",
+    "localDate": "2026-06-25",
+    "createdAt": "2026-06-25T04:46:31.249Z",
+    "updatedAt": "2026-06-25T04:46:31.249Z",
+    "file": "2026-06-25/2026-06-25-industry-ai硬件产业链-gpu-hbm-ssd-液冷与能源下一步核验-936ef1fb.html",
+    "wikiPath": "investing/themes/2026-06-25-ai硬件产业链-gpu-hbm-ssd-液冷与能源下一步核验.html",
+    "accent": "#0f766e",
+    "highlights": [
+      "层级排序：电力基础设施第一，液冷/热管理第二，光互联/网络第三，HBM/先进封装第四，AI-native SSD 第五。",
+      "GPU 护城河不只是 CUDA，而是 CUDA-X、NVLink、网络、整机参考架构、供应链控制和客户迁移成本的组合。",
+      "HBM 是结构性成长，但普通 DRAM/NAND 仍有强周期属性，必须拆收入占比、ASP、良率和扩产节奏。",
+      "SSD 是真实 AI 增量，但普通 NAND 涨价不能直接等同护城河，企业级 SSD 的控制器、固件、可靠性和客户认证更值得核验。",
+      "核验清单已按总需求、GPU、HBM、NAND/SSD、液冷、电力、光互联、财务质量、估值和 A股映射拆成可复盘指标。"
+    ],
+    "origin": "manual",
+    "originLabel": "手动产出"
+  },
+  {
     "id": "2026-06-24-industry-nand产业链深度-ai存储-企业级ssd与中美韩标的优先级-a9f3c2d1",
     "title": "NAND产业链深度：AI存储、企业级SSD与中美韩标的优先级",
     "topic": "NAND产业链深度：AI存储、企业级SSD与中美韩标的优先级",

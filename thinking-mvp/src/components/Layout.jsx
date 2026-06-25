@@ -7,19 +7,13 @@ function getMarketStatus() {
   const sh = new Intl.DateTimeFormat("en", { timeZone: "Asia/Shanghai", hour: "numeric", minute: "numeric", hour12: false, weekday: "short" }).formatToParts(now);
   const shParts = Object.fromEntries(sh.map(p => [p.type, p.value]));
   const shH = Number(shParts.hour), shM = Number(shParts.minute), shDay = shParts.weekday;
-
-  const ny = new Intl.DateTimeFormat("en", { timeZone: "America/New_York", hour: "numeric", minute: "numeric", hour12: false, weekday: "short" }).formatToParts(now);
+  const ny = new Intl.DateTimeFormat("en", { timeZone: "America/New_York", hour: "numeric", hour12: false, weekday: "short" }).formatToParts(now);
   const nyParts = Object.fromEntries(ny.map(p => [p.type, p.value]));
   const nyH = Number(nyParts.hour), nyDay = nyParts.weekday;
-
   const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri"];
-  const isWeekdaySh = weekdays.includes(shDay);
-  const isWeekdayNy = weekdays.includes(nyDay);
-
-  const aOpen = isWeekdaySh && ((shH === 9 && shM >= 30) || (shH >= 10 && shH < 11) || (shH === 11 && shM <= 30) || (shH >= 13 && shH < 15));
-  const hkOpen = isWeekdaySh && ((shH === 9 && shM >= 30) || (shH >= 10 && shH < 12) || (shH >= 13 && shH < 16));
-  const usOpen = isWeekdayNy && (nyH >= 9 && nyH < 16);
-
+  const aOpen = weekdays.includes(shDay) && ((shH === 9 && shM >= 30) || (shH >= 10 && shH < 11) || (shH === 11 && shM <= 30) || (shH >= 13 && shH < 15));
+  const hkOpen = weekdays.includes(shDay) && ((shH === 9 && shM >= 30) || (shH >= 10 && shH < 12) || (shH >= 13 && shH < 16));
+  const usOpen = weekdays.includes(nyDay) && (nyH >= 9 && nyH < 16);
   return [
     { label: "A股", open: aOpen },
     { label: "港股", open: hkOpen },
@@ -33,9 +27,9 @@ export function Layout({ route, children }) {
     loadReports();
   };
 
+  const snap = marketSnapshot.value;
+  const items = snap?.indices || [];
   const statuses = getMarketStatus();
-  const updatedAt = marketSnapshot.value?.updatedAt;
-  const timeStr = updatedAt ? new Date(updatedAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Shanghai" }) : "--:--";
 
   return (
     <div class="app-shell">
@@ -46,11 +40,21 @@ export function Layout({ route, children }) {
             <span>⌕</span>
             <input type="search" placeholder="搜索报告、标的..." onInput={handleSearch} autocomplete="off" />
           </label>
+          <div class="ticker-wrap">
+            <div class="ticker-track">
+              {items.map(i => (
+                <span key={i.code} class="ticker-item">
+                  <span class="ticker-name">{i.name}</span>
+                  <span class="ticker-level">{i.level || "--"}</span>
+                  <span class={`ticker-pct ${Number(i.changePct) >= 0 ? "up" : "down"}`}>{i.changePct ? `${Number(i.changePct) >= 0 ? "+" : ""}${i.changePct}%` : "--"}</span>
+                </span>
+              ))}
+            </div>
+          </div>
           <div class="market-status">
             {statuses.map(s => (
               <span key={s.label} class={`market-dot ${s.open ? "open" : ""}`}>{s.label}</span>
             ))}
-            <span class="market-time">{timeStr}</span>
           </div>
         </header>
         <section class="view">{children}</section>

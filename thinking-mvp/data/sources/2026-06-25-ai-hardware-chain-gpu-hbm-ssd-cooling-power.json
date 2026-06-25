@@ -1,0 +1,146 @@
+[
+  {
+    "title": "NVIDIA FY2027 Q1 results: data center revenue and AI factory framing",
+    "summary": "NVIDIA reported FY2027 Q1 revenue of USD 81.6 billion and Data Center revenue of USD 75.2 billion, up 92% year over year. Management also shifted reporting toward Data Center and Edge Computing, reinforcing that AI hardware is now a full infrastructure platform rather than a single-chip story.",
+    "observedAt": "2026-06-25T12:38:17+08:00",
+    "confidence": "high",
+    "type": "stock",
+    "url": "https://investor.nvidia.com/news/press-release-details/2026/NVIDIA-Announces-Financial-Results-for-First-Quarter-Fiscal-2027/default.aspx",
+    "tags": ["NVIDIA", "GPU", "AI工厂", "数据中心"]
+  },
+  {
+    "title": "NVIDIA GB200 NVL72: liquid-cooled rack-scale AI platform",
+    "summary": "NVIDIA's GB200 NVL72 product page describes a rack-scale, liquid-cooled system with 36 Grace CPUs and 72 Blackwell GPUs connected through NVLink. This is evidence that the AI hardware bottleneck has moved from boards to rack-level power, cooling and networking.",
+    "observedAt": "2026-06-25T12:38:17+08:00",
+    "confidence": "high",
+    "type": "industry",
+    "url": "https://www.nvidia.com/en-us/data-center/gb200-nvl72/",
+    "tags": ["GB200", "Blackwell", "液冷", "NVLink"]
+  },
+  {
+    "title": "NVIDIA FY2027 Q1: advanced optics and NVLink Fusion partners",
+    "summary": "NVIDIA's FY2027 Q1 release names Marvell for NVLink Fusion and silicon photonics collaboration, plus multi-year optics agreements with Coherent, Corning and Lumentum. This supports ranking optical interconnect as a real cluster-scale constraint rather than a peripheral theme.",
+    "observedAt": "2026-06-25T12:38:17+08:00",
+    "confidence": "high",
+    "type": "industry",
+    "url": "https://investor.nvidia.com/news/press-release-details/2026/NVIDIA-Announces-Financial-Results-for-First-Quarter-Fiscal-2027/default.aspx",
+    "tags": ["光互联", "硅光", "CPO", "NVLink"]
+  },
+  {
+    "title": "SK hynix HBM4: development completed and mass-production system readied",
+    "summary": "SK hynix announced completion of HBM4 development and preparation for mass production, highlighting doubled bandwidth versus prior generation, more than 40% power-efficiency improvement and 2,048 I/O terminals. This supports HBM as a structural AI memory bottleneck with process, stacking and customer-certification barriers.",
+    "observedAt": "2026-06-25T12:38:17+08:00",
+    "confidence": "high",
+    "type": "stock",
+    "url": "https://news.skhynix.com/sk-hynix-completes-worlds-first-hbm4-development-and-readies-mass-production/",
+    "tags": ["SK hynix", "HBM4", "DRAM", "Advanced MR-MUF"]
+  },
+  {
+    "title": "Micron HBM4 product page: 2048-pin bus and >2.8TB/s per stack",
+    "summary": "Micron's HBM4 product page lists a 2048-pin bus, more than 11Gbps operation, over 2.8TB/s bandwidth per stack and 36GB for 12-high stacks. This confirms the industry shift from capacity memory to bandwidth and energy-efficiency memory for AI accelerators.",
+    "observedAt": "2026-06-25T12:38:17+08:00",
+    "confidence": "high",
+    "type": "stock",
+    "url": "https://www.micron.com/products/memory/hbm/hbm4",
+    "tags": ["Micron", "HBM4", "DRAM", "AI内存"]
+  },
+  {
+    "title": "JEDEC Energy and HBM standards context",
+    "summary": "JEDEC HBM standards define the open technical envelope for HBM generations. In investment mapping, standards reduce ambiguity but do not remove supplier moats, because volume yield, stacking, thermal reliability and customer qualification remain company-specific.",
+    "observedAt": "2026-06-25T12:38:17+08:00",
+    "confidence": "medium",
+    "type": "industry",
+    "url": "https://www.jedec.org/standards-documents/docs/jesd270-4",
+    "tags": ["JEDEC", "HBM4", "标准"]
+  },
+  {
+    "title": "Micron 9650 and 6600 ION: PCIe Gen6 and high-capacity AI SSD roadmap",
+    "summary": "Industry coverage of Micron's data-center SSD roadmap shows high-speed PCIe Gen6 SSDs and high-density QLC SSDs aimed at AI and hyperscale workloads. This is a medium-confidence signal that enterprise SSD demand is moving beyond generic storage into AI feeding, checkpointing and context storage.",
+    "observedAt": "2026-06-25T12:38:17+08:00",
+    "confidence": "medium",
+    "type": "stock",
+    "url": "https://www.tomshardware.com/pc-components/ssds/microns-industry-first-pci-6-0-ssd-promises-sequential-reads-up-to-28-000-mb-s-245-tb-ssd-also-coming-for-those-who-need-capacity-more-than-cutting-edge-speed",
+    "tags": ["Micron", "SSD", "PCIe 6.0", "QLC"]
+  },
+  {
+    "title": "NVIDIA BlueField-4 STX: accelerated storage infrastructure for agentic AI factories",
+    "summary": "NVIDIA's FY2027 Q1 release includes BlueField-4 STX accelerated storage infrastructure for agentic AI factories. This supports the view that AI storage is becoming part of the platform architecture, but still needs revenue and customer-adoption checks before ranking ahead of power, cooling and HBM.",
+    "observedAt": "2026-06-25T12:38:17+08:00",
+    "confidence": "high",
+    "type": "industry",
+    "url": "https://investor.nvidia.com/news/press-release-details/2026/NVIDIA-Announces-Financial-Results-for-First-Quarter-Fiscal-2027/default.aspx",
+    "tags": ["BlueField", "AI存储", "DPU", "agentic AI"]
+  },
+  {
+    "title": "Counterpoint-cited NAND data: enterprise SSD demand lifted 2026Q1 revenue",
+    "summary": "Counterpoint data cited by PC Gamer says NAND industry revenue reached a record level in 2026Q1, with enterprise SSDs as a core AI data-center demand driver. This supports NAND as an AI beneficiary but remains a secondary source.",
+    "observedAt": "2026-06-25T12:38:17+08:00",
+    "confidence": "medium",
+    "type": "industry",
+    "url": "https://www.pcgamer.com/hardware/ssds/nand-flash-makers-earned-a-record-usd46-billion-in-revenues-over-the-first-quarter-of-2026-a-shocking-3-5-times-more-than-last-year/",
+    "tags": ["NAND", "企业级SSD", "AI存储"]
+  },
+  {
+    "title": "Silicon Motion interview: NAND supply redirected toward AI data centers",
+    "summary": "Silicon Motion management described NAND supply being prioritized for AI data centers and OEM allocation, tightening retail SSD supply. This is useful channel evidence for SSD controller and firmware scarcity, but it must be cross-checked with supplier filings.",
+    "observedAt": "2026-06-25T12:38:17+08:00",
+    "confidence": "medium",
+    "type": "industry",
+    "url": "https://www.tomshardware.com/pc-components/ssds/smis-pcie-6-0-ssd-controller-for-consumer-ssds-coming-next-year-but-severe-nand-shortages-will-get-even-worse-in-2027-as-ai-data-centers-swallow-supply-an-interview-with-silicon-motions-svp-nelson-duann",
+    "tags": ["SSD控制器", "NAND", "Silicon Motion"]
+  },
+  {
+    "title": "IEA Energy and AI: data-center electricity demand to more than double by 2030",
+    "summary": "IEA's Energy and AI report estimates global data-center electricity consumption at about 415TWh in 2024 and around 945TWh by 2030, with AI as the most important growth driver. It also notes that roughly 20% of planned data-center projects could face delay if grid risks are not addressed.",
+    "observedAt": "2026-06-25T12:38:17+08:00",
+    "confidence": "high",
+    "type": "industry",
+    "url": "https://www.iea.org/reports/energy-and-ai/executive-summary",
+    "tags": ["能源", "电网", "数据中心", "IEA"]
+  },
+  {
+    "title": "IEA Energy and AI: transformer, cable and grid-connection lead-time pressure",
+    "summary": "IEA highlights long grid-connection queues, transmission build times of four to eight years in advanced economies, doubled wait times for critical grid components such as transformers and cables, and multi-year lead times for gas turbines. This directly supports power infrastructure as the first research priority.",
+    "observedAt": "2026-06-25T12:38:17+08:00",
+    "confidence": "high",
+    "type": "industry",
+    "url": "https://www.iea.org/reports/energy-and-ai/executive-summary",
+    "tags": ["变压器", "电缆", "燃机", "并网"]
+  },
+  {
+    "title": "FT: how to power data centres",
+    "summary": "FT coverage frames AI data-center expansion as an energy-availability problem, comparing regional approaches across the US, China, Europe and emerging markets. It is useful for macro framing, while project-level conclusions still need utility filings and interconnection queues.",
+    "observedAt": "2026-06-25T12:38:17+08:00",
+    "confidence": "medium",
+    "type": "industry",
+    "url": "https://www.ft.com/content/99ce2860-42ce-4396-8d76-68dee3ac1c9b",
+    "tags": ["数据中心电力", "能源", "AI基建"]
+  },
+  {
+    "title": "NVIDIA liquid-cooled platform signal: GB200 as cooling inflection",
+    "summary": "The GB200 NVL72 official architecture requires liquid cooling at rack scale. For investment purposes, this makes CDU, cold plates, manifolds, quick-connects, pumps, sensors and facility water loops more relevant than generic HVAC exposure.",
+    "observedAt": "2026-06-25T12:38:17+08:00",
+    "confidence": "high",
+    "type": "industry",
+    "url": "https://www.nvidia.com/en-us/data-center/gb200-nvl72/",
+    "tags": ["液冷", "CDU", "冷板", "机柜"]
+  },
+  {
+    "title": "OIF Energy Efficient Interfaces: AI clusters need denser, lower-latency interfaces",
+    "summary": "OIF says next-generation AI systems need denser electrical and optical interfaces with better energy efficiency and lower latency. Its implementation agreements for CPO, external lasers and related interfaces support optical interconnect as a standards-backed bottleneck.",
+    "observedAt": "2026-06-25T12:38:17+08:00",
+    "confidence": "high",
+    "type": "industry",
+    "url": "https://www.oiforum.com/technical-work/hot-topics/energy-efficient-interfaces/",
+    "tags": ["OIF", "CPO", "光互联", "EEI"]
+  },
+  {
+    "title": "A-share optical chain local source: 800G/1.6T optical module and component mapping",
+    "summary": "The local knowledge-base source dated 2026-06-23 maps OIF standards to A-share candidates including 中际旭创、新易盛、天孚通信、太辰光、源杰科技 and 德科立, with official product pages and annual-report evidence.",
+    "observedAt": "2026-06-25T12:38:17+08:00",
+    "confidence": "high",
+    "type": "stock",
+    "url": "local:thinking-mvp/data/sources/2026-06-23-mpo-cpo-ai-optical-interconnect.json",
+    "tags": ["A股", "光模块", "CPO", "MPO"]
+  }
+]

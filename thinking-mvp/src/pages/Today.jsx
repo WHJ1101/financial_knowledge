@@ -1,5 +1,5 @@
 import { useState } from "preact/hooks";
-import { status, reports, marketSnapshot, refresh, showToast } from "../store.js";
+import { status, reports, refresh, showToast } from "../store.js";
 import { post } from "../api.js";
 import { ReportList } from "../components/ReportList.jsx";
 
@@ -31,7 +31,6 @@ export function Today() {
     } finally { setBusy(false); }
   };
 
-  const snap = marketSnapshot.value;
   const today = s?.now?.split("·")[1]?.trim()?.split(" ")[0] || "";
   const todayReports = reports.value.filter(r => r.localDate === today);
 
@@ -42,25 +41,9 @@ export function Today() {
         <h1>今日</h1>
       </div>
 
-      {/* 行情快照 */}
-      {snap.indices.length > 0 && (
-        <section class="market-strip">
-          {snap.indices.map(i => (
-            <div key={i.code} class="market-strip-item">
-              <span class="market-name">{i.name}</span>
-              <span class="market-level">{i.level || "--"}</span>
-              <span class={`market-change ${Number(i.changePct) >= 0 ? "up" : "down"}`}>
-                {i.changePct ? `${i.changePct}%` : "--"}
-              </span>
-            </div>
-          ))}
-          {snap.updatedAt && <span class="market-time">更新：{new Date(snap.updatedAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}</span>}
-        </section>
-      )}
-
       <section class="stats-grid">
-        <article class="stat-card"><span>今日更新</span><strong>{s?.todayUpdates ?? 0}</strong><p>网页报告</p></article>
-        <article class="stat-card"><span>未读合计</span><strong>{s?.unreadCount ?? 0}</strong><p>近 7 天</p></article>
+        <a href="#knowledge" class="stat-card"><span>今日更新</span><strong>{s?.todayUpdates ?? 0}</strong><p>网页报告</p></a>
+        <a href="#knowledge" class="stat-card"><span>未读合计</span><strong>{s?.unreadCount ?? 0}</strong><p>近 7 天</p></a>
       </section>
 
       <section class="composer">
