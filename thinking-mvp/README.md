@@ -64,4 +64,4 @@ LLM_API_KEY='...' LLM_MODEL='gpt-4o-mini' npm start
 
 ## 数据存储
 
-SQLite 数据库（`data/app.db`），支持并发读写、索引查询。首次启动后运行 `npm run migrate` 从旧 JSON 文件迁移。
+SQLite 数据库（`data/app.db`），使用 sql.js 内存模式运行，写入时全量导出到磁盘。适合单进程单用户场景，不支持多进程并发写入。首次启动后运行 `npm run migrate` 从旧 JSON 文件迁移。

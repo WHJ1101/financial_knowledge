@@ -10,6 +10,13 @@ export function ReportList({ reports, emptyText = "暂无报告" }) {
     await refresh();
   };
 
+  const handleArchive = async (e, id) => {
+    e.stopPropagation();
+    await post(`/api/reports/${encodeURIComponent(id)}/archive`);
+    await refresh();
+    showToast("归档状态已切换");
+  };
+
   return (
     <div class="report-list">
       {reports.map(r => (
@@ -21,6 +28,7 @@ export function ReportList({ reports, emptyText = "暂无报告" }) {
           </div>
           <div class="report-chips">
             <button class={`star-btn ${r.starred ? "starred" : ""}`} onClick={(e) => handleStar(e, r.id)} title="标星">★</button>
+            <button class={`star-btn ${r.archived ? "starred" : ""}`} onClick={(e) => handleArchive(e, r.id)} title={r.archived ? "取消归档" : "归档"} style="font-size:13px">📦</button>
             <span class="origin-chip" data-origin={r.origin}>{r.originLabel}</span>
           </div>
         </article>

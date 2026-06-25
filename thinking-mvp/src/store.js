@@ -11,7 +11,6 @@ export const decisions = signal([]);
 export const tasks = signal([]);
 export const logs = signal([]);
 export const query = signal("");
-export const originFilter = signal("all");
 export const toast = signal("");
 
 export async function refresh() {
@@ -25,7 +24,6 @@ export async function loadStatus() {
 export async function loadReports() {
   const params = new URLSearchParams();
   if (query.value) params.set("q", query.value);
-  if (originFilter.value !== "all") params.set("origin", originFilter.value);
   const q = params.toString() ? `?${params}` : "";
   const data = await get(`/api/reports${q}`);
   reports.value = data.reports;
@@ -41,6 +39,12 @@ export async function loadBusiness() {
   decisions.value = d.decisions;
   tasks.value = t.tasks;
   logs.value = l.logs;
+}
+
+export async function loadPortfolio() {
+  const [s, p] = await Promise.all([get("/api/stocks"), get("/api/positions")]);
+  stocks.value = s.stocks;
+  positions.value = p.positions;
 }
 
 export async function loadMarket() {

@@ -1,11 +1,19 @@
 import { useState } from "preact/hooks";
-import { tasks, logs, refresh, showToast } from "../store.js";
+import { tasks, logs, status, refresh, showToast } from "../store.js";
 import { post } from "../api.js";
 
 export function Tasks() {
   const [form, setForm] = useState({ name: "", goal: "", implementation: "", schedule: "" });
   const [busy, setBusy] = useState(false);
   const [tab, setTab] = useState("tasks");
+
+  const automationEnabled = status.value?.settings?.automationEnabled;
+
+  const toggleGlobal = async () => {
+    await post("/api/automation/toggle", { enabled: !automationEnabled });
+    await refresh();
+    showToast(automationEnabled ? "自动日更已暂停" : "自动日更已开启");
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault(); setBusy(true);
@@ -25,6 +33,15 @@ export function Tasks() {
         <p class="page-description">管理自动化任务和查看执行日志。</p>
       </div>
 
+      <section class="board route-panel">
+        <div class="board-head">
+          <div><h2>自动化调度</h2><p>{automationEnabled ? "运行中 · 08:30 自动执行" : "已暂停"}</p></div>
+          <button class={`ghost-button ${automationEnabled ? "danger" : "primary-action"}`} onClick={toggleGlobal}>
+            {automationEnabled ? "暂停自动化" : "开启自动化"}
+          </button>
+        </div>
+      </section>
+
       <div class="board-filters" style="margin-bottom:12px">
         <button class={`filter-btn ${tab === "tasks" ? "active" : ""}`} onClick={() => setTab("tasks")}>任务</button>
         <button class={`filter-btn ${tab === "logs" ? "active" : ""}`} onClick={() => setTab("logs")}>日志</button>
@@ -32,7 +49,7 @@ export function Tasks() {
 
       {tab === "tasks" && (
         <section class="board route-panel">
-          <div class="board-head"><div><h2>自动化任务</h2><p>{tasks.value.filter(t => t.enabled).length} 运行中 / {tasks.value.length} 总计</p></div></div>
+          <div class="board-head"><div><h2>任务列表</h2><p>{tasks.value.filter(t => t.enabled).length} 运行中 / {tasks.value.length} 总计</p></div></div>
           <div class="route-form-wrap">
             <form class="business-form" onSubmit={handleSubmit}>
               <input required placeholder="任务名称" value={form.name} onInput={e => setForm({ ...form, name: e.target.value })} />

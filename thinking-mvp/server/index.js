@@ -5,10 +5,10 @@ import { readFile, stat, mkdir, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 
 import db, { DATA_DIR } from "./services/db.js";
-import { startMarketPoller } from "./services/market-data.js";
+import { startMarketPoller, searchStocks, getStockQuote } from "./services/market-data.js";
 import { startScheduler } from "./services/scheduler.js";
 import { getStatus, getReports, getReport, markReportRead, toggleReportStar, archiveReport, insertReport, getAllReportsForPipeline } from "./routes/reports.js";
-import { getStocks, upsertStock, deleteStock, getPositions, upsertPosition, deletePosition } from "./routes/stocks.js";
+import { getStocks, upsertStock, deleteStock, getPositions, upsertPosition, deletePosition, reanalyzeStock, reanalyzePosition } from "./routes/stocks.js";
 import { getIndices, getMarketSnapshot } from "./routes/market.js";
 import { getDecisions, createDailyDecision } from "./routes/decisions.js";
 import { getTasks, createTask, toggleTask, getLogs } from "./routes/tasks.js";
@@ -57,6 +57,9 @@ async function handleApi(req, res, url) {
   if (m === "GET" && p === "/api/reports") return json(res, 200, { reports: getReports(url.searchParams.get("q"), url.searchParams.get("origin")) });
   if (m === "GET" && p === "/api/market/snapshot") return json(res, 200, getMarketSnapshot());
   if (m === "GET" && p === "/api/market/indices") return json(res, 200, { indices: getIndices() });
+  if (m === "GET" && p === "/api/search") { const q = url.searchParams.get("q"); if (!q) return json(res, 400, { error: "q required" }); return json(res, 200, { results: await searchStocks(q) }); }
+  const quoteMatch = p.match(/^\/api\/quote\/(.+)$/);
+  if (m === "GET" && quoteMatch) { const quote = await getStockQuote(decode(quoteMatch[1])); return quote ? json(res, 200, quote) : json(res, 404, { error: "Not found" }); }
   if (m === "GET" && p === "/api/stocks") return json(res, 200, { stocks: getStocks() });
   if (m === "GET" && p === "/api/positions") return json(res, 200, { positions: getPositions() });
   if (m === "GET" && p === "/api/decisions") return json(res, 200, { decisions: getDecisions() });
@@ -81,9 +84,13 @@ async function handleApi(req, res, url) {
 
   // Stocks/Positions
   if (m === "POST" && p === "/api/stocks") { const body = await readBody(req); return json(res, 201, { stock: upsertStock(body) }); }
+  const stockAnalyze = p.match(/^\/api\/stocks\/([^/]+)\/analyze$/);
+  if (m === "POST" && stockAnalyze) return json(res, 200, reanalyzeStock(decode(stockAnalyze[1])));
   const stockDel = p.match(/^\/api\/stocks\/([^/]+)$/);
   if (m === "DELETE" && stockDel) return json(res, 200, deleteStock(decode(stockDel[1])));
   if (m === "POST" && p === "/api/positions") { const body = await readBody(req); return json(res, 201, { position: upsertPosition(body) }); }
+  const posAnalyze = p.match(/^\/api\/positions\/([^/]+)\/analyze$/);
+  if (m === "POST" && posAnalyze) return json(res, 200, reanalyzePosition(decode(posAnalyze[1])));
   const posDel = p.match(/^\/api\/positions\/([^/]+)$/);
   if (m === "DELETE" && posDel) return json(res, 200, deletePosition(decode(posDel[1])));
 

@@ -4,10 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"node server/index.js\" \"vite\"",
+    "dev": "concurrently \"node --env-file=.env server/index.js\" \"vite\"",
     "build": "vite build",
-    "start": "node server/index.js",
-    "migrate": "node server/services/migrate.js"
+    "start": "node --env-file=.env server/index.js",
+    "migrate": "node --env-file=.env server/services/migrate.js"
   },
   "engines": {
     "node": ">=20"

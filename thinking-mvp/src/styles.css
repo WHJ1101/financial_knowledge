@@ -36,9 +36,12 @@ a { color: inherit; text-decoration: none; }
 .topbar { height: 48px; display: flex; align-items: center; gap: 12px; padding: 0 20px; background: rgba(255,255,255,0.88); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 5; backdrop-filter: blur(12px); }
 .search-box { max-width: 500px; flex: 1; height: 34px; display: flex; align-items: center; gap: 8px; padding: 0 10px; border: 1px solid var(--line); border-radius: 7px; background: #fff; color: #7c8da6; }
 .search-box input { width: 100%; border: 0; outline: 0; color: var(--ink); background: transparent; }
-.top-actions { display: flex; gap: 8px; }
-.status-pill { min-height: 32px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 6px; padding: 0 10px; background: #eef2f7; color: #334155; cursor: pointer; font-size: 13px; }
-.status-pill.ok { color: #00795f; background: var(--green-soft); border-color: #b8e4d5; }
+.market-status { display: flex; align-items: center; gap: 10px; margin-left: auto; font-size: 12px; color: var(--muted); }
+.market-dot { display: inline-flex; align-items: center; gap: 4px; }
+.market-dot::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #cbd5e1; }
+.market-dot.open { color: var(--ink); }
+.market-dot.open::before { background: #22c55e; box-shadow: 0 0 4px #22c55e88; }
+.market-time { color: #94a3b8; font-variant-numeric: tabular-nums; }
 
 .view { max-width: 960px; margin: 0 auto; padding: 16px 20px 48px; }
 .nav-page {}
@@ -160,6 +163,11 @@ a { color: inherit; text-decoration: none; }
 .empty-state p { color: var(--muted); font-size: 14px; }
 .toast { position: fixed; right: 20px; bottom: 20px; z-index: 10; padding: 10px 14px; border: 1px solid var(--line); border-radius: 7px; background: #fff; box-shadow: var(--shadow); font-size: 13px; animation: fadeIn 0.2s; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+/* Search dropdown */
+.search-dropdown { position: absolute; top: 100%; left: 0; right: 0; z-index: 10; background: #fff; border: 1px solid var(--line); border-radius: 6px; box-shadow: var(--shadow); max-height: 200px; overflow-y: auto; }
+.search-dropdown-item { padding: 8px 10px; font-size: 13px; cursor: pointer; }
+.search-dropdown-item:hover { background: #f0f7ff; }
 
 /* Responsive */
 @media (max-width: 860px) {

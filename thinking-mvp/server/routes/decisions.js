@@ -2,7 +2,10 @@ import db from "../services/db.js";
 import { getMarketData } from "../services/market-data.js";
 
 export function getDecisions() {
-  return db.prepare("SELECT * FROM decisions ORDER BY created_at DESC LIMIT 120").all().map(formatDecision);
+  // 每天只保留最新一条（按 date 去重）
+  return db.prepare(`SELECT * FROM decisions WHERE id IN (
+    SELECT id FROM decisions GROUP BY date HAVING created_at = MAX(created_at)
+  ) ORDER BY date DESC LIMIT 60`).all().map(formatDecision);
 }
 
 export function createDailyDecision() {
@@ -21,7 +24,7 @@ export function createDailyDecision() {
     return `${i.name}：${i.change_pct || "待接入"}`;
   }).slice(0, 7).join("；");
 
-  const id = `decision-${today}-${Date.now()}`;
+  const id = `decision-${today}`;
   const guide = {
     id, date: today,
     title: `${today} 每日决策指南`,
@@ -34,11 +37,22 @@ export function createDailyDecision() {
     createdAt: new Date().toISOString()
   };
 
-  db.prepare(`INSERT INTO decisions (id,date,title,summary,action,market,position_advice,stock_advice,reports,created_at) VALUES (?,?,?,?,?,?,?,?,?,?)`).run(
-    guide.id, guide.date, guide.title, guide.summary, guide.action, guide.market,
-    JSON.stringify(guide.positionAdvice), JSON.stringify(guide.stockAdvice),
-    JSON.stringify(guide.reports), guide.createdAt
-  );
+  // 当天已有则更新，否则插入
+  const existing = db.prepare("SELECT id FROM decisions WHERE date=?").get(today);
+  if (existing) {
+    db.prepare(`UPDATE decisions SET title=?,summary=?,action=?,market=?,position_advice=?,stock_advice=?,reports=?,created_at=? WHERE date=?`).run(
+      guide.title, guide.summary, guide.action, guide.market,
+      JSON.stringify(guide.positionAdvice), JSON.stringify(guide.stockAdvice),
+      JSON.stringify(guide.reports), guide.createdAt, today
+    );
+    guide.id = existing.id;
+  } else {
+    db.prepare(`INSERT INTO decisions (id,date,title,summary,action,market,position_advice,stock_advice,reports,created_at) VALUES (?,?,?,?,?,?,?,?,?,?)`).run(
+      guide.id, guide.date, guide.title, guide.summary, guide.action, guide.market,
+      JSON.stringify(guide.positionAdvice), JSON.stringify(guide.stockAdvice),
+      JSON.stringify(guide.reports), guide.createdAt
+    );
+  }
 
   appendLog("decision", `Created decision guide: ${guide.title}`, { id: guide.id });
   return guide;

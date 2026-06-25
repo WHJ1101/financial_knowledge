@@ -8,18 +8,22 @@ import { Decisions } from "./pages/Decisions.jsx";
 import { Tasks } from "./pages/Tasks.jsx";
 import { Settings } from "./pages/Settings.jsx";
 import { ReportReader } from "./pages/ReportReader.jsx";
-import { refresh } from "./store.js";
+import { refresh, loadMarket } from "./store.js";
 
 export function App() {
   const [route, setRoute] = useState(location.hash || "#today");
 
   useEffect(() => {
-    refresh();
     const onChange = () => setRoute(location.hash || "#today");
     window.addEventListener("hashchange", onChange);
-    const timer = setInterval(() => { if (!route.startsWith("#report/")) refresh(); }, 15000);
+    const timer = setInterval(() => {
+      const h = location.hash;
+      if (h === "#today" || h === "" || h === "#market") loadMarket();
+    }, 60000);
     return () => { window.removeEventListener("hashchange", onChange); clearInterval(timer); };
   }, []);
+
+  useEffect(() => { if (!route.startsWith("#report/")) refresh(); }, [route]);
 
   const page = () => {
     if (route.startsWith("#report/")) return <ReportReader id={decodeURIComponent(route.replace("#report/", ""))} />;

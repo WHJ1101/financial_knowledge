@@ -53,3 +53,46 @@ export function startMarketPoller() {
 export function stopMarketPoller() {
   if (timer) clearInterval(timer);
 }
+
+export async function searchStocks(keyword) {
+  const url = `https://searchapi.eastmoney.com/api/suggest/get?input=${encodeURIComponent(keyword)}&type=14&count=8`;
+  const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+  const json = await res.json();
+  const items = json.QuotationCodeTable?.Data || [];
+  return items.map(d => ({
+    code: d.Code,
+    name: d.Name,
+    market: d.Classify === "AStock" ? "A股" : d.Classify === "HKStock" ? "港股" : "美股",
+    secid: d.QuoteID
+  }));
+}
+
+export async function getStockQuote(secid) {
+  // Convert eastmoney secid (1.600519) to tencent format (sh600519)
+  const [mkt, code] = secid.split(".");
+  let prefix = "";
+  if (mkt === "1") prefix = "sh";
+  else if (mkt === "0") prefix = "sz";
+  else if (mkt === "116") prefix = "hk";
+  else if (mkt === "105" || mkt === "106") prefix = "us";
+  else prefix = "sh";
+
+  const url = `https://qt.gtimg.cn/q=${prefix}${code}`;
+  const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+  const buf = await res.arrayBuffer();
+  const text = new TextDecoder("gbk").decode(buf);
+  const parts = text.split("~");
+  if (parts.length < 35) return null;
+  const price = parseFloat(parts[3]);
+  const prevClose = parseFloat(parts[4]);
+  if (!price) return null;
+  const changePct = prevClose ? (((price - prevClose) / prevClose) * 100).toFixed(2) : "0.00";
+  return {
+    name: parts[1],
+    price,
+    high: parseFloat(parts[33]) || price,
+    low: parseFloat(parts[34]) || price,
+    open: parseFloat(parts[5]) || price,
+    changePct
+  };
+}

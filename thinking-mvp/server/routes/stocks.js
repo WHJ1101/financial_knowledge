@@ -1,4 +1,5 @@
 import db from "../services/db.js";
+import { analyzeStock, analyzePosition } from "../services/stock-analyzer.js";
 
 export function getStocks() {
   return db.prepare("SELECT * FROM stocks ORDER BY updated_at DESC").all().map(formatStock);
@@ -9,12 +10,13 @@ export function upsertStock(body) {
   const name = String(body.name || "").trim();
   if (!code || !name) throw Object.assign(new Error("股票代码和名称必填"), { statusCode: 400 });
   const now = new Date().toISOString();
-  db.prepare(`INSERT OR REPLACE INTO stocks (code,name,market,status,thesis,advice,risk,watch_signals,sparkline,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)`).run(
+  db.prepare(`INSERT OR REPLACE INTO stocks (code,name,market,status,thesis,advice,risk,watch_signals,sparkline,analysis_status,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)`).run(
     code, name, body.market || "A股", body.status || "观察",
     body.thesis || "", body.advice || "", body.risk || "",
     JSON.stringify(normalizeList(body.watchSignals || "")),
-    JSON.stringify(body.sparkline || []), now
+    JSON.stringify(body.sparkline || []), "analyzing", now
   );
+  analyzeStock(code, name, body.market || "A股");
   return db.prepare("SELECT * FROM stocks WHERE code=?").get(code);
 }
 
@@ -33,11 +35,12 @@ export function upsertPosition(body) {
   if (!code || !name) throw Object.assign(new Error("持仓代码和名称必填"), { statusCode: 400 });
   const id = body.id || `${code}-${Date.now()}`;
   const now = new Date().toISOString();
-  db.prepare(`INSERT OR REPLACE INTO positions (id,code,name,market,shares,cost,reason,risk,updated_at) VALUES (?,?,?,?,?,?,?,?,?)`).run(
+  db.prepare(`INSERT OR REPLACE INTO positions (id,code,name,market,shares,cost,reason,risk,analysis_status,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)`).run(
     id, code, name, body.market || "A股",
     Number(body.shares) || 0, Number(body.cost) || 0,
-    body.reason || "", body.risk || "", now
+    body.reason || "", body.risk || "", "analyzing", now
   );
+  analyzePosition(id, code, name, body.market || "A股");
   return db.prepare("SELECT * FROM positions WHERE id=?").get(id);
 }
 
@@ -46,12 +49,26 @@ export function deletePosition(id) {
   return { deleted: changes > 0 };
 }
 
+export function reanalyzeStock(code) {
+  const row = db.prepare("SELECT * FROM stocks WHERE code=?").get(code);
+  if (!row) throw Object.assign(new Error("Stock not found"), { statusCode: 404 });
+  analyzeStock(row.code, row.name, row.market);
+  return { status: "analyzing" };
+}
+
+export function reanalyzePosition(id) {
+  const row = db.prepare("SELECT * FROM positions WHERE id=?").get(id);
+  if (!row) throw Object.assign(new Error("Position not found"), { statusCode: 404 });
+  analyzePosition(row.id, row.code, row.name, row.market);
+  return { status: "analyzing" };
+}
+
 function formatStock(row) {
-  return { ...row, watchSignals: JSON.parse(row.watch_signals || "[]"), sparkline: JSON.parse(row.sparkline || "[]"), updatedAt: row.updated_at };
+  return { ...row, watchSignals: JSON.parse(row.watch_signals || "[]"), sparkline: JSON.parse(row.sparkline || "[]"), analysisStatus: row.analysis_status || "pending", updatedAt: row.updated_at };
 }
 
 function formatPosition(row) {
-  return { ...row, updatedAt: row.updated_at };
+  return { ...row, analysisStatus: row.analysis_status || "pending", updatedAt: row.updated_at };
 }
 
 function normalizeList(value) {

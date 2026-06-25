@@ -144,8 +144,8 @@ function collectReportHistory({ topic, type, previousReports }) {
 
 async function callConfiguredLlm({ topic, type, evidence, now }) {
   const apiUrl = resolveLlmUrl();
-  const apiKey = process.env.LLM_API_KEY || process.env.OPENAI_API_KEY || "";
-  const model = process.env.LLM_MODEL || process.env.OPENAI_MODEL || "gpt-4o-mini";
+  const apiKey = process.env.FINANCE_KNOWLEDGE_LLM_API_KEY || process.env.LLM_API_KEY || process.env.OPENAI_API_KEY || "";
+  const model = process.env.FINANCE_KNOWLEDGE_LLM_MODEL || process.env.LLM_MODEL || process.env.OPENAI_MODEL || "gpt-4o-mini";
 
   if (!apiUrl && !apiKey) {
     return {
@@ -446,11 +446,12 @@ function focusWords(type) {
 }
 
 function resolveLlmUrl() {
+  if (process.env.FINANCE_KNOWLEDGE_LLM_API_URL) return process.env.FINANCE_KNOWLEDGE_LLM_API_URL;
   if (process.env.LLM_API_URL) return process.env.LLM_API_URL;
   if (process.env.OPENAI_BASE_URL) {
     return `${process.env.OPENAI_BASE_URL.replace(/\/$/, "")}/chat/completions`;
   }
-  if (process.env.LLM_API_KEY || process.env.OPENAI_API_KEY) {
+  if (process.env.FINANCE_KNOWLEDGE_LLM_API_KEY || process.env.LLM_API_KEY || process.env.OPENAI_API_KEY) {
     return "https://api.openai.com/v1/chat/completions";
   }
   return "";

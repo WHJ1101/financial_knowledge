@@ -37,6 +37,12 @@ const DDL = [
 ];
 for (const stmt of DDL) db.run(stmt);;
 
+// Safe ALTER TABLE (ignore if column already exists)
+for (const alter of [
+  "ALTER TABLE stocks ADD COLUMN analysis_status TEXT DEFAULT 'pending'",
+  "ALTER TABLE positions ADD COLUMN analysis_status TEXT DEFAULT 'pending'"
+]) { try { db.run(alter); } catch {} }
+
 saveDb();
 
 // Wrapper to provide better-sqlite3-like API
