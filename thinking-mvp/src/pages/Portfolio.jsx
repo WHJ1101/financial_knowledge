@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "preact/hooks";
+import { useState, useEffect, useRef, useMemo } from "preact/hooks";
 import { stocks, positions, indices, loadPortfolio, showToast } from "../store.js";
 import { get, post, del } from "../api.js";
 
@@ -62,12 +62,19 @@ function StockSection() {
 
   const handleSubmit = async (e) => {
     e.preventDefault(); setBusy(true);
-    try { pendingAnimate.add(form.code); await post("/api/stocks", form); setForm({ code: "", name: "", market: "A股" }); setQuote(null); await loadPortfolio(); showToast("已添加，AI 分析中..."); }
+    try {
+      const created = await post("/api/stocks", form);
+      pendingAnimate.add(created.code || form.code);
+      setForm({ code: "", name: "", market: "A股" });
+      setQuote(null);
+      await loadPortfolio();
+      showToast("已添加，AI 分析中...");
+    }
     finally { setBusy(false); }
   };
 
   const handleDelete = async (code) => { await del(`/api/stocks/${encodeURIComponent(code)}`); await loadPortfolio(); showToast("已删除"); };
-  const handleReanalyze = async (code) => { pendingAnimate.add(code); await post(`/api/stocks/${encodeURIComponent(code)}/analyze`); await loadPortfolio(); showToast("重新分析中..."); };
+  const handleReanalyze = async (code) => { await post(`/api/stocks/${encodeURIComponent(code)}/analyze`); pendingAnimate.add(code); await loadPortfolio(); showToast("重新分析中..."); };
 
   return (
     <section class="board route-panel">
@@ -183,12 +190,19 @@ function PositionSection() {
 
   const handleSubmit = async (e) => {
     e.preventDefault(); setBusy(true);
-    try { pendingAnimate.add(form.code); await post("/api/positions", form); setForm({ code: "", name: "", market: "A股", shares: "", cost: "" }); setQuote(null); await loadPortfolio(); showToast("已添加，AI 分析中..."); }
+    try {
+      const created = await post("/api/positions", form);
+      pendingAnimate.add(created.id || form.code);
+      setForm({ code: "", name: "", market: "A股", shares: "", cost: "" });
+      setQuote(null);
+      await loadPortfolio();
+      showToast("已添加，AI 分析中...");
+    }
     finally { setBusy(false); }
   };
 
   const handleDelete = async (id) => { await del(`/api/positions/${encodeURIComponent(id)}`); await loadPortfolio(); showToast("已删除"); };
-  const handleReanalyze = async (id) => { pendingAnimate.add(id); await post(`/api/positions/${encodeURIComponent(id)}/analyze`); await loadPortfolio(); showToast("重新分析中..."); };
+  const handleReanalyze = async (id) => { await post(`/api/positions/${encodeURIComponent(id)}/analyze`); pendingAnimate.add(id); await loadPortfolio(); showToast("重新分析中..."); };
 
   const totalCost = positions.value.reduce((s, p) => s + p.shares * p.cost, 0);
   const totalMarketValue = positions.value.reduce((s, p) => s + p.shares * (prices[p.code] || p.cost), 0);
@@ -256,33 +270,119 @@ function PositionSection() {
 }
 
 function AnalysisContent({ status, fields }) {
-  if (status === "analyzing") return <p style="color:var(--accent);font-size:13px;margin:8px 0">AI 分析中...</p>;
-  if (status === "failed") return <p style="color:var(--red);font-size:13px;margin:8px 0">分析失败，请重试或检查 LLM 配置</p>;
-  if (status === "pending") return <p style="color:var(--muted);font-size:13px;margin:8px 0">等待分析</p>;
-  return (<>{fields.map(f => f.value ? <p key={f.label} style="margin:4px 0;font-size:13px"><b>{f.label}：</b>{f.value}</p> : null)}</>);
+  if (status !== "done") return <AnalysisState status={status} />;
+  const visibleFields = fields.filter(f => f.value);
+  if (!visibleFields.length) return <AnalysisState status="empty" />;
+  return (
+    <div class="analysis-panel">
+      {visibleFields.map(f => <AnalysisField key={f.label} label={f.label} text={f.value} />)}
+    </div>
+  );
 }
 
 function AnalysisContentAnimated({ status, fields }) {
-  if (status === "analyzing") return <p style="color:var(--accent);font-size:13px;margin:8px 0">AI 分析中...</p>;
-  if (status === "failed") return <p style="color:var(--red);font-size:13px;margin:8px 0">分析失败，请重试或检查 LLM 配置</p>;
-  if (status === "pending") return <p style="color:var(--muted);font-size:13px;margin:8px 0">等待分析</p>;
-  return (<>{fields.map(f => f.value ? <TypewriterField key={f.label} label={f.label} text={f.value} /> : null)}</>);
+  if (status !== "done") return <AnalysisState status={status} />;
+  const visibleFields = fields.filter(f => f.value);
+  if (!visibleFields.length) return <AnalysisState status="empty" />;
+  return (
+    <div class="analysis-panel analysis-panel-animated" aria-live="polite">
+      {visibleFields.map((f, index) => (
+        <TypewriterField key={f.label} label={f.label} text={f.value} delay={index * 180} />
+      ))}
+    </div>
+  );
 }
 
-function TypewriterField({ label, text }) {
+function AnalysisState({ status }) {
+  if (status === "analyzing") {
+    return (
+      <div class="analysis-panel analysis-panel-working" aria-live="polite">
+        <div class="analysis-status-line">
+          <span class="analysis-pulse" />
+          <span>AI 正在整理投研要点</span>
+          <span class="analysis-dots"><i /><i /><i /></span>
+        </div>
+        <div class="analysis-skeleton"><span /><span /><span /></div>
+      </div>
+    );
+  }
+  if (status === "failed") {
+    return (
+      <div class="analysis-panel analysis-panel-message failed">
+        <span>分析失败，请重试或检查 LLM 配置</span>
+      </div>
+    );
+  }
+  if (status === "empty") {
+    return (
+      <div class="analysis-panel analysis-panel-message">
+        <span>暂无分析内容</span>
+      </div>
+    );
+  }
+  return (
+    <div class="analysis-panel analysis-panel-message">
+      <span>等待分析</span>
+    </div>
+  );
+}
+
+function AnalysisField({ label, text }) {
+  return (
+    <div class="analysis-field">
+      <span class="analysis-label">{label}</span>
+      <p class="analysis-text">{text}</p>
+    </div>
+  );
+}
+
+function TypewriterField({ label, text, delay = 0 }) {
+  const units = useMemo(() => splitGraphemes(text), [text]);
   const [len, setLen] = useState(0);
+  const [active, setActive] = useState(false);
   const rafRef = useRef(null);
+  const delayRef = useRef(null);
   useEffect(() => {
-    let i = 0, last = 0;
+    let start = 0;
+    const total = units.length;
+    const chunk = total > 160 ? 3 : total > 80 ? 2 : 1;
+    setLen(0);
+    setActive(total > 0);
+    if (!total) return;
+    if (globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      setLen(total);
+      setActive(false);
+      return;
+    }
     const step = (ts) => {
-      if (!last) last = ts;
-      if (ts - last > 25) { i = Math.min(i + 1, text.length); setLen(i); last = ts; }
-      if (i < text.length) rafRef.current = requestAnimationFrame(step);
+      if (!start) start = ts;
+      const nextLen = Math.min(total, Math.floor((ts - start) / 24) * chunk + 1);
+      setLen(nextLen);
+      if (nextLen < total) rafRef.current = requestAnimationFrame(step);
+      else setActive(false);
     };
-    rafRef.current = requestAnimationFrame(step);
-    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
-  }, [text]);
-  return <p style="margin:4px 0;font-size:13px"><b>{label}：</b>{text.slice(0, len)}{len < text.length ? "▌" : ""}</p>;
+    delayRef.current = setTimeout(() => { rafRef.current = requestAnimationFrame(step); }, delay);
+    return () => {
+      if (delayRef.current) clearTimeout(delayRef.current);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, [units, delay]);
+  return (
+    <div class={`analysis-field ${active ? "active" : "done"}`}>
+      <span class="analysis-label">{label}</span>
+      <p class="analysis-text">
+        {units.slice(0, len).join("")}
+        {active && <span class="typing-caret" aria-hidden="true" />}
+      </p>
+    </div>
+  );
+}
+
+const segmenter = globalThis.Intl?.Segmenter ? new Intl.Segmenter("zh-CN", { granularity: "grapheme" }) : null;
+function splitGraphemes(text) {
+  if (!text) return [];
+  if (!segmenter) return Array.from(text);
+  return Array.from(segmenter.segment(text), part => part.segment);
 }
 
 function EtfSection() {
