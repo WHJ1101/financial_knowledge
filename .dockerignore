@@ -1,0 +1,9 @@
+.git
+.runtime
+.DS_Store
+.env
+.env.*
+data
+dist
+node_modules
+npm-debug.log

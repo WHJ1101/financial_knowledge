@@ -1,0 +1,28 @@
+{
+  "name": "financial_knowledge",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"node --env-file=.env server/index.js\" \"vite\"",
+    "build": "vite build",
+    "start": "node server/index.js",
+    "start:env": "node --env-file=.env server/index.js",
+    "migrate": "node --env-file=.env server/services/migrate.js",
+    "report:import": "node scripts/import-report.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@preact/signals": "^2.9.2",
+    "concurrently": "^9.1.0",
+    "sql.js": "^1.11.0"
+  },
+  "devDependencies": {
+    "@preact/preset-vite": "^2.9.0",
+    "preact": "^10.24.0",
+    "preact-router": "^4.1.2",
+    "vite": "^6.0.0"
+  }
+}
