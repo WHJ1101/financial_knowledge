@@ -1,0 +1,22 @@
+services:
+  financial_knowledge:
+    build: .
+    container_name: financial_knowledge
+    restart: unless-stopped
+    ports:
+      - "${PORT:-4173}:4173"
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 4173
+      FINANCE_KNOWLEDGE_DATA_DIR: /app/data
+      FINANCE_KNOWLEDGE_AUTH_REQUIRED: "${FINANCE_KNOWLEDGE_AUTH_REQUIRED:-true}"
+      FINANCE_KNOWLEDGE_AUTH_USERNAME: "${FINANCE_KNOWLEDGE_AUTH_USERNAME:-admin}"
+      FINANCE_KNOWLEDGE_AUTH_PASSWORD: "${FINANCE_KNOWLEDGE_AUTH_PASSWORD:?set FINANCE_KNOWLEDGE_AUTH_PASSWORD in .env}"
+      FINANCE_KNOWLEDGE_AUTH_SECRET: "${FINANCE_KNOWLEDGE_AUTH_SECRET:?set FINANCE_KNOWLEDGE_AUTH_SECRET in .env}"
+      FINANCE_KNOWLEDGE_IMPORT_TOKEN: "${FINANCE_KNOWLEDGE_IMPORT_TOKEN:?set FINANCE_KNOWLEDGE_IMPORT_TOKEN in .env}"
+      FINANCE_KNOWLEDGE_LLM_API_KEY: "${FINANCE_KNOWLEDGE_LLM_API_KEY:-}"
+      FINANCE_KNOWLEDGE_LLM_API_URL: "${FINANCE_KNOWLEDGE_LLM_API_URL:-https://openrouter.ai/api/v1/chat/completions}"
+      FINANCE_KNOWLEDGE_LLM_MODEL: "${FINANCE_KNOWLEDGE_LLM_MODEL:-openai/gpt-4o-mini}"
+    volumes:
+      - ./data:/app/data

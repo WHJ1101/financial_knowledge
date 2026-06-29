@@ -62,20 +62,32 @@ export async function searchStocks(keyword) {
   return items.map(d => ({
     code: d.Code,
     name: d.Name,
-    market: d.Classify === "AStock" ? "A股" : d.Classify === "HKStock" ? "港股" : "美股",
+    market: classifySecurity(d),
     secid: d.QuoteID
   }));
 }
 
 export async function getStockQuote(secid) {
-  // Convert eastmoney secid (1.600519) to tencent format (sh600519)
+  const normalized = String(secid || "").trim();
+  if (isOtcFundSecid(normalized)) return getFundQuote(extractSecurityCode(normalized));
+
+  const quote = await getExchangeQuote(normalized).catch(() => null);
+  if (quote) return quote;
+
+  const code = extractSecurityCode(normalized);
+  return code ? getFundQuote(code).catch(() => null) : null;
+}
+
+async function getExchangeQuote(secid) {
   const [mkt, code] = secid.split(".");
+  if (!code) return null;
+
   let prefix = "";
   if (mkt === "1") prefix = "sh";
   else if (mkt === "0") prefix = "sz";
   else if (mkt === "116") prefix = "hk";
   else if (mkt === "105" || mkt === "106") prefix = "us";
-  else prefix = "sh";
+  else return null;
 
   const url = `https://qt.gtimg.cn/q=${prefix}${code}`;
   const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
@@ -90,9 +102,86 @@ export async function getStockQuote(secid) {
   return {
     name: parts[1],
     price,
+    market: classifyMarketFromSecid(mkt, code),
     high: parseFloat(parts[33]) || price,
     low: parseFloat(parts[34]) || price,
     open: parseFloat(parts[5]) || price,
-    changePct
+    changePct,
+    source: "exchange",
+    sourceLabel: "交易所行情"
   };
+}
+
+async function getFundQuote(code) {
+  if (!/^\d{6}$/.test(code)) return null;
+
+  const url = `https://fundgz.1234567.com.cn/js/${code}.js?rt=${Date.now()}`;
+  const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+  if (!res.ok) return null;
+
+  const text = await res.text();
+  const match = text.match(/jsonpgz\((.*)\);?$/);
+  if (!match) return null;
+
+  const data = JSON.parse(match[1]);
+  const estimatedNav = toNumber(data.gsz);
+  const latestNav = toNumber(data.dwjz);
+  const price = estimatedNav || latestNav;
+  if (!price) return null;
+
+  const changePct = toNumber(data.gszzl);
+  return {
+    name: data.name,
+    price,
+    market: "基金",
+    high: price,
+    low: price,
+    open: latestNav || price,
+    changePct: Number.isFinite(changePct) ? changePct.toFixed(2) : "0.00",
+    source: estimatedNav ? "fund-estimate" : "fund-nav",
+    sourceLabel: estimatedNav ? "基金估算净值" : "基金最新净值",
+    nav: latestNav || null,
+    navDate: data.jzrq || "",
+    updatedAt: data.gztime || data.jzrq || ""
+  };
+}
+
+function classifySecurity(item) {
+  const classify = String(item.Classify || "");
+  const securityType = String(item.SecurityType || "");
+  const securityTypeName = String(item.SecurityTypeName || "");
+  const jys = String(item.JYS || "");
+  const mktNum = String(item.MktNum || "");
+
+  if (classify === "AStock") return "A股";
+  if (classify === "HKStock") return "港股";
+  if (classify === "USStock" || classify === "UsStock") return "美股";
+  if (jys === "OTCFUND" || classify === "OTCFUND" || mktNum === "150" || securityType === "17") return "基金";
+  if (classify === "Fund" || securityTypeName.includes("基金")) return isExchangeFundCode(item.Code) ? "ETF" : "基金";
+  return "美股";
+}
+
+function classifyMarketFromSecid(mkt, code) {
+  if (isExchangeFundCode(code)) return "ETF";
+  if (mkt === "116") return "港股";
+  if (mkt === "105" || mkt === "106") return "美股";
+  return "A股";
+}
+
+function isOtcFundSecid(secid) {
+  return secid.split(".")[0] === "150";
+}
+
+function extractSecurityCode(value) {
+  const match = String(value || "").match(/\b\d{6}\b/);
+  return match ? match[0] : "";
+}
+
+function isExchangeFundCode(code) {
+  return /^(15|16|50|51|52|56|58)\d{4}$/.test(String(code || ""));
+}
+
+function toNumber(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
 }

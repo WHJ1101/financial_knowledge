@@ -5,6 +5,7 @@ import { readFile, stat, mkdir, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 
 import db, { DATA_DIR } from "./services/db.js";
+import { canImportReport, getAuthSession, login, logoutCookie } from "./services/auth.js";
 import { startMarketPoller, searchStocks, getStockQuote } from "./services/market-data.js";
 import { startScheduler } from "./services/scheduler.js";
 import { getStatus, getReports, getReport, markReportRead, toggleReportStar, archiveReport, insertReport, getAllReportsForPipeline } from "./routes/reports.js";
@@ -18,6 +19,7 @@ import { runResearchPipeline } from "../lib/researchPipeline.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 4173);
+const HOST = process.env.HOST || (process.env.NODE_ENV === "production" ? "0.0.0.0" : "127.0.0.1");
 const REPORT_DIR = join(DATA_DIR, "reports");
 const DIST_DIR = join(__dirname, "../dist");
 
@@ -39,7 +41,11 @@ const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url || "/", `http://${req.headers.host}`);
     if (url.pathname.startsWith("/api/")) { await handleApi(req, res, url); return; }
-    if (url.pathname.startsWith("/reports/")) { await serveFile(res, REPORT_DIR, decodeURIComponent(url.pathname.replace("/reports/", ""))); return; }
+    if (url.pathname.startsWith("/reports/")) {
+      if (!requirePageAuth(req, res)) return;
+      await serveFile(res, REPORT_DIR, decodeURIComponent(url.pathname.replace("/reports/", "")));
+      return;
+    }
     await serveFile(res, DIST_DIR, url.pathname === "/" ? "index.html" : url.pathname.slice(1));
   } catch (e) {
     const code = e.statusCode || 500;
@@ -48,10 +54,36 @@ const server = createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, "127.0.0.1", () => console.log(`Thinking MVP v0.2 at http://127.0.0.1:${PORT}`));
+server.listen(PORT, HOST, () => console.log(`Financial Knowledge at http://${HOST}:${PORT}`));
 
 async function handleApi(req, res, url) {
   const m = req.method, p = url.pathname;
+
+  if (m === "GET" && p === "/api/auth/session") {
+    const session = getAuthSession(req);
+    return json(res, 200, {
+      authenticated: session.authenticated,
+      authRequired: session.authRequired,
+      configured: session.configured,
+      user: session.user
+    });
+  }
+  if (m === "POST" && p === "/api/auth/login") {
+    const result = login(await readBody(req));
+    if (!result.ok) return json(res, result.statusCode || 401, { error: result.error });
+    return json(res, 200, { authenticated: true, user: result.user }, { "set-cookie": result.cookie });
+  }
+  if (m === "POST" && p === "/api/auth/logout") {
+    return json(res, 200, { authenticated: false }, { "set-cookie": logoutCookie() });
+  }
+
+  if (m === "POST" && p === "/api/reports/import") {
+    if (!canImportReport(req)) return json(res, 401, { error: "Unauthorized" });
+    const body = await readBody(req);
+    return json(res, 201, { report: await importReport(body) });
+  }
+
+  if (!requireApiAuth(req, res)) return;
 
   if (m === "GET" && p === "/api/status") return json(res, 200, getStatus());
   if (m === "GET" && p === "/api/reports") return json(res, 200, { reports: getReports(url.searchParams.get("q"), url.searchParams.get("origin")) });
@@ -139,6 +171,52 @@ async function createReport({ topic, type, source = "manual" }) {
   return report;
 }
 
+async function importReport(body = {}) {
+  const title = String(body.title || body.topic || "").trim();
+  const topic = String(body.topic || title).trim();
+  if (!title || !topic) throw Object.assign(new Error("title or topic is required"), { statusCode: 400 });
+
+  const type = REPORT_TYPES[body.type] ? body.type : inferType(`${title} ${topic}`);
+  const reportType = REPORT_TYPES[type];
+  const createdAt = body.createdAt ? new Date(body.createdAt).toISOString() : new Date().toISOString();
+  const localDay = /^\d{4}-\d{2}-\d{2}$/.test(body.localDate || "") ? body.localDate : localDate(new Date(createdAt));
+  const id = body.id ? safeId(body.id) : buildId(localDay, topic, type);
+  const file = `${localDay}/${id}.html`;
+  const source = String(body.source || "chat").trim();
+  const origin = ["scheduled", "daily", "automation"].includes(source) || body.origin === "automation" ? "automation" : "manual";
+  const tags = normalizeList(body.tags);
+  const highlights = normalizeList(body.highlights);
+
+  const report = {
+    id, title, topic, type,
+    typeLabel: reportType.label,
+    summary: String(body.summary || "").trim() || `${title} 已通过外部入口导入知识库。`,
+    tags, status: body.status || "new", source, origin,
+    originLabel: origin === "automation" ? "自动化产出" : "手动产出",
+    localDate: localDay, file,
+    wikiPath: body.wikiPath || `${reportType.path}/${localDay}-${slugify(topic)}.html`,
+    accent: reportType.accent, highlights,
+    createdAt, updatedAt: body.updatedAt ? new Date(body.updatedAt).toISOString() : createdAt
+  };
+
+  const brief = {
+    summary: report.summary,
+    highlights,
+    watchList: normalizeList(body.watchList),
+    risks: normalizeList(body.risks),
+    nextSteps: normalizeList(body.nextSteps),
+    evidence: Array.isArray(body.evidence) ? body.evidence : [],
+    dataQuality: [{ name: "导入来源", status: source === "chat" ? "Codex 对话手动入库" : source }]
+  };
+
+  const html = normalizeImportedHtml(body, report, brief);
+  await mkdir(join(REPORT_DIR, localDay), { recursive: true });
+  await writeFile(join(REPORT_DIR, file), html, "utf8");
+  insertReport(report);
+  appendLog("report_import", `Imported report: ${report.title}`, { id: report.id, source });
+  return report;
+}
+
 async function runDailyJob(source = "scheduled") {
   const today = localDate();
   const settings = getSettings();
@@ -158,7 +236,7 @@ async function runDailyJob(source = "scheduled") {
 }
 
 // Utilities
-function json(res, code, data) { res.writeHead(code, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" }); res.end(JSON.stringify(data)); }
+function json(res, code, data, headers = {}) { res.writeHead(code, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", ...headers }); res.end(JSON.stringify(data)); }
 function decode(v) { try { return decodeURIComponent(v); } catch { return v; } }
 async function readBody(req) { const c = []; for await (const ch of req) c.push(ch); if (!c.length) return {}; try { return JSON.parse(Buffer.concat(c).toString()); } catch { throw Object.assign(new Error("Invalid JSON"), { statusCode: 400 }); } }
 
@@ -185,3 +263,65 @@ function buildId(date, topic, type) { const hash = createHash("sha1").update(`${
 function slugify(s) { return String(s).trim().toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-+|-+$/g, "").slice(0, 80); }
 function buildTitle(topic, type, date) { const s = { industry: "产业链深度", market: "市场复盘", stock: "个股跟踪", policy: "政策日报", custom: "主题调研" }[type] || "主题调研"; return topic.includes(date) || topic.includes(s) ? topic : `${topic} - ${s}`; }
 function inferType(topic) { if (/政策|监管|发改委|工信部|财政/.test(topic)) return "policy"; if (/A股|美股|市场|指数|成交|风格|复盘/.test(topic)) return "market"; if (/[（(]?\d{6}[）)]?|个股|公司|财报/.test(topic)) return "stock"; if (/产业|链|材料|算力|半导体|光模块|AI|新能源/.test(topic)) return "industry"; return "custom"; }
+
+function requireApiAuth(req, res) {
+  const session = getAuthSession(req);
+  if (session.authenticated) return true;
+  json(res, session.configured ? 401 : 503, { error: session.configured ? "Unauthorized" : "登录尚未配置" });
+  return false;
+}
+
+function requirePageAuth(req, res) {
+  const session = getAuthSession(req);
+  if (session.authenticated) return true;
+  res.writeHead(session.configured ? 401 : 503, { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" });
+  res.end(session.configured ? "Unauthorized" : "登录尚未配置");
+  return false;
+}
+
+function normalizeImportedHtml(body, report, brief) {
+  const html = String(body.html || "").trim();
+  if (html) return /^<!doctype html|<html[\s>]/i.test(html) ? html : wrapHtmlFragment(report, html);
+  const content = String(body.content || body.markdown || "").trim();
+  if (content) return wrapHtmlFragment(report, `<pre>${escapeHtml(content)}</pre>`);
+  return renderReportHtml(report, brief);
+}
+
+function wrapHtmlFragment(report, fragment) {
+  return `<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>${escapeHtml(report.title)}</title>
+  <style>
+    body { margin:0; background:#f7fafc; color:#111827; font-family:ui-sans-serif,system-ui,-apple-system,sans-serif; line-height:1.72; }
+    main { max-width:920px; margin:0 auto; padding:44px 24px 72px; }
+    article { background:#fff; border:1px solid #dbe4f0; border-radius:8px; padding:34px; }
+    h1 { margin:0 0 12px; font-size:36px; line-height:1.15; }
+    .meta { color:#64748b; font-size:14px; margin-bottom:28px; }
+    pre { white-space:pre-wrap; word-break:break-word; font-family:inherit; margin:0; }
+    @media(max-width:640px) { main{padding:20px 12px 40px;} article{padding:24px 18px;} h1{font-size:28px;} }
+  </style>
+</head>
+<body><main><article>
+  <h1>${escapeHtml(report.title)}</h1>
+  <p class="meta">${escapeHtml(report.originLabel)} · ${escapeHtml(report.typeLabel)} · ${escapeHtml(report.localDate)}</p>
+  ${fragment}
+</article></main></body></html>`;
+}
+
+function normalizeList(value) {
+  if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean);
+  return String(value || "").split(/[，,、\n]/).map((item) => item.trim()).filter(Boolean);
+}
+
+function safeId(value) {
+  const id = String(value || "").trim().replace(/[^\p{L}\p{N}._-]+/gu, "-").replace(/^-+|-+$/g, "").slice(0, 120);
+  if (!id) throw Object.assign(new Error("invalid report id"), { statusCode: 400 });
+  return id;
+}
+
+function escapeHtml(value) {
+  return String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
+}

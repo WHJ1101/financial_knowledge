@@ -1,5 +1,75 @@
 [
   {
+    "id": "2026-06-26-industry-hbm技术路线-存储墙与先进封装瓶颈-2e4d9a6b",
+    "title": "HBM技术路线：存储墙、TSV与先进封装瓶颈 - 产业链深度",
+    "topic": "HBM技术路线：存储墙、TSV与先进封装瓶颈",
+    "type": "industry",
+    "typeLabel": "产业链深度",
+    "summary": "本报告基于 SemiAnalysis《Scaling the Memory Wall: The Rise and Roadmap of HBM》PDF公开预览，并补充 Micron 与 SK hynix 官方 HBM4 资料。核心判断：HBM 的研究重点不应停留在“存储涨价”，而应拆成 HBM 原厂良率与客户资格、TSV/双面 bumping/检测设备、键合与堆叠工具、MR-MUF/TC-NCF 封装工艺、CoWoS/interposer 产能、HBM4 base die 与 shoreline 架构。DDR/NVMe/KV cache offload 是 AI 内存层级扩展，不是 HBM 的直接替代。",
+    "tags": [
+      "产业链",
+      "HBM",
+      "DRAM",
+      "AI内存",
+      "TSV",
+      "先进封装",
+      "CoWoS",
+      "半导体设备"
+    ],
+    "status": "new",
+    "source": "chat",
+    "origin": "manual",
+    "originLabel": "手动产出",
+    "localDate": "2026-06-26",
+    "file": "2026-06-26/2026-06-26-industry-hbm技术路线-存储墙与先进封装瓶颈-2e4d9a6b.html",
+    "wikiPath": "investing/themes/2026-06-26-hbm技术路线-存储墙-tsv与先进封装瓶颈.html",
+    "accent": "#00a676",
+    "highlights": [
+      "层级排序：HBM 原厂良率与客户资格第一，TSV/双面 bumping/检测设备第二，键合与堆叠工具第三，MR-MUF/TC-NCF 与先进封装第四，CoWoS/interposer 与 HBM4 架构继续核验。",
+      "HBM 不是普通 DRAM 转产，关键增量在 TSV、双面 bumping、堆叠、underfill、warpage control、PDN、热可靠性和客户认证。",
+      "LLM 推理中 decode 反复读取权重和 KV cache，长上下文与 RL 会让 HBM 容量和带宽持续成为瓶颈。",
+      "DDR/NVMe/KV cache offload 是补充层，不是 HBM 的直接替代；它更可能扩大 AI 内存层级的投资范围。",
+      "PDF 只包含公开预览，HBM4 custom base die、OpenAI ASIC、shoreline expansion 等深水区属于待核验项。"
+    ],
+    "createdAt": "2026-06-26T04:37:31.085Z",
+    "updatedAt": "2026-06-26T04:37:31.085Z"
+  },
+  {
+    "id": "2026-06-26-industry-中国硬件科技股-财报验证与估值压力-fa930d88",
+    "title": "中国硬件科技股：财报验证与估值压力 - 产业链深度",
+    "topic": "中国硬件科技股：财报验证与估值压力",
+    "type": "industry",
+    "typeLabel": "产业链深度",
+    "summary": "本报告基于 Bloomberg 2026-06-26 对中国硬件科技股的报道，判断这轮在岸 AI 硬件行情已从“景气确认”进入“财报验证估值”阶段。科创50本季度约64%的涨幅显著快于逾4%的盈利预期上修，预期市盈率升至约69倍，说明行情主驱动是估值扩张、本地流动性和政策溢价。下一阶段优先研究能用财报证明订单、毛利率和收入占比的光通信、半导体测试、电子特气和先进材料层。",
+    "tags": [
+      "产业链",
+      "AI硬件",
+      "科创50",
+      "财报季",
+      "光模块",
+      "电子特气",
+      "半导体测试",
+      "估值"
+    ],
+    "status": "new",
+    "source": "chat",
+    "localDate": "2026-06-26",
+    "createdAt": "2026-06-26T03:13:26.000Z",
+    "updatedAt": "2026-06-26T03:13:26.000Z",
+    "file": "2026-06-26/2026-06-26-industry-中国硬件科技股-财报验证与估值压力-fa930d88.html",
+    "wikiPath": "investing/themes/2026-06-26-中国硬件科技股-财报验证与估值压力.html",
+    "accent": "#0f766e",
+    "highlights": [
+      "核心判断：这轮行情已经从 AI 硬件景气确认切换到财报验证估值阶段，价格上涨远快于盈利预期上修。",
+      "科创50本季度约64%涨幅与逾4%盈利预期上修形成剪刀差，预期PE约69倍，指数层面不宜再把涨幅等同基本面。",
+      "层级优先级：光通信/高速互联、半导体测试设备、电子特气和材料、先进封装/PCB/高端铜箔。",
+      "中际旭创仍在真实景气层，但本季度约132%涨幅、约40倍预期PE和高于目标价的状态意味着短期需要更强业绩兑现。",
+      "下一步重点核验卫星化学、长川科技业绩预告原文，以及供应链扩散标的的 AI 收入占比、客户认证和毛利率。"
+    ],
+    "origin": "manual",
+    "originLabel": "手动产出"
+  },
+  {
     "id": "2026-06-25-industry-ai硬件产业链-gpu-hbm-ssd-液冷与能源下一步核验-936ef1fb",
     "title": "AI硬件产业链：GPU、HBM、SSD、液冷与能源下一步核验 - 产业链深度",
     "topic": "AI硬件产业链：GPU、HBM、SSD、液冷与能源下一步核验",

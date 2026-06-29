@@ -21,7 +21,7 @@ function getMarketStatus() {
   ];
 }
 
-export function Layout({ route, children }) {
+export function Layout({ route, auth, onLogout, children }) {
   const handleSearch = (e) => {
     query.value = e.target.value.trim();
     loadReports();
@@ -56,6 +56,9 @@ export function Layout({ route, children }) {
               <span key={s.label} class={`market-dot ${s.open ? "open" : ""}`}>{s.label}</span>
             ))}
           </div>
+          {auth?.authRequired && (
+            <button class="logout-button" type="button" onClick={onLogout}>退出</button>
+          )}
         </header>
         <section class="view">{children}</section>
       </main>

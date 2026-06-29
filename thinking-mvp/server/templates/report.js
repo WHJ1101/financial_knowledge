@@ -1,7 +1,7 @@
 export function renderReportHtml(report, brief) {
   const generatedAt = localDateTime(new Date(report.createdAt));
   const originLabel = { automation: "自动化产出", manual: "手动产出" }[report.origin] || "未标注";
-  const sourceLabel = { manual: "手动调研", chat: "对话入库", scheduled: "自动日更", seed: "示例种子", daily: "日更任务" }[report.source] || report.source;
+  const sourceLabel = { manual: "手动调研", chat: "对话入库", codex: "Codex 入库", page: "页面生成", scheduled: "自动日更", seed: "示例种子", daily: "日更任务" }[report.source] || report.source;
 
   return `<!doctype html>
 <html lang="zh-CN">

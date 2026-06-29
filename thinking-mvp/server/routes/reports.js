@@ -23,7 +23,7 @@ export function getStatus() {
   const enabled = db.prepare("SELECT value FROM settings WHERE key='automationEnabled'").get();
 
   return {
-    app: "thinking-mvp", version: "0.2.0",
+    app: "financial_knowledge", version: "0.2.0",
     now: localDateTime(),
     todayUpdates, unreadCount, recentCount, reportCount,
     originCounts: { automation: automationCount, manual: manualCount },

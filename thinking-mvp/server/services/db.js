@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const DATA_DIR = join(__dirname, "../../data");
+const DATA_DIR = process.env.FINANCE_KNOWLEDGE_DATA_DIR || join(__dirname, "../../data");
 const DB_PATH = join(DATA_DIR, "app.db");
 
 mkdirSync(DATA_DIR, { recursive: true });

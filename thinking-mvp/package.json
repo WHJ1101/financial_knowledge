@@ -1,13 +1,15 @@
 {
-  "name": "thinking-mvp",
+  "name": "financial_knowledge",
   "version": "0.2.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "concurrently \"node --env-file=.env server/index.js\" \"vite\"",
     "build": "vite build",
-    "start": "node --env-file=.env server/index.js",
-    "migrate": "node --env-file=.env server/services/migrate.js"
+    "start": "node server/index.js",
+    "start:env": "node --env-file=.env server/index.js",
+    "migrate": "node --env-file=.env server/services/migrate.js",
+    "report:import": "node scripts/import-report.js"
   },
   "engines": {
     "node": ">=20"

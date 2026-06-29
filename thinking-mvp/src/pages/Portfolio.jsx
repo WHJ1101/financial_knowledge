@@ -2,22 +2,77 @@ import { useState, useEffect, useRef, useMemo } from "preact/hooks";
 import { stocks, positions, indices, loadPortfolio, showToast } from "../store.js";
 import { get, post, del } from "../api.js";
 
+const TABS = [
+  { key: "positions", label: "持仓" },
+  { key: "stocks", label: "自选股" },
+  { key: "etfs", label: "指数基金" }
+];
+
 export function Portfolio() {
+  const [activeTab, setActiveTab] = useState("positions");
+  const [selectedKey, setSelectedKey] = useState("");
+  const prices = usePositionPrices(positions.value);
+  const holdings = useMemo(() => buildHoldings(positions.value, prices), [positions.value, prices]);
+  const etfs = indices.value.filter(i => i.relatedEtfs?.length > 0);
+
+  useAnalysisPoller([...stocks.value, ...positions.value]);
+
+  useEffect(() => { setSelectedKey(""); }, [activeTab]);
+
+  const selected = getSelected(activeTab, selectedKey, holdings, stocks.value, etfs);
+  const overview = getOverview(holdings, stocks.value, etfs);
+
+  const handleSelect = (key) => setSelectedKey(String(key));
+  const handleTab = (key) => { setActiveTab(key); setSelectedKey(""); };
+
   return (
-    <div class="nav-page">
-      <div class="page-head">
-        <h1>投资组合</h1>
-        <p class="page-description">自选股与持仓统一管理，AI 自动生成投研分析。</p>
+    <div class="nav-page portfolio-page">
+      <div class="page-head portfolio-head">
+        <div>
+          <h1>投资组合</h1>
+          <p class="page-description">用表格快速扫描，用详情区阅读 AI 分析和风险复核。</p>
+        </div>
       </div>
-      <StockSection />
-      <PositionSection />
-      <EtfSection />
+
+      <PortfolioOverview overview={overview} />
+
+      <section class="portfolio-workbench">
+        <div class="portfolio-tabs" role="tablist" aria-label="投资组合视图">
+          {TABS.map(tab => (
+            <button
+              key={tab.key}
+              type="button"
+              class={`portfolio-tab ${activeTab === tab.key ? "active" : ""}`}
+              onClick={() => handleTab(tab.key)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <div class="portfolio-layout">
+          <div class="portfolio-main">
+            {activeTab === "positions" && (
+              <PositionPanel holdings={holdings} selectedKey={selectedKey} onSelect={handleSelect} />
+            )}
+            {activeTab === "stocks" && (
+              <StockPanel selectedKey={selectedKey} onSelect={handleSelect} />
+            )}
+            {activeTab === "etfs" && (
+              <EtfPanel etfs={etfs} selectedKey={selectedKey} onSelect={handleSelect} />
+            )}
+          </div>
+
+          <DetailPanel activeTab={activeTab} selected={selected} />
+        </div>
+      </section>
     </div>
   );
 }
 
 function useAnalysisPoller(items) {
   const timer = useRef(null);
+  const signature = items.map(i => `${i.id || i.code}:${i.analysisStatus}`).join("|");
   useEffect(() => {
     const hasAnalyzing = items.some(i => i.analysisStatus === "analyzing");
     if (hasAnalyzing && !timer.current) {
@@ -27,144 +82,61 @@ function useAnalysisPoller(items) {
       timer.current = null;
     }
     return () => { if (timer.current) { clearInterval(timer.current); timer.current = null; } };
-  }, [items]);
+  }, [signature]);
 }
 
-function StockSection() {
-  const [form, setForm] = useState({ code: "", name: "", market: "A股" });
-  const [busy, setBusy] = useState(false);
-  const [suggestions, setSuggestions] = useState([]);
-  const [quote, setQuote] = useState(null);
-  const searchTimer = useRef(null);
-  useAnalysisPoller(stocks.value);
-
-  const handleSearch = (val) => {
-    setForm(f => ({ ...f, code: val, name: "", market: "A股" }));
-    setQuote(null);
-    clearTimeout(searchTimer.current);
-    if (val.length < 1) { setSuggestions([]); return; }
-    searchTimer.current = setTimeout(async () => {
-      try {
-        const res = await get(`/api/search?q=${encodeURIComponent(val)}`);
-        setSuggestions(res.results || []);
-      } catch { setSuggestions([]); }
-    }, 300);
-  };
-
-  const handleSelect = async (item) => {
-    setForm(f => ({ ...f, code: item.code, name: item.name, market: item.market }));
-    setSuggestions([]);
-    try {
-      const q = await get(`/api/quote/${encodeURIComponent(item.secid)}`);
-      setQuote(q);
-    } catch { setQuote(null); }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault(); setBusy(true);
-    try {
-      const created = await post("/api/stocks", form);
-      pendingAnimate.add(created.code || form.code);
-      setForm({ code: "", name: "", market: "A股" });
-      setQuote(null);
-      await loadPortfolio();
-      showToast("已添加，AI 分析中...");
-    }
-    finally { setBusy(false); }
-  };
-
-  const handleDelete = async (code) => { await del(`/api/stocks/${encodeURIComponent(code)}`); await loadPortfolio(); showToast("已删除"); };
-  const handleReanalyze = async (code) => { await post(`/api/stocks/${encodeURIComponent(code)}/analyze`); pendingAnimate.add(code); await loadPortfolio(); showToast("重新分析中..."); };
-
-  return (
-    <section class="board route-panel">
-      <div class="board-head"><div><h2>自选股</h2><p>{stocks.value.length} 只标的</p></div></div>
-      <div class="route-form-wrap">
-        <form class="business-form" onSubmit={handleSubmit} style="grid-template-columns: 1fr 1fr 80px">
-          <div style="position:relative">
-            <input required placeholder="代码或名称搜索" value={form.code} onInput={e => handleSearch(e.target.value)} autocomplete="off" />
-            {suggestions.length > 0 && (
-              <div class="search-dropdown">
-                {suggestions.map(s => (
-                  <div key={s.secid} class="search-dropdown-item" onClick={() => handleSelect(s)}>
-                    <b>{s.code}</b> {s.name} <span style="color:var(--muted);font-size:11px">{s.market}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          <input placeholder="名称（自动填充）" value={form.name} readOnly style={form.name ? "background:#f0f7ff" : ""} />
-          <button type="submit" disabled={busy}>新增</button>
-        </form>
-        {quote && <p style="margin:6px 0 0;font-size:13px;color:var(--accent)">当前价：¥{quote.price.toFixed(2)}（{quote.changePct}%）</p>}
-      </div>
-      <div class="route-card-grid">
-        {stocks.value.map(s => <StockCard key={s.code} stock={s} onDelete={handleDelete} onReanalyze={handleReanalyze} />)}
-      </div>
-    </section>
-  );
-}
-
-// 记录哪些 id 刚触发了重新分析，需要播放打字机
-const pendingAnimate = new Set();
-
-function StockCard({ stock: s, onDelete, onReanalyze }) {
-  const animate = pendingAnimate.has(s.code) && s.analysisStatus === "done";
-  if (animate) pendingAnimate.delete(s.code);
-  return (
-    <article class="route-card">
-      <h2>{s.name}（{s.code}）</h2>
-      <span class="mini-label">{s.market} · {s.status}</span>
-      {animate ? (
-        <AnalysisContentAnimated status={s.analysisStatus} fields={[
-          { label: "关注理由", value: s.thesis },
-          { label: "建议", value: s.advice },
-          { label: "风险", value: s.risk },
-        ]} />
-      ) : (
-        <AnalysisContent status={s.analysisStatus} fields={[
-          { label: "关注理由", value: s.thesis },
-          { label: "建议", value: s.advice },
-          { label: "风险", value: s.risk },
-        ]} />
-      )}
-      <div style="margin-top:8px;display:flex;gap:6px">
-        {s.analysisStatus !== "analyzing" && <button class="ghost-button" onClick={() => onReanalyze(s.code)}>重新分析</button>}
-        <button class="ghost-button danger" onClick={() => onDelete(s.code)}>删除</button>
-      </div>
-    </article>
-  );
-}
-
-function PositionSection() {
-  const [form, setForm] = useState({ code: "", name: "", market: "A股", shares: "", cost: "" });
-  const [busy, setBusy] = useState(false);
-  const [suggestions, setSuggestions] = useState([]);
-  const [quote, setQuote] = useState(null);
-  const [prices, setPrices] = useState({});
-  const searchTimer = useRef(null);
-  useAnalysisPoller(positions.value);
-
-  // 加载持仓实时价格
+function usePositionPrices(items) {
+  const [quotes, setQuotes] = useState({});
+  const codes = items.map(p => p.code).join("|");
   useEffect(() => {
-    if (!positions.value.length) return;
+    if (!items.length) { setQuotes({}); return; }
     let cancelled = false;
     (async () => {
       const map = {};
-      for (const p of positions.value) {
+      for (const p of items) {
         try {
           const res = await get(`/api/search?q=${encodeURIComponent(p.code)}`);
           const match = (res.results || []).find(r => r.code === p.code);
           if (match) {
             const q = await get(`/api/quote/${encodeURIComponent(match.secid)}`);
-            if (q && !cancelled) map[p.code] = q.price;
+            if (q) map[p.code] = q;
           }
         } catch {}
       }
-      if (!cancelled) setPrices(map);
+      if (!cancelled) setQuotes(map);
     })();
     return () => { cancelled = true; };
-  }, [positions.value]);
+  }, [codes]);
+  return quotes;
+}
+
+function PortfolioOverview({ overview }) {
+  return (
+    <div class="portfolio-summary">
+      <SummaryMetric label="总市值" value={formatMoney(overview.marketValue)} hint={`${overview.positionCount} 只持仓`} />
+      <SummaryMetric label="浮动盈亏" value={formatSignedMoney(overview.pnl)} hint={`${formatSignedPct(overview.pnlPct)}`} tone={overview.pnl >= 0 ? "up" : "down"} />
+      <SummaryMetric label="AI 待处理" value={overview.analyzingCount} hint="分析中 / 失败" tone={overview.analyzingCount ? "warn" : ""} />
+      <SummaryMetric label="高风险提示" value={overview.highRiskCount} hint="需复核标的" tone={overview.highRiskCount ? "warn" : ""} />
+    </div>
+  );
+}
+
+function SummaryMetric({ label, value, hint, tone = "" }) {
+  return (
+    <div class={`summary-metric ${tone}`}>
+      <span>{label}</span>
+      <strong>{value}</strong>
+      <p>{hint}</p>
+    </div>
+  );
+}
+
+function PositionPanel({ holdings, selectedKey, onSelect }) {
+  const [form, setForm] = useState({ code: "", name: "", market: "A股", shares: "", cost: "" });
+  const [busy, setBusy] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const [quote, setQuote] = useState(null);
+  const searchTimer = useRef(null);
 
   const handleSearch = (val) => {
     setForm(f => ({ ...f, code: val, name: "", market: "A股" }));
@@ -189,84 +161,369 @@ function PositionSection() {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault(); setBusy(true);
+    e.preventDefault();
+    setBusy(true);
     try {
       const created = await post("/api/positions", form);
       pendingAnimate.add(created.id || form.code);
       setForm({ code: "", name: "", market: "A股", shares: "", cost: "" });
       setQuote(null);
       await loadPortfolio();
+      onSelect(created.id || form.code);
       showToast("已添加，AI 分析中...");
+    } finally {
+      setBusy(false);
     }
-    finally { setBusy(false); }
   };
 
-  const handleDelete = async (id) => { await del(`/api/positions/${encodeURIComponent(id)}`); await loadPortfolio(); showToast("已删除"); };
-  const handleReanalyze = async (id) => { await post(`/api/positions/${encodeURIComponent(id)}/analyze`); pendingAnimate.add(id); await loadPortfolio(); showToast("重新分析中..."); };
+  return (
+    <>
+      <PanelHeader title="持仓明细" subtitle="按仓位、盈亏和风险快速扫描">
+        <CompactPositionForm
+          form={form}
+          busy={busy}
+          suggestions={suggestions}
+          quote={quote}
+          onSubmit={handleSubmit}
+          onSearch={handleSearch}
+          onSelect={handleSelect}
+          onChange={setForm}
+        />
+      </PanelHeader>
 
-  const totalCost = positions.value.reduce((s, p) => s + p.shares * p.cost, 0);
-  const totalMarketValue = positions.value.reduce((s, p) => s + p.shares * (prices[p.code] || p.cost), 0);
-  const totalPnl = totalMarketValue - totalCost;
-  const totalPnlPct = totalCost ? ((totalPnl / totalCost) * 100).toFixed(2) : "0.00";
+      <div class="portfolio-table-wrap">
+        <div class="portfolio-table position-table">
+          <div class="portfolio-table-head">
+            <span>标的</span><span>仓位</span><span>成本 / 现价</span><span>浮动盈亏</span><span>AI 建议</span><span>风险</span><span>操作</span>
+          </div>
+          {holdings.length ? holdings.map(row => (
+            <PositionRow key={row.id} row={row} active={String(selectedKey || holdings[0]?.id) === String(row.id)} onSelect={onSelect} />
+          )) : <EmptyTable text="暂无持仓，先添加一个标的。" />}
+        </div>
+      </div>
+    </>
+  );
+}
+
+function CompactPositionForm({ form, busy, suggestions, quote, onSubmit, onSearch, onSelect, onChange }) {
+  return (
+    <form class="compact-form position-form" onSubmit={onSubmit}>
+      <SearchField value={form.code} suggestions={suggestions} onInput={onSearch} onSelect={onSelect} />
+      <input placeholder="名称" value={form.name} readOnly />
+      <input type="number" placeholder="数量" value={form.shares} onInput={e => onChange({ ...form, shares: e.target.value })} />
+      <input type="number" step="0.001" placeholder="成本价" value={form.cost} onInput={e => onChange({ ...form, cost: e.target.value })} />
+      <button type="submit" disabled={busy}>新增</button>
+      {quote && <span class="quote-hint">{formatQuoteHint(quote)}</span>}
+    </form>
+  );
+}
+
+function PositionRow({ row, active, onSelect }) {
+  return (
+    <button type="button" class={`portfolio-row ${active ? "active" : ""}`} onClick={() => onSelect(row.id)}>
+      <span class="security-cell">
+        <strong>{row.name}</strong>
+        <em>{row.code} · {row.market} · {formatNumber(row.shares)}股</em>
+      </span>
+      <span>{row.weight ? `${row.weight.toFixed(1)}%` : "-"}</span>
+      <span>
+        <strong>{formatMoney(row.cost, 3)}</strong>
+        <em>{row.price ? formatMoney(row.price, 3) : "无行情"}</em>
+      </span>
+      <span class={row.pnl >= 0 ? "money-up" : "money-down"}>
+        <strong>{row.price ? formatSignedMoney(row.pnl) : "-"}</strong>
+        <em>{row.price ? formatSignedPct(row.pnlPct) : "待更新"}</em>
+      </span>
+      <span><ActionChip text={row.reason} status={row.analysisStatus} /></span>
+      <span><RiskBadge text={row.risk} status={row.analysisStatus} /></span>
+      <span class="row-actions">查看</span>
+    </button>
+  );
+}
+
+function StockPanel({ selectedKey, onSelect }) {
+  const [form, setForm] = useState({ code: "", name: "", market: "A股" });
+  const [busy, setBusy] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const [quote, setQuote] = useState(null);
+  const searchTimer = useRef(null);
+
+  const handleSearch = (val) => {
+    setForm(f => ({ ...f, code: val, name: "", market: "A股" }));
+    setQuote(null);
+    clearTimeout(searchTimer.current);
+    if (val.length < 1) { setSuggestions([]); return; }
+    searchTimer.current = setTimeout(async () => {
+      try {
+        const res = await get(`/api/search?q=${encodeURIComponent(val)}`);
+        setSuggestions(res.results || []);
+      } catch { setSuggestions([]); }
+    }, 300);
+  };
+
+  const handleSelect = async (item) => {
+    setForm(f => ({ ...f, code: item.code, name: item.name, market: item.market }));
+    setSuggestions([]);
+    try {
+      const q = await get(`/api/quote/${encodeURIComponent(item.secid)}`);
+      setQuote(q);
+    } catch { setQuote(null); }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      const created = await post("/api/stocks", form);
+      pendingAnimate.add(created.code || form.code);
+      setForm({ code: "", name: "", market: "A股" });
+      setQuote(null);
+      await loadPortfolio();
+      onSelect(created.code || form.code);
+      showToast("已添加，AI 分析中...");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
-    <section class="board route-panel">
-      <div class="board-head"><div>
-        <h2>持仓</h2>
-        <p>{positions.value.length} 只 · 市值 ¥{totalMarketValue.toLocaleString("zh-CN", { maximumFractionDigits: 0 })} · <span style={`color:${totalPnl >= 0 ? "var(--red)" : "#22c55e"}`}>{totalPnl >= 0 ? "+" : ""}{totalPnl.toLocaleString("zh-CN", { maximumFractionDigits: 0 })}（{totalPnlPct}%）</span></p>
-      </div></div>
-      <div class="route-form-wrap">
-        <form class="business-form" onSubmit={handleSubmit} style="grid-template-columns: 1fr 1fr 100px 100px 80px">
-          <div style="position:relative">
-            <input required placeholder="代码或名称搜索" value={form.code} onInput={e => handleSearch(e.target.value)} autocomplete="off" />
-            {suggestions.length > 0 && (
-              <div class="search-dropdown">
-                {suggestions.map(s => (
-                  <div key={s.secid} class="search-dropdown-item" onClick={() => handleSelect(s)}>
-                    <b>{s.code}</b> {s.name} <span style="color:var(--muted);font-size:11px">{s.market}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          <input placeholder="名称（自动填充）" value={form.name} readOnly style={form.name ? "background:#f0f7ff" : ""} />
-          <input type="number" placeholder="数量" value={form.shares} onInput={e => setForm({ ...form, shares: e.target.value })} />
-          <input type="number" step="0.001" placeholder="成本价" value={form.cost} onInput={e => setForm({ ...form, cost: e.target.value })} />
+    <>
+      <PanelHeader title="自选股" subtitle={`${stocks.value.length} 只标的，重点看建议、风险和观察理由`}>
+        <form class="compact-form stock-form" onSubmit={handleSubmit}>
+          <SearchField value={form.code} suggestions={suggestions} onInput={handleSearch} onSelect={handleSelect} />
+          <input placeholder="名称" value={form.name} readOnly />
           <button type="submit" disabled={busy}>新增</button>
+          {quote && <span class="quote-hint">{formatQuoteHint(quote)}</span>}
         </form>
-        {quote && <p style="margin:6px 0 0;font-size:13px;color:var(--accent)">当前价：¥{quote.price.toFixed(2)}（{quote.changePct}%）</p>}
+      </PanelHeader>
+
+      <div class="portfolio-table-wrap">
+        <div class="portfolio-table stock-table">
+          <div class="portfolio-table-head">
+            <span>标的</span><span>市场</span><span>状态</span><span>AI 建议</span><span>风险</span><span>更新</span><span>操作</span>
+          </div>
+          {stocks.value.length ? stocks.value.map(row => (
+            <StockRow key={row.code} row={row} active={String(selectedKey || stocks.value[0]?.code) === String(row.code)} onSelect={onSelect} />
+          )) : <EmptyTable text="暂无自选股，先添加一个观察标的。" />}
+        </div>
       </div>
-      <div class="route-card-grid">
-        {positions.value.map(p => {
-          const curPrice = prices[p.code];
-          const pnl = curPrice ? (curPrice - p.cost) * p.shares : null;
-          const pnlPct = curPrice && p.cost ? (((curPrice - p.cost) / p.cost) * 100).toFixed(2) : null;
-          const animate = pendingAnimate.has(p.id) && p.analysisStatus === "done";
-          if (animate) pendingAnimate.delete(p.id);
-          const AnalysisComp = animate ? AnalysisContentAnimated : AnalysisContent;
-          return (
-            <article key={p.id} class="route-card">
-              <h2>{p.name}（{p.code}）</h2>
-              <span class="mini-label">{p.market} · {p.shares}股 · 成本{p.cost}</span>
-              {curPrice && (
-                <p style={`margin:4px 0;font-size:13px;font-weight:500;color:${pnl >= 0 ? "var(--red)" : "#22c55e"}`}>
-                  现价 {curPrice.toFixed(3)} · {pnl >= 0 ? "+" : ""}{pnl.toFixed(0)}元（{pnlPct}%）
-                </p>
-              )}
-              <AnalysisComp status={p.analysisStatus} fields={[
-                { label: "理由", value: p.reason },
-                { label: "风险", value: p.risk },
-              ]} />
-              <div style="margin-top:8px;display:flex;gap:6px">
-                {p.analysisStatus !== "analyzing" && <button class="ghost-button" onClick={() => handleReanalyze(p.id)}>重新分析</button>}
-                <button class="ghost-button danger" onClick={() => handleDelete(p.id)}>删除</button>
-              </div>
-            </article>
-          );
-        })}
-      </div>
-    </section>
+    </>
   );
+}
+
+function StockRow({ row, active, onSelect }) {
+  return (
+    <button type="button" class={`portfolio-row ${active ? "active" : ""}`} onClick={() => onSelect(row.code)}>
+      <span class="security-cell">
+        <strong>{row.name}</strong>
+        <em>{row.code}</em>
+      </span>
+      <span>{row.market}</span>
+      <span><StatusPill text={row.status || "观察"} /></span>
+      <span><ActionChip text={row.advice} status={row.analysisStatus} /></span>
+      <span><RiskBadge text={row.risk} status={row.analysisStatus} /></span>
+      <span>{formatDate(row.updatedAt || row.updated_at)}</span>
+      <span class="row-actions">查看</span>
+    </button>
+  );
+}
+
+function EtfPanel({ etfs, selectedKey, onSelect }) {
+  return (
+    <>
+      <PanelHeader title="指数基金" subtitle="指数、关联 ETF 与基金方向集中查看" />
+      <div class="portfolio-table-wrap">
+        <div class="portfolio-table etf-table">
+          <div class="portfolio-table-head">
+            <span>指数</span><span>区域</span><span>点位</span><span>涨跌</span><span>关联 ETF / 基金</span><span>操作</span>
+          </div>
+          {etfs.length ? etfs.map(row => (
+            <button type="button" key={row.code} class={`portfolio-row ${String(selectedKey || etfs[0]?.code) === String(row.code) ? "active" : ""}`} onClick={() => onSelect(row.code)}>
+              <span class="security-cell"><strong>{row.name}</strong><em>{row.code}</em></span>
+              <span>{row.region}</span>
+              <span>{row.level || "-"}</span>
+              <span class={String(row.changePct || "").startsWith("-") ? "money-down" : "money-up"}>{row.changePct || "-"}</span>
+              <span class="muted-text">{(row.relatedEtfs || []).slice(0, 3).join("、")}</span>
+              <span class="row-actions">查看</span>
+            </button>
+          )) : <EmptyTable text="暂无指数基金映射。" />}
+        </div>
+      </div>
+    </>
+  );
+}
+
+function PanelHeader({ title, subtitle, children }) {
+  return (
+    <div class="portfolio-panel-head">
+      <div>
+        <h2>{title}</h2>
+        <p>{subtitle}</p>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function SearchField({ value, suggestions, onInput, onSelect }) {
+  return (
+    <div class="compact-search">
+      <input required placeholder="代码或名称搜索" value={value} onInput={e => onInput(e.target.value)} autocomplete="off" />
+      {suggestions.length > 0 && (
+        <div class="search-dropdown">
+          {suggestions.map(s => (
+            <div key={s.secid} class="search-dropdown-item" onClick={() => onSelect(s)}>
+              <b>{s.code}</b> {s.name} <span>{s.market}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DetailPanel({ activeTab, selected }) {
+  if (!selected) {
+    return (
+      <aside class="portfolio-detail">
+        <div class="detail-empty">选择一行查看分析详情。</div>
+      </aside>
+    );
+  }
+  if (activeTab === "positions") return <PositionDetail row={selected} />;
+  if (activeTab === "stocks") return <StockDetail row={selected} />;
+  return <EtfDetail row={selected} />;
+}
+
+function PositionDetail({ row }) {
+  const animate = pendingAnimate.has(row.id) && row.analysisStatus === "done";
+  if (animate) pendingAnimate.delete(row.id);
+  const AnalysisComp = animate ? AnalysisContentAnimated : AnalysisContent;
+
+  return (
+    <aside class="portfolio-detail">
+      <DetailTitle title={row.name} meta={`${row.code} · ${row.market} · ${formatNumber(row.shares)}股`} />
+      <div class="detail-metrics">
+        <MiniMetric label="市值" value={formatMoney(row.marketValue)} />
+        <MiniMetric label="成本" value={formatMoney(row.costValue)} />
+        <MiniMetric label="盈亏" value={row.price ? `${formatSignedMoney(row.pnl)} / ${formatSignedPct(row.pnlPct)}` : "待更新"} tone={row.pnl >= 0 ? "up" : "down"} />
+      </div>
+      <div class="detail-chip-row">
+        <ActionChip text={row.reason} status={row.analysisStatus} />
+        <RiskBadge text={row.risk} status={row.analysisStatus} />
+      </div>
+      <AnalysisComp status={row.analysisStatus} fields={[
+        { label: "理由", value: row.reason },
+        { label: "风险", value: row.risk },
+      ]} />
+      <DetailActions>
+        {row.analysisStatus !== "analyzing" && <button class="ghost-button" onClick={() => reanalyzePosition(row.id)}>重新分析</button>}
+        <button class="ghost-button danger" onClick={() => deletePosition(row.id)}>删除持仓</button>
+      </DetailActions>
+    </aside>
+  );
+}
+
+function StockDetail({ row }) {
+  const animate = pendingAnimate.has(row.code) && row.analysisStatus === "done";
+  if (animate) pendingAnimate.delete(row.code);
+  const AnalysisComp = animate ? AnalysisContentAnimated : AnalysisContent;
+
+  return (
+    <aside class="portfolio-detail">
+      <DetailTitle title={row.name} meta={`${row.code} · ${row.market} · ${row.status || "观察"}`} />
+      <div class="detail-chip-row">
+        <ActionChip text={row.advice} status={row.analysisStatus} />
+        <RiskBadge text={row.risk} status={row.analysisStatus} />
+        <StatusPill text={statusText(row.analysisStatus)} />
+      </div>
+      <AnalysisComp status={row.analysisStatus} fields={[
+        { label: "关注理由", value: row.thesis },
+        { label: "建议", value: row.advice },
+        { label: "风险", value: row.risk },
+      ]} />
+      {row.watchSignals?.length > 0 && (
+        <div class="watch-signals">
+          <span>观察信号</span>
+          <div>{row.watchSignals.map(item => <em key={item}>{item}</em>)}</div>
+        </div>
+      )}
+      <DetailActions>
+        {row.analysisStatus !== "analyzing" && <button class="ghost-button" onClick={() => reanalyzeStock(row.code)}>重新分析</button>}
+        <button class="ghost-button danger" onClick={() => deleteStock(row.code)}>删除自选</button>
+      </DetailActions>
+    </aside>
+  );
+}
+
+function EtfDetail({ row }) {
+  return (
+    <aside class="portfolio-detail">
+      <DetailTitle title={row.name} meta={`${row.code} · ${row.region}`} />
+      <div class="detail-metrics">
+        <MiniMetric label="点位" value={row.level || "-"} />
+        <MiniMetric label="涨跌" value={row.changePct || "-"} tone={String(row.changePct || "").startsWith("-") ? "down" : "up"} />
+      </div>
+      <div class="watch-signals">
+        <span>关联 ETF / 基金</span>
+        <div>{(row.relatedEtfs || []).map(item => <em key={item}>{item}</em>)}</div>
+      </div>
+    </aside>
+  );
+}
+
+function DetailTitle({ title, meta }) {
+  return (
+    <div class="detail-title">
+      <h2>{title}</h2>
+      <p>{meta}</p>
+    </div>
+  );
+}
+
+function MiniMetric({ label, value, tone = "" }) {
+  return (
+    <div class={`mini-metric ${tone}`}>
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  );
+}
+
+function DetailActions({ children }) {
+  return <div class="detail-actions">{children}</div>;
+}
+
+function EmptyTable({ text }) {
+  return <div class="empty-table">{text}</div>;
+}
+
+const pendingAnimate = new Set();
+
+async function reanalyzeStock(code) {
+  await post(`/api/stocks/${encodeURIComponent(code)}/analyze`);
+  pendingAnimate.add(code);
+  await loadPortfolio();
+  showToast("重新分析中...");
+}
+
+async function deleteStock(code) {
+  await del(`/api/stocks/${encodeURIComponent(code)}`);
+  await loadPortfolio();
+  showToast("已删除");
+}
+
+async function reanalyzePosition(id) {
+  await post(`/api/positions/${encodeURIComponent(id)}/analyze`);
+  pendingAnimate.add(id);
+  await loadPortfolio();
+  showToast("重新分析中...");
+}
+
+async function deletePosition(id) {
+  await del(`/api/positions/${encodeURIComponent(id)}`);
+  await loadPortfolio();
+  showToast("已删除");
 }
 
 function AnalysisContent({ status, fields }) {
@@ -385,17 +642,115 @@ function splitGraphemes(text) {
   return Array.from(segmenter.segment(text), part => part.segment);
 }
 
-function EtfSection() {
-  const allEtfs = indices.value.filter(i => i.relatedEtfs?.length > 0);
-  if (!allEtfs.length) return null;
-  return (
-    <section class="board route-panel" style="margin-top:14px">
-      <div class="board-head"><div><h2>关联 ETF</h2><p>按指数映射的可投资 ETF 基金</p></div></div>
-      <div style="padding:12px 16px;font-size:13px;line-height:2">
-        {allEtfs.map(i => (
-          <p key={i.code}><b>{i.name}：</b>{i.relatedEtfs.join("、")}</p>
-        ))}
-      </div>
-    </section>
-  );
+function buildHoldings(items, prices) {
+  const rows = items.map(p => {
+    const quote = prices[p.code];
+    const price = typeof quote === "number" ? quote : quote?.price;
+    const costValue = Number(p.shares || 0) * Number(p.cost || 0);
+    const marketValue = Number(p.shares || 0) * Number(price || p.cost || 0);
+    const pnl = marketValue - costValue;
+    const pnlPct = costValue ? (pnl / costValue) * 100 : 0;
+    return { ...p, market: quote?.market || p.market, price, quoteSource: quote?.sourceLabel, costValue, marketValue, pnl, pnlPct };
+  });
+  const totalMarket = rows.reduce((sum, row) => sum + row.marketValue, 0);
+  return rows.map(row => ({ ...row, weight: totalMarket ? (row.marketValue / totalMarket) * 100 : 0 }));
+}
+
+function getOverview(holdings, stockRows, etfs) {
+  const cost = holdings.reduce((sum, row) => sum + row.costValue, 0);
+  const marketValue = holdings.reduce((sum, row) => sum + row.marketValue, 0);
+  const pnl = marketValue - cost;
+  const analyzingCount = [...holdings, ...stockRows].filter(row => ["analyzing", "failed"].includes(row.analysisStatus)).length;
+  const highRiskCount = [...holdings, ...stockRows].filter(row => riskLevel(row.risk) === "high").length;
+  return {
+    marketValue,
+    pnl,
+    pnlPct: cost ? (pnl / cost) * 100 : 0,
+    analyzingCount,
+    highRiskCount,
+    positionCount: holdings.length,
+    stockCount: stockRows.length,
+    etfCount: etfs.length
+  };
+}
+
+function getSelected(activeTab, selectedKey, holdings, stockRows, etfs) {
+  if (activeTab === "positions") return holdings.find(row => String(row.id) === String(selectedKey)) || holdings[0];
+  if (activeTab === "stocks") return stockRows.find(row => String(row.code) === String(selectedKey)) || stockRows[0];
+  return etfs.find(row => String(row.code) === String(selectedKey)) || etfs[0];
+}
+
+function ActionChip({ text, status }) {
+  const label = actionLabel(text, status);
+  return <span class={`action-chip ${label === "分析中" ? "working" : ""}`}>{label}</span>;
+}
+
+function RiskBadge({ text, status }) {
+  if (status === "analyzing") return <span class="risk-badge muted">分析中</span>;
+  if (status === "failed") return <span class="risk-badge high">失败</span>;
+  const level = riskLevel(text);
+  const label = level === "high" ? "高风险" : level === "medium" ? "中风险" : "低风险";
+  return <span class={`risk-badge ${level}`}>{label}</span>;
+}
+
+function StatusPill({ text }) {
+  return <span class="status-pill">{text}</span>;
+}
+
+function actionLabel(text = "", status = "") {
+  if (status === "analyzing") return "分析中";
+  if (status === "failed") return "待重试";
+  if (/止损/.test(text)) return "止损";
+  if (/止盈/.test(text)) return "止盈";
+  if (/减仓/.test(text)) return "减仓";
+  if (/加仓/.test(text)) return "加仓";
+  if (/持有/.test(text)) return "持有";
+  if (/观察|关注/.test(text)) return "观察";
+  return text ? "待复核" : "待分析";
+}
+
+function riskLevel(text = "") {
+  if (!text) return "low";
+  if (/止损|跌破|失效|威胁|高风险|替代|下调|回调/.test(text)) return "high";
+  if (/波动|不及预期|需求|政策|竞争|估值/.test(text)) return "medium";
+  return "low";
+}
+
+function statusText(status) {
+  if (status === "done") return "已分析";
+  if (status === "analyzing") return "分析中";
+  if (status === "failed") return "失败";
+  return "待分析";
+}
+
+function formatMoney(value, digits = 0) {
+  const n = Number(value || 0);
+  return `¥${n.toLocaleString("zh-CN", { minimumFractionDigits: digits, maximumFractionDigits: digits })}`;
+}
+
+function formatSignedMoney(value) {
+  const n = Number(value || 0);
+  return `${n >= 0 ? "+" : ""}${formatMoney(n)}`;
+}
+
+function formatSignedPct(value) {
+  const n = Number(value || 0);
+  return `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`;
+}
+
+function formatQuoteHint(quote) {
+  const pct = quote.changePct == null ? "" : ` · ${formatSignedPct(quote.changePct)}`;
+  const source = quote.sourceLabel ? ` · ${quote.sourceLabel}` : "";
+  return `现价 ${formatMoney(quote.price, 3)}${pct}${source}`;
+}
+
+function formatNumber(value) {
+  return Number(value || 0).toLocaleString("zh-CN", { maximumFractionDigits: 2 });
+}
+
+function formatDate(value) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return `${date.getMonth() + 1}-${date.getDate()}`;
 }
