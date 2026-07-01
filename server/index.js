@@ -9,12 +9,15 @@ import { canImportReport, getAuthSession, login, logoutCookie } from "./services
 import { startMarketPoller, searchStocks, getStockQuote } from "./services/market-data.js";
 import { startScheduler } from "./services/scheduler.js";
 import { getStatus, getReports, getReport, markReportRead, toggleReportStar, archiveReport, insertReport, getAllReportsForPipeline } from "./routes/reports.js";
-import { getStocks, upsertStock, deleteStock, getPositions, upsertPosition, deletePosition, reanalyzeStock, reanalyzePosition } from "./routes/stocks.js";
+import { getStocks, upsertStock, deleteStock, getPositions, upsertPosition, updatePosition, deletePosition, reanalyzeStock, reanalyzePosition } from "./routes/stocks.js";
 import { getIndices, getMarketSnapshot } from "./routes/market.js";
 import { getDecisions, createDailyDecision } from "./routes/decisions.js";
-import { getTasks, createTask, toggleTask, getLogs } from "./routes/tasks.js";
-import { getSettings, toggleAutomation } from "./routes/settings.js";
-import { renderReportHtml } from "./templates/report.js";
+import { getTasks, createTask, toggleTask, updateTaskSchedule, getLogs } from "./routes/tasks.js";
+import { getSignals, getTopCommunitySignals, replaceCommunitySignalSnapshot } from "./routes/signals.js";
+import { getSettings, toggleAutomation, updateDailySchedule } from "./routes/settings.js";
+import { modernizeReportHtml, renderReportHtml } from "./templates/report.js";
+import { syncFeishuCommunitySignals } from "../lib/communitySignalPipeline.js";
+import { runDailyMarketBriefingPipeline } from "../lib/dailyMarketBriefingPipeline.js";
 import { runResearchPipeline } from "../lib/researchPipeline.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -35,7 +38,7 @@ const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; cha
 
 await mkdir(REPORT_DIR, { recursive: true });
 startMarketPoller();
-startScheduler(runDailyJob);
+startScheduler(runAutomationTask);
 
 const server = createServer(async (req, res) => {
   try {
@@ -95,6 +98,7 @@ async function handleApi(req, res, url) {
   if (m === "GET" && p === "/api/stocks") return json(res, 200, { stocks: getStocks() });
   if (m === "GET" && p === "/api/positions") return json(res, 200, { positions: getPositions() });
   if (m === "GET" && p === "/api/decisions") return json(res, 200, { decisions: getDecisions() });
+  if (m === "GET" && p === "/api/signals") return json(res, 200, { signals: getSignals({ date: url.searchParams.get("date"), status: url.searchParams.get("status"), source: url.searchParams.get("source"), limit: url.searchParams.get("limit") }) });
   if (m === "GET" && p === "/api/automation/tasks") return json(res, 200, { tasks: getTasks() });
   if (m === "GET" && p === "/api/logs") return json(res, 200, { logs: getLogs() });
   if (m === "GET" && p === "/api/settings") return json(res, 200, { settings: getSettings() });
@@ -113,6 +117,10 @@ async function handleApi(req, res, url) {
   // Research
   if (m === "POST" && p === "/api/research") { const body = await readBody(req); return json(res, 201, { report: await createReport(body) }); }
   if (m === "POST" && p === "/api/jobs/daily") { return json(res, 201, await runDailyJob("daily")); }
+  if (m === "POST" && p === "/api/signals/sync") {
+    const result = await syncCommunitySignals({ source: "manual" });
+    return json(res, 201, { result: summarizeSignalSync(result) });
+  }
 
   // Stocks/Positions
   if (m === "POST" && p === "/api/stocks") { const body = await readBody(req); return json(res, 201, { stock: upsertStock(body) }); }
@@ -124,6 +132,7 @@ async function handleApi(req, res, url) {
   const posAnalyze = p.match(/^\/api\/positions\/([^/]+)\/analyze$/);
   if (m === "POST" && posAnalyze) return json(res, 200, reanalyzePosition(decode(posAnalyze[1])));
   const posDel = p.match(/^\/api\/positions\/([^/]+)$/);
+  if (m === "PUT" && posDel) { const body = await readBody(req); return json(res, 200, { position: updatePosition(decode(posDel[1]), body) }); }
   if (m === "DELETE" && posDel) return json(res, 200, deletePosition(decode(posDel[1])));
 
   // Decisions
@@ -131,11 +140,14 @@ async function handleApi(req, res, url) {
 
   // Tasks
   if (m === "POST" && p === "/api/automation/tasks") { const body = await readBody(req); return json(res, 201, { task: createTask(body) }); }
+  const taskSchedule = p.match(/^\/api\/automation\/tasks\/([^/]+)\/schedule$/);
+  if (m === "POST" && taskSchedule) { const body = await readBody(req); return json(res, 200, { task: updateTaskSchedule(decode(taskSchedule[1]), body) }); }
   const taskToggle = p.match(/^\/api\/automation\/tasks\/([^/]+)\/toggle$/);
   if (m === "POST" && taskToggle) return json(res, 200, { task: toggleTask(decode(taskToggle[1])) });
 
   // Settings
   if (m === "POST" && p === "/api/automation/toggle") { const body = await readBody(req); return json(res, 200, { settings: toggleAutomation(body) }); }
+  if (m === "POST" && p === "/api/settings/daily-schedule") { const body = await readBody(req); return json(res, 200, { settings: updateDailySchedule(body) }); }
 
   json(res, 404, { error: "Not found" });
 }
@@ -145,22 +157,26 @@ async function createReport({ topic, type, source = "manual" }) {
   type = REPORT_TYPES[type] ? type : inferType(topic);
   const reportType = REPORT_TYPES[type];
   const origin = ["scheduled", "daily", "automation"].includes(source) ? "automation" : "manual";
-  const createdAt = new Date().toISOString();
+  const now = new Date().toISOString();
   const localDay = localDate();
-  const id = buildId(localDay, topic, type);
+  const title = buildTitle(topic, type, localDay);
+  const existing = origin === "automation" ? findExistingAutomationReport({ localDay, title, topic, type }) : null;
+  const createdAt = existing?.created_at || now;
+  const id = existing?.id || buildId(localDay, topic, type);
   const file = `${localDay}/${id}.html`;
 
   const previousReports = getAllReportsForPipeline();
   const brief = await runResearchPipeline({ topic, type, previousReports, dataDir: DATA_DIR });
 
   const report = {
-    id, title: buildTitle(topic, type, localDay), topic, type,
+    id, title, topic, type,
     typeLabel: reportType.label, summary: brief.summary,
-    tags: brief.tags, status: "new", source, origin,
+    tags: brief.tags, status: existing?.status || "new", source, origin,
     originLabel: origin === "automation" ? "自动化产出" : "手动产出",
     localDate: localDay, file, wikiPath: `${reportType.path}/${localDay}-${slugify(topic)}.html`,
     accent: reportType.accent, highlights: brief.highlights,
-    createdAt, updatedAt: createdAt
+    starred: existing?.starred || 0, archived: existing?.archived || 0,
+    createdAt, updatedAt: now
   };
 
   const html = renderReportHtml(report, brief);
@@ -169,6 +185,15 @@ async function createReport({ topic, type, source = "manual" }) {
   insertReport(report);
   appendLog("research", `Created report: ${report.title}`, { id: report.id });
   return report;
+}
+
+function findExistingAutomationReport({ localDay, title, topic, type }) {
+  return db.prepare(`
+    SELECT * FROM reports
+    WHERE local_date=? AND title=? AND topic=? AND type=? AND origin='automation'
+    ORDER BY created_at DESC
+    LIMIT 1
+  `).get(localDay, title, topic, type);
 }
 
 async function importReport(body = {}) {
@@ -222,17 +247,112 @@ async function runDailyJob(source = "scheduled") {
   const settings = getSettings();
   if (source === "scheduled" && settings.lastDailyRun === today) return { skipped: true, reason: "已执行过今日日更", reports: [] };
 
-  const topics = [
-    { topic: `${today} A股市场脉搏：成交、风格轮动与资金方向`, type: "market" },
-    { topic: "AI算力产业链：光模块、交换芯片与液冷的订单验证", type: "industry" },
-    { topic: "半导体材料观察：锗、InP与先进封装需求", type: "industry" },
-    { topic: "政策日报：低空经济、算力基础设施与设备更新", type: "policy" }
-  ];
-  const reports = [];
-  for (const item of topics) reports.push(await createReport({ ...item, source }));
+  const now = new Date();
+  const signalSync = await syncCommunitySignals({ now, source });
+  const communitySignals = signalSync.signals?.length
+    ? signalSync.signals
+    : getTopCommunitySignals({ limit: 8, now });
+  const reports = [await createDailyMarketBriefReport({ source, now, communitySignals, signalSync })];
   db.prepare("INSERT OR REPLACE INTO settings (key,value) VALUES (?,?)").run("lastDailyRun", JSON.stringify(today));
-  appendLog("daily_job", `Daily job created ${reports.length} reports`, { source });
-  return { skipped: false, reports };
+  db.prepare("INSERT OR REPLACE INTO settings (key,value) VALUES (?,?)").run("lastDailyBriefingRunAt", JSON.stringify(new Date().toISOString()));
+  db.prepare("INSERT OR REPLACE INTO settings (key,value) VALUES (?,?)").run("lastDailyBriefingWindowEnd", JSON.stringify(reports[0].briefingWindow?.end || null));
+  db.prepare("INSERT OR REPLACE INTO settings (key,value) VALUES (?,?)").run("lastDailyBriefingSourceStats", JSON.stringify(reports[0].sourceStats || []));
+  db.prepare("INSERT OR REPLACE INTO settings (key,value) VALUES (?,?)").run("lastCommunitySignalSync", JSON.stringify(summarizeSignalSync(signalSync)));
+  appendLog("daily_job", `Daily job created ${reports.length} reports`, { source, signalSync: summarizeSignalSync(signalSync) });
+  return { skipped: false, reports, signalSync: summarizeSignalSync(signalSync) };
+}
+
+async function runAutomationTask(task) {
+  if (isDailyMarketBriefingTask(task)) return runDailyJob("scheduled");
+  appendLog("automation_task", `No executor configured for task: ${task.name || task.id}`, { id: task.id });
+  return { skipped: true, reason: "当前任务尚未配置自动执行器", taskId: task.id };
+}
+
+async function createDailyMarketBriefReport({ source = "scheduled", now = new Date(), communitySignals = [], signalSync = null } = {}) {
+  const type = "market";
+  const reportType = REPORT_TYPES[type];
+  const origin = "automation";
+  const nowIso = now.toISOString();
+  const localDay = localDate(now);
+  const topic = "每日市场简报";
+  const title = `${localDay} 每日市场简报`;
+  const existing = findExistingAutomationReport({ localDay, title, topic, type });
+  const createdAt = existing?.created_at || nowIso;
+  const id = existing?.id || `${localDay}-daily-briefing-${createHash("sha1").update(`${title}-${nowIso}`).digest("hex").slice(0, 8)}`;
+  const file = `${localDay}/${id}.html`;
+  const positions = db.prepare("SELECT * FROM positions ORDER BY updated_at DESC").all();
+
+  const brief = await runDailyMarketBriefingPipeline({
+    now,
+    positions,
+    quoteFetcher: getStockQuote,
+    communitySignals,
+    signalSync
+  });
+
+  const report = {
+    id, title, topic, type,
+    typeLabel: "每日简报",
+    summary: brief.summary,
+    tags: brief.tags,
+    status: existing?.status || "new",
+    source,
+    origin,
+    originLabel: "自动化产出",
+    localDate: localDay,
+    file,
+    wikiPath: `${reportType.path}/${localDay}-daily-briefing.html`,
+    accent: reportType.accent,
+    highlights: brief.highlights,
+    starred: existing?.starred || 0,
+    archived: existing?.archived || 0,
+    createdAt,
+    updatedAt: nowIso,
+    briefingWindow: {
+      start: brief.window?.start?.toISOString?.() || null,
+      end: brief.window?.end?.toISOString?.() || null,
+      timezone: brief.window?.timezone || "Asia/Shanghai"
+    },
+    sourceStats: brief.dataQuality || []
+  };
+
+  const html = renderReportHtml(report, brief);
+  await mkdir(join(REPORT_DIR, localDay), { recursive: true });
+  await writeFile(join(REPORT_DIR, file), html, "utf8");
+  insertReport(report);
+  appendLog("daily_market_briefing", `Created report: ${report.title}`, { id: report.id, window: report.briefingWindow });
+  return report;
+}
+
+async function syncCommunitySignals({ now = new Date(), source = "manual" } = {}) {
+  const result = await syncFeishuCommunitySignals({ dataDir: DATA_DIR, now });
+  if (result.signals?.length) replaceCommunitySignalSnapshot(result.signals);
+  appendLog(
+    "community_signal_sync",
+    result.ok
+      ? `Synced ${result.signals.length} community signals`
+      : result.skipped ? `Community signal sync skipped: ${result.reason}` : `Community signal sync failed: ${result.reason}`,
+    { source, ...summarizeSignalSync(result) }
+  );
+  return result;
+}
+
+function summarizeSignalSync(result = {}) {
+  return {
+    ok: !!result.ok,
+    skipped: !!result.skipped,
+    provider: result.provider || "feishu",
+    reason: result.reason || "",
+    extractionMethod: result.extractionMethod || "",
+    extractionError: result.extractionError || "",
+    signalCount: result.signals?.length || 0,
+    sourceTitle: result.source?.title || "",
+    outputPath: result.source?.outputPath || ""
+  };
+}
+
+function isDailyMarketBriefingTask(task = {}) {
+  return task.id === "daily-research" || /每日市场简报|日更/.test(`${task.name || ""} ${task.implementation || ""}`);
 }
 
 // Utilities
@@ -247,8 +367,10 @@ async function serveFile(res, baseDir, reqPath) {
   let s;
   try { s = await stat(target); } catch { if (baseDir === DIST_DIR) { await serveFile(res, DIST_DIR, "index.html"); return; } throw Object.assign(new Error("Not found"), { statusCode: 404 }); }
   if (!s.isFile()) throw Object.assign(new Error("Not found"), { statusCode: 404 });
+  const body = await readFile(target);
+  const content = baseDir === REPORT_DIR && extname(target) === ".html" ? modernizeReportHtml(body.toString("utf8")) : body;
   res.writeHead(200, { "content-type": MIME[extname(target)] || "application/octet-stream", "cache-control": "no-store" });
-  res.end(await readFile(target));
+  res.end(content);
 }
 
 function appendLog(type, message, meta = {}) {

@@ -2,6 +2,7 @@ import { useState, useEffect } from "preact/hooks";
 import { Layout } from "./components/Layout.jsx";
 import { Today } from "./pages/Today.jsx";
 import { Knowledge } from "./pages/Knowledge.jsx";
+import { Signals } from "./pages/Signals.jsx";
 import { Portfolio } from "./pages/Portfolio.jsx";
 import { Decisions } from "./pages/Decisions.jsx";
 import { Tasks } from "./pages/Tasks.jsx";
@@ -50,6 +51,7 @@ export function App() {
     if (route.startsWith("#report/")) return <ReportReader id={decodeURIComponent(route.replace("#report/", ""))} />;
     switch (route) {
       case "#knowledge": return <Knowledge />;
+      case "#signals": return <Signals />;
       case "#portfolio": return <Portfolio />;
       case "#decisions": return <Decisions />;
       case "#tasks": return <Tasks />;

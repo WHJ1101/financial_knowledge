@@ -1,8 +1,7 @@
 import db from "./db.js";
+import { DEFAULT_TIME_ZONE, parseDailyScheduleTime, scheduleParts } from "./schedule-config.js";
 
-const TIME_ZONE = "Asia/Shanghai";
-const DAILY_JOB_HOUR = 8;
-const DAILY_JOB_MINUTE = 30;
+const TIME_ZONE = DEFAULT_TIME_ZONE;
 
 let timer = null;
 
@@ -25,17 +24,25 @@ function setSetting(key, value) {
   db.prepare("INSERT OR REPLACE INTO settings (key,value) VALUES (?,?)").run(key, JSON.stringify(value));
 }
 
-export function startScheduler(runDailyJob) {
+export function startScheduler(runTask) {
   timer = setInterval(async () => {
     try {
       const enabled = getSetting("automationEnabled");
       if (!enabled) return;
       const now = localParts();
-      const isAfter = now.hour > DAILY_JOB_HOUR || (now.hour === DAILY_JOB_HOUR && now.minute >= DAILY_JOB_MINUTE);
-      const lastRun = getSetting("lastDailyRun");
-      if (isAfter && lastRun !== now.date) {
-        await runDailyJob("scheduled");
-        setSetting("lastDailyRun", now.date);
+      const tasks = db.prepare("SELECT * FROM automation_tasks WHERE enabled=1 ORDER BY created_at DESC").all();
+
+      for (const task of tasks) {
+        const scheduleTime = parseDailyScheduleTime(task.schedule);
+        if (!scheduleTime) continue;
+        const schedule = scheduleParts(scheduleTime);
+        const isAfter = now.hour > schedule.hour || (now.hour === schedule.hour && now.minute >= schedule.minute);
+        const runKey = `lastAutomationTaskRun:${task.id}`;
+        const lastRun = getSetting(runKey);
+        if (isAfter && lastRun !== now.date) {
+          await runTask(task);
+          setSetting(runKey, now.date);
+        }
       }
     } catch (e) { console.error("Scheduler error:", e); }
   }, 60_000);

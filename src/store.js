@@ -8,6 +8,7 @@ export const positions = signal([]);
 export const indices = signal([]);
 export const marketSnapshot = signal({ indices: [], updatedAt: null });
 export const decisions = signal([]);
+export const signals = signal([]);
 export const tasks = signal([]);
 export const logs = signal([]);
 export const query = signal("");
@@ -30,15 +31,21 @@ export async function loadReports() {
 }
 
 export async function loadBusiness() {
-  const [s, p, d, t, l] = await Promise.all([
+  const [s, p, d, sig, t, l] = await Promise.all([
     get("/api/stocks"), get("/api/positions"),
-    get("/api/decisions"), get("/api/automation/tasks"), get("/api/logs")
+    get("/api/decisions"), get("/api/signals?limit=100"), get("/api/automation/tasks"), get("/api/logs")
   ]);
   stocks.value = s.stocks;
   positions.value = p.positions;
   decisions.value = d.decisions;
+  signals.value = sig.signals;
   tasks.value = t.tasks;
   logs.value = l.logs;
+}
+
+export async function loadSignals() {
+  const data = await get("/api/signals?limit=100");
+  signals.value = data.signals;
 }
 
 export async function loadPortfolio() {

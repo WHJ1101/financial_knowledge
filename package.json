@@ -6,10 +6,12 @@
   "scripts": {
     "dev": "concurrently \"node --env-file=.env server/index.js\" \"vite\"",
     "build": "vite build",
+    "test": "node --test",
     "start": "node server/index.js",
     "start:env": "node --env-file=.env server/index.js",
     "migrate": "node --env-file=.env server/services/migrate.js",
-    "report:import": "node scripts/import-report.js"
+    "report:import": "node scripts/import-report.js",
+    "source:feishu": "node --env-file=.env scripts/import-feishu-source.js"
   },
   "engines": {
     "node": ">=20"

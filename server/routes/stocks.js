@@ -32,15 +32,29 @@ export function getPositions() {
 export function upsertPosition(body) {
   const code = String(body.code || "").trim();
   const name = String(body.name || "").trim();
+  const quoteSecid = String(body.quoteSecid || body.quote_secid || "").trim();
   if (!code || !name) throw Object.assign(new Error("持仓代码和名称必填"), { statusCode: 400 });
   const id = body.id || `${code}-${Date.now()}`;
   const now = new Date().toISOString();
-  db.prepare(`INSERT OR REPLACE INTO positions (id,code,name,market,shares,cost,reason,risk,analysis_status,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)`).run(
-    id, code, name, body.market || "A股",
+  db.prepare(`INSERT OR REPLACE INTO positions (id,code,name,market,quote_secid,shares,cost,reason,risk,analysis_status,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)`).run(
+    id, code, name, body.market || "A股", quoteSecid,
     Number(body.shares) || 0, Number(body.cost) || 0,
     body.reason || "", body.risk || "", "analyzing", now
   );
   analyzePosition(id, code, name, body.market || "A股");
+  return db.prepare("SELECT * FROM positions WHERE id=?").get(id);
+}
+
+export function updatePosition(id, body) {
+  const row = db.prepare("SELECT * FROM positions WHERE id=?").get(id);
+  if (!row) throw Object.assign(new Error("Position not found"), { statusCode: 404 });
+  const shares = Number(body.shares);
+  const cost = Number(body.cost);
+  if (!Number.isFinite(shares) || shares < 0) throw Object.assign(new Error("持仓数量不合法"), { statusCode: 400 });
+  if (!Number.isFinite(cost) || cost < 0) throw Object.assign(new Error("成本价不合法"), { statusCode: 400 });
+  const now = new Date().toISOString();
+  db.prepare("UPDATE positions SET shares=?, cost=?, analysis_status='analyzing', updated_at=? WHERE id=?").run(shares, cost, now, id);
+  analyzePosition(row.id, row.code, row.name, row.market);
   return db.prepare("SELECT * FROM positions WHERE id=?").get(id);
 }
 
@@ -68,7 +82,7 @@ function formatStock(row) {
 }
 
 function formatPosition(row) {
-  return { ...row, analysisStatus: row.analysis_status || "pending", updatedAt: row.updated_at };
+  return { ...row, quoteSecid: row.quote_secid || "", analysisStatus: row.analysis_status || "pending", updatedAt: row.updated_at };
 }
 
 function normalizeList(value) {

@@ -79,16 +79,20 @@ export async function analyzeStock(code, name, market) {
 export async function analyzePosition(id, code, name, market) {
   db.prepare("UPDATE positions SET analysis_status='analyzing' WHERE id=?").run(id);
   try {
-    const row = db.prepare("SELECT shares, cost FROM positions WHERE id=?").get(id);
+    const row = db.prepare("SELECT shares, cost, quote_secid FROM positions WHERE id=?").get(id);
     const shares = row?.shares || 0;
     const cost = row?.cost || 0;
 
     // 获取实时行情
     let quote = null;
     try {
-      const searchResults = await searchStocks(code);
-      const match = searchResults.find(s => s.code === code);
-      if (match) quote = await getStockQuote(match.secid);
+      const quoteKey = row?.quote_secid || "";
+      if (quoteKey) quote = await getStockQuote(quoteKey);
+      else {
+        const searchResults = await searchStocks(code);
+        const match = searchResults.find(s => s.code === code);
+        if (match) quote = await getStockQuote(match.secid);
+      }
     } catch {}
 
     const currentPrice = quote?.price || null;

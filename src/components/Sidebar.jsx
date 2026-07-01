@@ -1,6 +1,7 @@
 const NAV = [
   { key: "#today", icon: "today", label: "今日" },
   { key: "#knowledge", icon: "knowledge", label: "知识库" },
+  { key: "#signals", icon: "signals", label: "信号源" },
   { key: "#portfolio", icon: "portfolio", label: "投资组合" },
   { key: "#decisions", icon: "decisions", label: "决策" },
   { key: "#tasks", icon: "tasks", label: "任务" },
@@ -44,6 +45,15 @@ function NavIcon({ name }) {
       <path d="M5 5.5c2.7-.9 4.9-.5 7 1.3v13c-2.1-1.8-4.3-2.2-7-1.3z" />
       <path d="M12 6.8c2.1-1.8 4.3-2.2 7-1.3v13c-2.7-.9-4.9-.5-7 1.3" />
       <path d="M8 9.5h1.5M15 9.5h2" />
+    </svg>
+  );
+  if (name === "signals") return (
+    <svg viewBox="0 0 24 24" {...common}>
+      <path d="M5 17.5c3.8-4 10.2-4 14 0" />
+      <path d="M7.8 14.7c2.3-2.3 6.1-2.3 8.4 0" />
+      <path d="M10.5 12.1c.8-.7 2.2-.7 3 0" />
+      <circle cx="12" cy="18.5" r="1.2" />
+      <path d="M4.5 6.5h15M6.5 4.5h11" />
     </svg>
   );
   if (name === "portfolio") return (

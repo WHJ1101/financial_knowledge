@@ -17,6 +17,17 @@ export async function post(path, body = {}) {
   return data;
 }
 
+export async function put(path, body = {}) {
+  const res = await fetch(`${BASE}${path}`, {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || `PUT ${path} failed`);
+  return data;
+}
+
 export async function del(path) {
   const res = await fetch(`${BASE}${path}`, { method: "DELETE" });
   const data = await res.json();

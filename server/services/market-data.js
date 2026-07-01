@@ -69,7 +69,7 @@ export async function searchStocks(keyword) {
 
 export async function getStockQuote(secid) {
   const normalized = String(secid || "").trim();
-  if (isOtcFundSecid(normalized)) return getFundQuote(extractSecurityCode(normalized));
+  if (isOtcFundSecid(normalized)) return getFundQuote(extractSecurityCode(normalized)).catch(() => null);
 
   const quote = await getExchangeQuote(normalized).catch(() => null);
   if (quote) return quote;
@@ -115,15 +115,46 @@ async function getExchangeQuote(secid) {
 async function getFundQuote(code) {
   if (!/^\d{6}$/.test(code)) return null;
 
+  const estimated = await getTiantianFundQuote(code).catch(() => null);
+  if (estimated) return estimated;
+
+  return getEastmoneyFundQuote(code).catch(() => null);
+}
+
+async function getTiantianFundQuote(code) {
   const url = `https://fundgz.1234567.com.cn/js/${code}.js?rt=${Date.now()}`;
   const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
   if (!res.ok) return null;
 
   const text = await res.text();
-  const match = text.match(/jsonpgz\((.*)\);?$/);
-  if (!match) return null;
+  return parseTiantianFundJsonp(text);
+}
 
-  const data = JSON.parse(match[1]);
+async function getEastmoneyFundQuote(code) {
+  const url = `https://fund.eastmoney.com/pingzhongdata/${code}.js?v=${Date.now()}`;
+  const res = await fetch(url, {
+    headers: {
+      referer: "https://fund.eastmoney.com/",
+      "user-agent": "Mozilla/5.0"
+    },
+    signal: AbortSignal.timeout(5000)
+  });
+  if (!res.ok) return null;
+
+  return parseEastmoneyFundPage(await res.text(), code);
+}
+
+export function parseTiantianFundJsonp(text) {
+  const match = String(text || "").trim().match(/^jsonpgz\(([\s\S]*)\);?$/);
+  const payload = match?.[1]?.trim();
+  if (!payload || payload === "null" || payload === "undefined") return null;
+
+  let data;
+  try {
+    data = JSON.parse(payload);
+  } catch {
+    return null;
+  }
   const estimatedNav = toNumber(data.gsz);
   const latestNav = toNumber(data.dwjz);
   const price = estimatedNav || latestNav;
@@ -143,6 +174,31 @@ async function getFundQuote(code) {
     nav: latestNav || null,
     navDate: data.jzrq || "",
     updatedAt: data.gztime || data.jzrq || ""
+  };
+}
+
+export function parseEastmoneyFundPage(text, code = "") {
+  const name = readJsStringVar(text, "fS_name") || code;
+  const trend = readJsArrayVar(text, "Data_netWorthTrend");
+  const latest = Array.isArray(trend) ? trend.at(-1) : null;
+  const price = toNumber(latest?.y);
+  if (!price) return null;
+
+  const changePct = toNumber(latest?.equityReturn);
+  const navDate = formatTimestampDate(latest?.x);
+  return {
+    name,
+    price,
+    market: "基金",
+    high: price,
+    low: price,
+    open: price,
+    changePct: Number.isFinite(changePct) ? changePct.toFixed(2) : "0.00",
+    source: "fund-nav",
+    sourceLabel: "东方财富基金净值",
+    nav: price,
+    navDate,
+    updatedAt: navDate
   };
 }
 
@@ -179,6 +235,27 @@ function extractSecurityCode(value) {
 
 function isExchangeFundCode(code) {
   return /^(15|16|50|51|52|56|58)\d{4}$/.test(String(code || ""));
+}
+
+function readJsStringVar(text, name) {
+  const match = String(text || "").match(new RegExp(`var\\s+${name}\\s*=\\s*["']([^"']*)["']\\s*;`));
+  return match?.[1] || "";
+}
+
+function readJsArrayVar(text, name) {
+  const match = String(text || "").match(new RegExp(`var\\s+${name}\\s*=\\s*(\\[[\\s\\S]*?\\])\\s*;`));
+  if (!match) return null;
+  try {
+    return JSON.parse(match[1].trim());
+  } catch {
+    return null;
+  }
+}
+
+function formatTimestampDate(value) {
+  const date = new Date(Number(value));
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toISOString().slice(0, 10);
 }
 
 function toNumber(value) {
