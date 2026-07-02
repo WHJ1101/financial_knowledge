@@ -1,10 +1,14 @@
 import { useEffect, useState } from "preact/hooks";
-import { reports, refresh, showToast } from "../store.js";
+import { reports, loadReports, loadStatus, showToast } from "../store.js";
 import { del, get, post } from "../api.js";
 
 export function ReportReader({ id }) {
   const [report, setReport] = useState(null);
   const [error, setError] = useState("");
+
+  const reloadReports = async () => {
+    await Promise.allSettled([loadReports(), loadStatus()]);
+  };
 
   useEffect(() => {
     setError("");
@@ -13,7 +17,7 @@ export function ReportReader({ id }) {
       try {
         let r = reports.value.find(item => item.id === id);
         if (!r) { const data = await get(`/api/reports/${encodeURIComponent(id)}`); r = data.report; }
-        if (r && r.status !== "read") { await post(`/api/reports/${encodeURIComponent(r.id)}`, {}); await refresh(); }
+        if (r && r.status !== "read") { await post(`/api/reports/${encodeURIComponent(r.id)}`, {}); await reloadReports(); }
         setReport(r);
       } catch (err) {
         setError(err.message || "报告加载失败");
@@ -26,7 +30,7 @@ export function ReportReader({ id }) {
     if (!globalThis.confirm("确定删除报告「" + report.title + "」？此操作会同时移除网页报告文件。")) return;
     try {
       await del("/api/reports/" + encodeURIComponent(report.id));
-      await refresh();
+      await reloadReports();
       showToast("报告已删除");
       location.hash = "#knowledge";
     } catch (err) {

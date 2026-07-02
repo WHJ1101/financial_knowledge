@@ -1,3 +1,5 @@
+import db from "./db.js";
+
 const SECIDS = {
   "000001.SH": "1.000001",
   "399001.SZ": "0.399001",
@@ -69,13 +71,18 @@ export async function searchStocks(keyword) {
 
 export async function getStockQuote(secid) {
   const normalized = String(secid || "").trim();
-  if (isOtcFundSecid(normalized)) return getFundQuote(extractSecurityCode(normalized)).catch(() => null);
+  const code = extractSecurityCode(normalized);
+
+  if (isOtcFundSecid(normalized)) {
+    const fundQuote = await getFundQuote(code).catch(() => null);
+    return fundQuote || getManualQuote(normalized, code);
+  }
 
   const quote = await getExchangeQuote(normalized).catch(() => null);
   if (quote) return quote;
 
-  const code = extractSecurityCode(normalized);
-  return code ? getFundQuote(code).catch(() => null) : null;
+  const fundQuote = code ? await getFundQuote(code).catch(() => null) : null;
+  return fundQuote || getManualQuote(normalized, code);
 }
 
 async function getExchangeQuote(secid) {
@@ -199,6 +206,32 @@ export function parseEastmoneyFundPage(text, code = "") {
     nav: price,
     navDate,
     updatedAt: navDate
+  };
+}
+
+function getManualQuote(secid, code) {
+  const keys = Array.from(new Set([String(secid || "").trim(), String(code || "").trim()].filter(Boolean)));
+  for (const key of keys) {
+    const row = db.prepare("SELECT * FROM quote_overrides WHERE code=?").get(key);
+    if (row) return formatManualQuote(row);
+  }
+  return null;
+}
+
+function formatManualQuote(row) {
+  const price = Number(row.price);
+  return {
+    name: row.name || row.code,
+    price,
+    market: row.market || "手动",
+    high: price,
+    low: price,
+    open: price,
+    changePct: row.change_pct || "0.00",
+    source: "manual",
+    sourceLabel: row.source_label || "手动行情",
+    note: row.note || "",
+    updatedAt: row.updated_at
   };
 }
 

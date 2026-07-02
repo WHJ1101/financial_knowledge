@@ -1,5 +1,5 @@
 import { useState } from "preact/hooks";
-import { tasks, logs, status, refresh, showToast } from "../store.js";
+import { tasks, logs, status, loadTasksData, showToast } from "../store.js";
 import { post } from "../api.js";
 
 export function Tasks() {
@@ -17,7 +17,7 @@ export function Tasks() {
   const toggleGlobal = async () => {
     try {
       await post("/api/automation/toggle", { enabled: !automationEnabled });
-      await refresh();
+      await loadTasksData();
       showToast(automationEnabled ? "自动日更已暂停" : "自动日更已开启");
     } catch (err) { showToast(`操作失败：${err.message}`); }
   };
@@ -25,7 +25,7 @@ export function Tasks() {
   const handleToggle = async (id) => {
     try {
       await post(`/api/automation/tasks/${encodeURIComponent(id)}/toggle`);
-      await refresh(); showToast("状态已更新");
+      await loadTasksData(); showToast("状态已更新");
     } catch (err) { showToast(`操作失败：${err.message}`); }
   };
 
@@ -33,7 +33,7 @@ export function Tasks() {
     setRunningTaskId(task.id);
     try {
       const result = await post("/api/jobs/daily", {});
-      await refresh();
+      await loadTasksData();
       showToast(result.skipped ? result.reason : `日更完成，生成 ${result.reports.length} 篇报告`);
     } catch (err) {
       showToast(`执行失败：${err.message}`);
@@ -48,7 +48,7 @@ export function Tasks() {
     setSavingScheduleId(task.id);
     try {
       await post(`/api/automation/tasks/${encodeURIComponent(task.id)}/schedule`, { time });
-      await refresh();
+      await loadTasksData();
       showToast(`${task.name} 执行时间已更新为 ${time}`);
       setEditingScheduleId("");
     } catch (err) {

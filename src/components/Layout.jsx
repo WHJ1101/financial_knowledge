@@ -150,7 +150,6 @@ export function Layout({ route, auth, onLogout, children }) {
       query.value = value;
       if (value) {
         location.hash = buildKnowledgeHash({ q: value });
-        loadReports();
         return;
       }
       if (route === "#knowledge") {

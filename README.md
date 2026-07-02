@@ -110,6 +110,6 @@ LLM_API_KEY='...' LLM_MODEL='gpt-4o-mini' npm start
 
 ## 数据存储
 
-SQLite 数据库（`data/app.db`），使用 sql.js 内存模式运行，写入时全量导出到磁盘。适合单进程单工作区场景，不支持多进程并发写入。首次启动后运行 `npm run migrate` 从旧 JSON 文件迁移。
+SQLite 数据库（`data/app.db`），使用 better-sqlite3 直接读写本地文件并开启 WAL 与外键约束。首次切换到新存储 Adapter 时会为已有 `app.db` 生成一次 `app.db.pre-better-sqlite3-*.bak` 备份；首次启动后仍可运行 `npm run migrate` 从旧 JSON 文件迁移。
 
 `data/` 中的报告、数据库、持仓、日志、数据源和个人配置都属于运行数据，不应提交 Git。云端部署时用磁盘挂载和备份保证跨设备访问。

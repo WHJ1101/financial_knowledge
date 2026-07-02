@@ -9,7 +9,7 @@ import { Tasks } from "./pages/Tasks.jsx";
 import { Settings } from "./pages/Settings.jsx";
 import { ReportReader } from "./pages/ReportReader.jsx";
 import { getHashPage, parseHashQuery } from "./lib/hash-route.js";
-import { refresh, loadMarket, query } from "./store.js";
+import { loadMarket, loadRouteData, query } from "./store.js";
 import { get, post } from "./api.js";
 
 function syncKnowledgeSearch(hash) {
@@ -40,14 +40,14 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    if (!auth.loading && auth.authenticated && !route.startsWith("#report/")) refresh();
+    if (!auth.loading && auth.authenticated) loadRouteData(route);
   }, [route, auth.loading, auth.authenticated]);
 
   const handleLogin = async (credentials) => {
     await post("/api/auth/login", credentials);
     const session = await get("/api/auth/session");
     setAuth({ ...session, loading: false });
-    await refresh();
+    await loadRouteData(location.hash || "#today");
   };
 
   const handleLogout = async () => {

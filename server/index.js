@@ -12,6 +12,8 @@ import { isDailyBriefingTask } from "./services/task-kinds.js";
 import { getStatus, getReports, getReport, markReportRead, toggleReportStar, archiveReport, deleteReport, insertReport, getAllReportsForPipeline } from "./routes/reports.js";
 import { getStocks, upsertStock, deleteStock, getPositions, upsertPosition, updatePosition, deletePosition, reanalyzeStock, reanalyzePosition } from "./routes/stocks.js";
 import { getIndices, getMarketSnapshot } from "./routes/market.js";
+import { deleteQuoteOverride, getBatchQuotes, upsertQuoteOverride } from "./routes/quotes.js";
+import { buildExport } from "./routes/export.js";
 import { getDecisions, createDailyDecision } from "./routes/decisions.js";
 import { getTasks, createTask, toggleTask, updateTaskSchedule, getLogs } from "./routes/tasks.js";
 import { getSignals, getTopCommunitySignals, replaceCommunitySignalSnapshot } from "./routes/signals.js";
@@ -110,7 +112,11 @@ async function handleApi(req, res, url) {
   if (m === "GET" && p === "/api/market/snapshot") return json(res, 200, getMarketSnapshot());
   if (m === "GET" && p === "/api/market/indices") return json(res, 200, { indices: getIndices() });
   if (m === "GET" && p === "/api/search") { const q = url.searchParams.get("q"); if (!q) return json(res, 400, { error: "q required" }); return json(res, 200, { results: await searchStocks(q) }); }
-  const quoteMatch = p.match(/^\/api\/quote\/(.+)$/);
+  if (m === "POST" && p === "/api/quotes/batch") { const body = await readBody(req); return json(res, 200, { quotes: await getBatchQuotes(body.items || body.codes || []) }); }
+  if (m === "POST" && p === "/api/quote-overrides") { const body = await readBody(req); return json(res, 200, { quote: upsertQuoteOverride(body) }); }
+  const quoteOverrideMatch = p.match(/^/api/quote-overrides/(.+)$/);
+  if (m === "DELETE" && quoteOverrideMatch) return json(res, 200, deleteQuoteOverride(decode(quoteOverrideMatch[1])));
+  const quoteMatch = p.match(/^/api/quote/(.+)$/);
   if (m === "GET" && quoteMatch) { const quote = await getStockQuote(decode(quoteMatch[1])); return quote ? json(res, 200, quote) : json(res, 404, { error: "Not found" }); }
   if (m === "GET" && p === "/api/stocks") return json(res, 200, { stocks: getStocks() });
   if (m === "GET" && p === "/api/positions") return json(res, 200, { positions: getPositions() });
@@ -119,6 +125,8 @@ async function handleApi(req, res, url) {
   if (m === "GET" && p === "/api/automation/tasks") return json(res, 200, { tasks: getTasks() });
   if (m === "GET" && p === "/api/logs") return json(res, 200, { logs: getLogs() });
   if (m === "GET" && p === "/api/settings") return json(res, 200, { settings: getSettings() });
+  const exportMatch = p.match(/^\/api\/export\/(positions|reports)\.(csv|json)$/);
+  if (m === "GET" && exportMatch) return sendExport(res, buildExport(exportMatch[1], exportMatch[2]));
 
   // Report detail
   const reportMatch = p.match(/^\/api\/reports\/([^/]+)$/);
@@ -372,6 +380,14 @@ function summarizeSignalSync(result = {}) {
 
 // Utilities
 function json(res, code, data, headers = {}) { res.writeHead(code, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", ...headers }); res.end(JSON.stringify(data)); }
+function sendExport(res, payload) {
+  res.writeHead(200, {
+    "content-type": payload.contentType,
+    "cache-control": "no-store",
+    "content-disposition": `attachment; filename="${payload.filename}"`
+  });
+  res.end(payload.body);
+}
 function decode(v) { try { return decodeURIComponent(v); } catch { return v; } }
 async function readBody(req) { const c = []; for await (const ch of req) c.push(ch); if (!c.length) return {}; try { return JSON.parse(Buffer.concat(c).toString()); } catch { throw Object.assign(new Error("Invalid JSON"), { statusCode: 400 }); } }
 

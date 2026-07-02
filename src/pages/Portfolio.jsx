@@ -30,7 +30,8 @@ export function Portfolio() {
   const [activeTab, setActiveTab] = useState("positions");
   const [selectedKey, setSelectedKey] = useState("");
   const [positionSort, setPositionSort] = useState({ key: "default", direction: "desc" });
-  const prices = usePositionPrices(positions.value);
+  const [quoteRevision, setQuoteRevision] = useState(0);
+  const prices = usePositionPrices(positions.value, quoteRevision);
   const holdings = useMemo(() => buildHoldings(positions.value, prices), [positions.value, prices]);
   const sortedHoldings = useMemo(() => sortHoldings(holdings, positionSort), [holdings, positionSort]);
   const portfolioAnalysis = useMemo(() => buildPortfolioAnalysis(holdings), [holdings]);
@@ -45,6 +46,8 @@ export function Portfolio() {
 
   const handleSelect = (key) => setSelectedKey(String(key));
   const handleTab = (key) => { setActiveTab(key); setSelectedKey(""); };
+  const handleQuoteChange = () => setQuoteRevision(v => v + 1);
+
   const handlePositionSort = (key) => {
     setPositionSort(current => {
       if (key === "default") return { key: "default", direction: "desc" };
@@ -61,6 +64,10 @@ export function Portfolio() {
         <div>
           <h1>投资组合</h1>
           <p class="page-description">用表格快速扫描，用详情区阅读 AI 分析和风险复核。</p>
+        </div>
+        <div class="portfolio-head-actions">
+          <a class="ghost-button" href="/api/export/positions.csv">导出 CSV</a>
+          <a class="ghost-button" href="/api/export/positions.json">导出 JSON</a>
         </div>
       </div>
 
@@ -96,7 +103,7 @@ export function Portfolio() {
             )}
           </div>
 
-          {activeTab !== "analysis" && <DetailPanel activeTab={activeTab} selected={selected} />}
+          {activeTab !== "analysis" && <DetailPanel activeTab={activeTab} selected={selected} onQuoteChange={handleQuoteChange} />}
         </div>
       </section>
     </div>
@@ -118,32 +125,24 @@ function useAnalysisPoller(items) {
   }, [signature]);
 }
 
-function usePositionPrices(items) {
+function usePositionPrices(items, revision = 0) {
   const [quotes, setQuotes] = useState({});
-  const codes = items.map(p => p.code).join("|");
+  const signature = items.map(p => String(p.code || "") + ":" + String(p.quoteSecid || p.quote_secid || "")).join("|");
   useEffect(() => {
     if (!items.length) { setQuotes({}); return; }
     let cancelled = false;
     (async () => {
-      const map = {};
-      for (const p of items) {
-        try {
-          const directKey = positionQuoteKey(p);
-          if (directKey) {
-            const q = await get(`/api/quote/${encodeURIComponent(directKey)}`);
-            if (q) { map[p.code] = q; continue; }
-          }
-          const res = await get(`/api/search?q=${encodeURIComponent(p.code)}`);
-          const match = (res.results || []).find(r => r.code === p.code);
-          if (!match) continue;
-          const q = await get(`/api/quote/${encodeURIComponent(match.secid)}`);
-          if (q) map[p.code] = q;
-        } catch {}
+      try {
+        const data = await post("/api/quotes/batch", {
+          items: items.map(p => ({ code: p.code, quoteSecid: positionQuoteKey(p) }))
+        });
+        if (!cancelled) setQuotes(data.quotes || {});
+      } catch {
+        if (!cancelled) setQuotes({});
       }
-      if (!cancelled) setQuotes(map);
     })();
     return () => { cancelled = true; };
-  }, [codes]);
+  }, [signature, revision]);
   return quotes;
 }
 
@@ -316,7 +315,7 @@ function PositionRow({ row, active, onSelect, onDelete }) {
       <span>{row.weight ? `${row.weight.toFixed(1)}%` : "-"}</span>
       <span>
         <strong>{row.hasCost ? formatMoney(row.cost, 3) : "成本未知"}</strong>
-        <em>{row.price ? formatMoney(row.price, 3) : "无行情"}</em>
+        <em>{row.price ? formatMoney(row.price, 3) + " · " + (row.quoteSource || "行情") : "无行情"}</em>
       </span>
       <span class={row.pnl == null ? "muted-text" : row.pnl >= 0 ? "money-up" : "money-down"}>
         <strong>{row.pnl == null ? "-" : formatSignedMoney(row.pnl)}</strong>
@@ -681,7 +680,7 @@ function SearchField({ value, suggestions, onInput, onSelect }) {
   );
 }
 
-function DetailPanel({ activeTab, selected }) {
+function DetailPanel({ activeTab, selected, onQuoteChange }) {
   if (!selected) {
     return (
       <aside class="portfolio-detail">
@@ -689,7 +688,7 @@ function DetailPanel({ activeTab, selected }) {
       </aside>
     );
   }
-  if (activeTab === "positions") return <PositionDetail row={selected} />;
+  if (activeTab === "positions") return <PositionDetail row={selected} onQuoteChange={onQuoteChange} />;
   if (activeTab === "stocks") return <StockDetail row={selected} />;
   return <EtfDetail row={selected} />;
 }

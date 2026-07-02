@@ -1,5 +1,6 @@
 import { signal } from "@preact/signals";
 import { get } from "./api.js";
+import { getHashPage } from "./lib/hash-route.js";
 
 export const status = signal(null);
 export const reports = signal([]);
@@ -15,14 +16,58 @@ export const query = signal("");
 export const toast = signal("");
 
 export async function refresh() {
-  await Promise.allSettled([loadStatus(), loadReports(), loadBusiness(), loadMarket()]);
+  await Promise.allSettled([loadStatus(), loadReports(), loadPortfolio(), loadDecisions(), loadSignals(), loadTasks(), loadLogs(), loadMarket()]);
+}
+
+export async function loadRouteData(route) {
+  const page = getHashPage(route);
+  if (page.startsWith("#report/")) return;
+  if (page === "#knowledge") return loadKnowledgeData();
+  if (page === "#signals") return loadSignalsData();
+  if (page === "#portfolio") return loadPortfolioData();
+  if (page === "#decisions") return loadDecisionsData();
+  if (page === "#tasks") return loadTasksData();
+  if (page === "#settings") return loadSettingsData();
+  return loadTodayData();
+}
+
+export async function loadShellData() {
+  await Promise.allSettled([loadStatus(), loadMarket()]);
+}
+
+export async function loadTodayData() {
+  await Promise.allSettled([loadStatus(), loadReports(), loadMarket()]);
+}
+
+export async function loadKnowledgeData() {
+  await loadReports();
+}
+
+export async function loadPortfolioData() {
+  await Promise.allSettled([loadPortfolio(), loadMarket()]);
+}
+
+export async function loadSignalsData() {
+  await Promise.allSettled([loadStatus(), loadSignals()]);
+}
+
+export async function loadDecisionsData() {
+  await Promise.allSettled([loadStatus(), loadDecisions()]);
+}
+
+export async function loadTasksData() {
+  await Promise.allSettled([loadStatus(), loadTasks(), loadLogs()]);
+}
+
+export async function loadSettingsData() {
+  await loadStatus();
 }
 
 export async function loadStatus() {
   try {
     status.value = await get("/api/status");
   } catch (err) {
-    showToast(`状态加载失败：${err.message}`);
+    showToast("状态加载失败：" + err.message);
     throw err;
   }
 }
@@ -30,40 +75,12 @@ export async function loadStatus() {
 export async function loadReports() {
   const params = new URLSearchParams();
   if (query.value) params.set("q", query.value);
-  const q = params.toString() ? `?${params}` : "";
+  const q = params.toString() ? "?" + params : "";
   try {
-    const data = await get(`/api/reports${q}`);
+    const data = await get("/api/reports" + q);
     reports.value = data.reports;
   } catch (err) {
-    showToast(`报告加载失败：${err.message}`);
-    throw err;
-  }
-}
-
-export async function loadBusiness() {
-  try {
-    const [s, p, d, sig, t, l] = await Promise.all([
-      get("/api/stocks"), get("/api/positions"),
-      get("/api/decisions"), get("/api/signals?limit=100"), get("/api/automation/tasks"), get("/api/logs")
-    ]);
-    stocks.value = s.stocks;
-    positions.value = p.positions;
-    decisions.value = d.decisions;
-    signals.value = sig.signals;
-    tasks.value = t.tasks;
-    logs.value = l.logs;
-  } catch (err) {
-    showToast(`业务数据加载失败：${err.message}`);
-    throw err;
-  }
-}
-
-export async function loadSignals() {
-  try {
-    const data = await get("/api/signals?limit=100");
-    signals.value = data.signals;
-  } catch (err) {
-    showToast(`信号加载失败：${err.message}`);
+    showToast("报告加载失败：" + err.message);
     throw err;
   }
 }
@@ -74,7 +91,47 @@ export async function loadPortfolio() {
     stocks.value = s.stocks;
     positions.value = p.positions;
   } catch (err) {
-    showToast(`持仓加载失败：${err.message}`);
+    showToast("持仓加载失败：" + err.message);
+    throw err;
+  }
+}
+
+export async function loadDecisions() {
+  try {
+    const data = await get("/api/decisions");
+    decisions.value = data.decisions;
+  } catch (err) {
+    showToast("决策加载失败：" + err.message);
+    throw err;
+  }
+}
+
+export async function loadSignals() {
+  try {
+    const data = await get("/api/signals?limit=100");
+    signals.value = data.signals;
+  } catch (err) {
+    showToast("信号加载失败：" + err.message);
+    throw err;
+  }
+}
+
+export async function loadTasks() {
+  try {
+    const data = await get("/api/automation/tasks");
+    tasks.value = data.tasks;
+  } catch (err) {
+    showToast("任务加载失败：" + err.message);
+    throw err;
+  }
+}
+
+export async function loadLogs() {
+  try {
+    const data = await get("/api/logs");
+    logs.value = data.logs;
+  } catch (err) {
+    showToast("日志加载失败：" + err.message);
     throw err;
   }
 }

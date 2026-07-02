@@ -1,14 +1,18 @@
 import { del, post } from "../api.js";
-import { refresh, showToast } from "../store.js";
+import { loadReports, loadStatus, showToast } from "../store.js";
 
 export function ReportList({ reports, emptyText = "暂无报告" }) {
   if (!reports.length) return <div class="empty-state"><p>{emptyText}</p></div>;
+
+  const reloadReports = async () => {
+    await Promise.allSettled([loadReports(), loadStatus()]);
+  };
 
   const handleStar = async (e, id) => {
     e.stopPropagation();
     try {
       await post(`/api/reports/${encodeURIComponent(id)}/star`);
-      await refresh();
+      await reloadReports();
     } catch (err) { showToast(`标星失败：${err.message}`); }
   };
 
@@ -16,7 +20,7 @@ export function ReportList({ reports, emptyText = "暂无报告" }) {
     e.stopPropagation();
     try {
       await post(`/api/reports/${encodeURIComponent(id)}/archive`);
-      await refresh();
+      await reloadReports();
       showToast("归档状态已切换");
     } catch (err) { showToast(`归档失败：${err.message}`); }
   };
@@ -26,7 +30,7 @@ export function ReportList({ reports, emptyText = "暂无报告" }) {
     if (!globalThis.confirm("确定删除报告「" + report.title + "」？此操作会同时移除网页报告文件。")) return;
     try {
       await del("/api/reports/" + encodeURIComponent(report.id));
-      await refresh();
+      await reloadReports();
       showToast("报告已删除");
     } catch (err) { showToast("删除失败：" + err.message); }
   };

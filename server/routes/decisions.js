@@ -1,5 +1,5 @@
 import db from "../services/db.js";
-import { getMarketData } from "../services/market-data.js";
+import { getIndices } from "./market.js";
 import { localDate, localDateTime } from "../../lib/datetime.js";
 
 export function getDecisions() {
@@ -12,18 +12,13 @@ export function getDecisions() {
 export function createDailyDecision() {
   const stocks = db.prepare("SELECT * FROM stocks").all();
   const positions = db.prepare("SELECT * FROM positions").all();
-  const indices = db.prepare("SELECT * FROM market_indices").all();
-  const live = getMarketData();
+  const indices = getIndices();
   const today = localDate();
   const todayReports = db.prepare("SELECT id,title,type_label FROM reports WHERE local_date=? LIMIT 8").all(today);
 
   const positionNames = positions.map(p => `${p.name}(${p.code})`).join("、") || "暂无持仓";
   const stockNames = stocks.map(s => `${s.name}(${s.code})`).join("、") || "暂无自选股";
-  const indexSummary = indices.map(i => {
-    const liveItem = live.data.find(d => i.code.includes(d.code));
-    if (liveItem) return `${i.name}：${liveItem.level} (${liveItem.changePct})`;
-    return `${i.name}：${i.change_pct || "待接入"}`;
-  }).slice(0, 7).join("；");
+  const indexSummary = indices.map(i => `${i.name}：${i.level || "待接入"} (${i.changePct || "待接入"})`).slice(0, 7).join("；");
 
   const id = `decision-${today}`;
   const guide = {

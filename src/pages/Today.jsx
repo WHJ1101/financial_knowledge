@@ -1,5 +1,5 @@
 import { useState } from "preact/hooks";
-import { status, reports, refresh, showToast } from "../store.js";
+import { status, reports, loadTodayData, showToast } from "../store.js";
 import { post } from "../api.js";
 import { ReportList } from "../components/ReportList.jsx";
 
@@ -16,7 +16,7 @@ export function Today() {
     try {
       const { report } = await post("/api/research", { topic, type });
       setTopic("");
-      await refresh();
+      await loadTodayData();
       showToast(`已生成：${report.title}`);
       location.hash = `#report/${encodeURIComponent(report.id)}`;
     } catch (err) {
@@ -28,7 +28,7 @@ export function Today() {
     setBusy(true);
     try {
       const result = await post("/api/jobs/daily", {});
-      await refresh();
+      await loadTodayData();
       showToast(result.skipped ? result.reason : `日更完成，生成 ${result.reports.length} 篇报告`);
     } catch (err) {
       showToast(`日更失败：${err.message}`);
