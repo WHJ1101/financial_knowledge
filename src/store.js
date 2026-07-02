@@ -1,4 +1,4 @@
-import { signal, effect } from "@preact/signals";
+import { signal } from "@preact/signals";
 import { get } from "./api.js";
 
 export const status = signal(null);
@@ -15,51 +15,80 @@ export const query = signal("");
 export const toast = signal("");
 
 export async function refresh() {
-  await Promise.all([loadStatus(), loadReports(), loadBusiness(), loadMarket()]);
+  await Promise.allSettled([loadStatus(), loadReports(), loadBusiness(), loadMarket()]);
 }
 
 export async function loadStatus() {
-  status.value = await get("/api/status");
+  try {
+    status.value = await get("/api/status");
+  } catch (err) {
+    showToast(`状态加载失败：${err.message}`);
+    throw err;
+  }
 }
 
 export async function loadReports() {
   const params = new URLSearchParams();
   if (query.value) params.set("q", query.value);
   const q = params.toString() ? `?${params}` : "";
-  const data = await get(`/api/reports${q}`);
-  reports.value = data.reports;
+  try {
+    const data = await get(`/api/reports${q}`);
+    reports.value = data.reports;
+  } catch (err) {
+    showToast(`报告加载失败：${err.message}`);
+    throw err;
+  }
 }
 
 export async function loadBusiness() {
-  const [s, p, d, sig, t, l] = await Promise.all([
-    get("/api/stocks"), get("/api/positions"),
-    get("/api/decisions"), get("/api/signals?limit=100"), get("/api/automation/tasks"), get("/api/logs")
-  ]);
-  stocks.value = s.stocks;
-  positions.value = p.positions;
-  decisions.value = d.decisions;
-  signals.value = sig.signals;
-  tasks.value = t.tasks;
-  logs.value = l.logs;
+  try {
+    const [s, p, d, sig, t, l] = await Promise.all([
+      get("/api/stocks"), get("/api/positions"),
+      get("/api/decisions"), get("/api/signals?limit=100"), get("/api/automation/tasks"), get("/api/logs")
+    ]);
+    stocks.value = s.stocks;
+    positions.value = p.positions;
+    decisions.value = d.decisions;
+    signals.value = sig.signals;
+    tasks.value = t.tasks;
+    logs.value = l.logs;
+  } catch (err) {
+    showToast(`业务数据加载失败：${err.message}`);
+    throw err;
+  }
 }
 
 export async function loadSignals() {
-  const data = await get("/api/signals?limit=100");
-  signals.value = data.signals;
+  try {
+    const data = await get("/api/signals?limit=100");
+    signals.value = data.signals;
+  } catch (err) {
+    showToast(`信号加载失败：${err.message}`);
+    throw err;
+  }
 }
 
 export async function loadPortfolio() {
-  const [s, p] = await Promise.all([get("/api/stocks"), get("/api/positions")]);
-  stocks.value = s.stocks;
-  positions.value = p.positions;
+  try {
+    const [s, p] = await Promise.all([get("/api/stocks"), get("/api/positions")]);
+    stocks.value = s.stocks;
+    positions.value = p.positions;
+  } catch (err) {
+    showToast(`持仓加载失败：${err.message}`);
+    throw err;
+  }
 }
 
 export async function loadMarket() {
-  const [snap, idx] = await Promise.all([
-    get("/api/market/snapshot"), get("/api/market/indices")
-  ]);
-  marketSnapshot.value = snap;
-  indices.value = idx.indices;
+  try {
+    const [snap, idx] = await Promise.all([
+      get("/api/market/snapshot"), get("/api/market/indices")
+    ]);
+    marketSnapshot.value = snap;
+    indices.value = idx.indices;
+  } catch (err) {
+    // 行情为后台轮询，失败静默保留旧值，不打断用户操作。
+  }
 }
 
 export function showToast(msg) {

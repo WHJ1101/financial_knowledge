@@ -8,15 +8,26 @@ import { Decisions } from "./pages/Decisions.jsx";
 import { Tasks } from "./pages/Tasks.jsx";
 import { Settings } from "./pages/Settings.jsx";
 import { ReportReader } from "./pages/ReportReader.jsx";
-import { refresh, loadMarket } from "./store.js";
+import { getHashPage, parseHashQuery } from "./lib/hash-route.js";
+import { refresh, loadMarket, query } from "./store.js";
 import { get, post } from "./api.js";
+
+function syncKnowledgeSearch(hash) {
+  if (getHashPage(hash) !== "#knowledge") return;
+  query.value = parseHashQuery(hash).get("q") || "";
+}
 
 export function App() {
   const [route, setRoute] = useState(location.hash || "#today");
   const [auth, setAuth] = useState({ loading: true, authenticated: false, authRequired: true, configured: true });
 
   useEffect(() => {
-    const onChange = () => setRoute(location.hash || "#today");
+    const onChange = () => {
+      const next = location.hash || "#today";
+      syncKnowledgeSearch(next);
+      setRoute(next);
+    };
+    syncKnowledgeSearch(location.hash || "#today");
     window.addEventListener("hashchange", onChange);
     const timer = setInterval(() => loadMarket(), 60000);
     return () => { window.removeEventListener("hashchange", onChange); clearInterval(timer); };
@@ -48,8 +59,9 @@ export function App() {
   if (auth.authRequired && !auth.authenticated) return <LoginPage configured={auth.configured} onLogin={handleLogin} />;
 
   const page = () => {
-    if (route.startsWith("#report/")) return <ReportReader id={decodeURIComponent(route.replace("#report/", ""))} />;
-    switch (route) {
+    const routePage = getHashPage(route);
+    if (routePage.startsWith("#report/")) return <ReportReader id={decodeURIComponent(routePage.replace("#report/", ""))} />;
+    switch (routePage) {
       case "#knowledge": return <Knowledge />;
       case "#signals": return <Signals />;
       case "#portfolio": return <Portfolio />;
@@ -60,7 +72,7 @@ export function App() {
     }
   };
 
-  return <Layout route={route} auth={auth} onLogout={handleLogout}>{page()}</Layout>;
+  return <Layout route={getHashPage(route)} auth={auth} onLogout={handleLogout}>{page()}</Layout>;
 }
 
 function LoginPage({ configured, onLogin }) {

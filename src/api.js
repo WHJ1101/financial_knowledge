@@ -1,8 +1,17 @@
 const BASE = "";
 
+async function parseError(res, method, path) {
+  let message = `${method} ${path} failed`;
+  try {
+    const data = await res.json();
+    if (data?.error) message = data.error;
+  } catch {}
+  return new Error(message);
+}
+
 export async function get(path) {
   const res = await fetch(`${BASE}${path}`);
-  if (!res.ok) throw new Error(`GET ${path} failed`);
+  if (!res.ok) throw await parseError(res, "GET", path);
   return res.json();
 }
 

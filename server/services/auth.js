@@ -13,9 +13,20 @@ function authConfig() {
     secret:
       process.env.FINANCE_KNOWLEDGE_AUTH_SECRET ||
       process.env.AUTH_SECRET ||
-      (password ? `${password}:financial-knowledge` : randomBytes(32).toString("hex")),
+      (password ? deriveSecret(password) : randomBytes(32).toString("hex")),
     importToken: process.env.FINANCE_KNOWLEDGE_IMPORT_TOKEN || process.env.REPORT_IMPORT_TOKEN || ""
   };
+}
+
+// 未显式配置 AUTH_SECRET 时，从密码单向派生一个稳定密钥。
+// 用 HMAC 而非明文拼接，避免密码泄露即可直接重建签名密钥。
+function deriveSecret(password) {
+  return createHmac("sha256", "financial-knowledge/session-key/v1").update(password).digest("hex");
+}
+
+// 是否要求鉴权。供启动阶段的安全校验使用。
+export function isAuthRequired() {
+  return authConfig().required;
 }
 
 export function getAuthSession(req) {

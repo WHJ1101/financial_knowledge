@@ -19,6 +19,8 @@ export function Today() {
       await refresh();
       showToast(`已生成：${report.title}`);
       location.hash = `#report/${encodeURIComponent(report.id)}`;
+    } catch (err) {
+      showToast(`生成失败：${err.message}`);
     } finally { setBusy(false); }
   };
 
@@ -28,16 +30,20 @@ export function Today() {
       const result = await post("/api/jobs/daily", {});
       await refresh();
       showToast(result.skipped ? result.reason : `日更完成，生成 ${result.reports.length} 篇报告`);
+    } catch (err) {
+      showToast(`日更失败：${err.message}`);
     } finally { setBusy(false); }
   };
 
-  const today = s?.now?.split("·")[1]?.trim()?.split(" ")[0] || "";
-  const todayReports = reports.value.filter(r => r.localDate === today);
+  const today = s?.today || "";
+  const activeReports = reports.value.filter(r => !r.archived);
+  const todayReports = activeReports.filter(r => r.localDate === today);
+  const historyReports = activeReports.filter(r => r.localDate !== today).slice(0, 20);
 
   return (
     <div class="nav-page">
       <div class="page-head">
-        <p class="time-row">{s?.now || "--"}</p>
+        <p class="time-row">{s?.nowDisplay || s?.now || "--"}</p>
         <h1>今日</h1>
       </div>
 
@@ -71,10 +77,10 @@ export function Today() {
         </div>
         <div class="report-sections">
           <ReportList reports={todayReports} emptyText="今日暂无报告" />
-          {reports.value.length > todayReports.length && (
+          {historyReports.length > 0 && (
             <>
               <div class="section-label old">历史</div>
-              <ReportList reports={reports.value.filter(r => r.localDate !== today).slice(0, 20)} />
+              <ReportList reports={historyReports} />
             </>
           )}
         </div>

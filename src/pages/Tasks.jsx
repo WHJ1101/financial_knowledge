@@ -3,8 +3,6 @@ import { tasks, logs, status, refresh, showToast } from "../store.js";
 import { post } from "../api.js";
 
 export function Tasks() {
-  const [form, setForm] = useState({ name: "", goal: "", implementation: "", schedule: "" });
-  const [busy, setBusy] = useState(false);
   const [runningTaskId, setRunningTaskId] = useState("");
   const [savingScheduleId, setSavingScheduleId] = useState("");
   const [editingScheduleId, setEditingScheduleId] = useState("");
@@ -13,23 +11,22 @@ export function Tasks() {
 
   const settings = status.value?.settings || {};
   const automationEnabled = settings.automationEnabled;
+  const executableTasks = tasks.value.filter(t => t.executable);
+  const plannedTasks = tasks.value.filter(t => !t.executable);
 
   const toggleGlobal = async () => {
-    await post("/api/automation/toggle", { enabled: !automationEnabled });
-    await refresh();
-    showToast(automationEnabled ? "自动日更已暂停" : "自动日更已开启");
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setBusy(true);
-    try { await post("/api/automation/tasks", form); setForm({ name: "", goal: "", implementation: "", schedule: "" }); await refresh(); showToast("任务已创建"); }
-    finally { setBusy(false); }
+    try {
+      await post("/api/automation/toggle", { enabled: !automationEnabled });
+      await refresh();
+      showToast(automationEnabled ? "自动日更已暂停" : "自动日更已开启");
+    } catch (err) { showToast(`操作失败：${err.message}`); }
   };
 
   const handleToggle = async (id) => {
-    await post(`/api/automation/tasks/${encodeURIComponent(id)}/toggle`);
-    await refresh(); showToast("状态已更新");
+    try {
+      await post(`/api/automation/tasks/${encodeURIComponent(id)}/toggle`);
+      await refresh(); showToast("状态已更新");
+    } catch (err) { showToast(`操作失败：${err.message}`); }
   };
 
   const handleRunDailyTask = async (task) => {
@@ -38,6 +35,8 @@ export function Tasks() {
       const result = await post("/api/jobs/daily", {});
       await refresh();
       showToast(result.skipped ? result.reason : `日更完成，生成 ${result.reports.length} 篇报告`);
+    } catch (err) {
+      showToast(`执行失败：${err.message}`);
     } finally {
       setRunningTaskId("");
     }
@@ -52,6 +51,8 @@ export function Tasks() {
       await refresh();
       showToast(`${task.name} 执行时间已更新为 ${time}`);
       setEditingScheduleId("");
+    } catch (err) {
+      showToast(`保存失败：${err.message}`);
     } finally {
       setSavingScheduleId("");
     }
@@ -96,18 +97,9 @@ export function Tasks() {
 
       {tab === "tasks" && (
         <section class="board route-panel">
-          <div class="board-head"><div><h2>任务列表</h2><p>{tasks.value.filter(t => t.enabled).length} 运行中 / {tasks.value.length} 总计</p></div></div>
-          <div class="route-form-wrap">
-            <form class="business-form" onSubmit={handleSubmit}>
-              <input required placeholder="任务名称" value={form.name} onInput={e => setForm({ ...form, name: e.target.value })} />
-              <input required placeholder="目标" value={form.goal} onInput={e => setForm({ ...form, goal: e.target.value })} />
-              <input required placeholder="执行实现" value={form.implementation} onInput={e => setForm({ ...form, implementation: e.target.value })} />
-              <input type="time" value={form.schedule} onInput={e => setForm({ ...form, schedule: e.target.value })} aria-label="任务执行时间" />
-              <button type="submit" disabled={busy}>新增</button>
-            </form>
-          </div>
+          <div class="board-head"><div><h2>内置投研自动化</h2><p>{executableTasks.filter(t => t.enabled).length} 运行中 / {executableTasks.length} 可执行</p></div></div>
           <div class="route-card-grid">
-            {tasks.value.map(t => (
+            {executableTasks.map(t => (
               <article key={t.id} class="route-card">
                 <h2>{t.name}</h2>
                 <span class="mini-label">{t.enabled ? "运行中" : "暂停"} · {t.schedule}</span>
@@ -126,7 +118,7 @@ export function Tasks() {
                 )}
                 <div class="route-card-actions">
                   <button class="ghost-button" onClick={() => handleToggle(t.id)}>{t.enabled ? "暂停" : "开启"}</button>
-                  {isDailyTask(t) && (
+                  {t.executable && (
                     <button class="ghost-button primary-action" onClick={() => handleRunDailyTask(t)} disabled={!!runningTaskId}>
                       {runningTaskId === t.id ? "执行中..." : "立即执行"}
                     </button>
@@ -138,12 +130,25 @@ export function Tasks() {
               </article>
             ))}
           </div>
+          {!executableTasks.length && <div class="empty-state"><p>暂无可执行自动化。当前版本仅支持每日市场简报任务。</p></div>}
+          {plannedTasks.length > 0 && (
+            <div class="planned-task-list">
+              <div class="section-label old">规划中任务</div>
+              {plannedTasks.map(t => (
+                <article key={t.id} class="route-card unavailable-task">
+                  <h2>{t.name}</h2>
+                  <span class="mini-label">规划中 · 暂不可执行</span>
+                  <p><b>目标：</b>{t.goal}</p>
+                </article>
+              ))}
+            </div>
+          )}
         </section>
       )}
 
       {tab === "logs" && (
         <section class="board route-panel">
-          <div class="board-head"><div><h2>执行日志</h2><p>最近 200 条</p></div></div>
+          <div class="board-head"><div><h2>执行日志</h2><p>最近 50 条</p></div></div>
           <div class="log-list">
             {logs.value.slice(0, 50).map(l => (
               <div key={l.id} class="log-item">
@@ -159,6 +164,3 @@ export function Tasks() {
   );
 }
 
-function isDailyTask(task) {
-  return task.id === "daily-research" || /每日市场简报|日更/.test(`${task.name || ""} ${task.implementation || ""}`);
-}

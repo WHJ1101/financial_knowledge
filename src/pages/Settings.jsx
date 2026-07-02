@@ -21,7 +21,7 @@ export function Settings() {
       <section class="board route-panel">
         <div class="board-head"><div><h2>数据源配置</h2><p>通过环境变量配置。</p></div></div>
         <div class="route-list">
-          <div class="route-list-item"><span>LLM 接口</span><strong>{import.meta.env.VITE_LLM_API_URL || "未配置（使用证据草稿模式）"}</strong></div>
+          <div class="route-list-item"><span>LLM 接口</span><strong>{s.llmConfigured ? "已配置" : "未配置（使用证据草稿模式）"}</strong></div>
           <div class="route-list-item"><span>本地数据源</span><strong>data/sources/*.json</strong></div>
           <div class="route-list-item"><span>行情数据</span><strong>东方财富延迟行情（免费）</strong></div>
         </div>

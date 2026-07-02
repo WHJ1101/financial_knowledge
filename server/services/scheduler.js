@@ -4,10 +4,7 @@ import { DEFAULT_TIME_ZONE, parseDailyScheduleTime, scheduleParts } from "./sche
 const TIME_ZONE = DEFAULT_TIME_ZONE;
 
 let timer = null;
-
-function localDate() {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: TIME_ZONE, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
-}
+let running = false;
 
 function localParts() {
   const parts = new Intl.DateTimeFormat("en-CA", { timeZone: TIME_ZONE, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(new Date());
@@ -26,6 +23,9 @@ function setSetting(key, value) {
 
 export function startScheduler(runTask) {
   timer = setInterval(async () => {
+    // 重叠防护：上一次 tick 仍在执行（任务可能耗时超过 60s）时跳过本次，避免并发重入。
+    if (running) return;
+    running = true;
     try {
       const enabled = getSetting("automationEnabled");
       if (!enabled) return;
@@ -40,11 +40,20 @@ export function startScheduler(runTask) {
         const runKey = `lastAutomationTaskRun:${task.id}`;
         const lastRun = getSetting(runKey);
         if (isAfter && lastRun !== now.date) {
-          await runTask(task);
+          // 先占位再执行：即便任务抛错也不重复触发，且单任务失败不影响后续任务。
           setSetting(runKey, now.date);
+          try {
+            await runTask(task);
+          } catch (e) {
+            console.error(`Scheduler task failed [${task.id}]:`, e);
+          }
         }
       }
-    } catch (e) { console.error("Scheduler error:", e); }
+    } catch (e) {
+      console.error("Scheduler error:", e);
+    } finally {
+      running = false;
+    }
   }, 60_000);
 }
 

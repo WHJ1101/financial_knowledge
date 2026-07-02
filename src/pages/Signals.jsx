@@ -5,7 +5,7 @@ import { post } from "../api.js";
 export function Signals() {
   const [filter, setFilter] = useState("all");
   const [busy, setBusy] = useState(false);
-  const today = status.value?.now?.split("·")[1]?.trim()?.split(" ")[0] || localToday();
+  const today = status.value?.today || localToday();
 
   const stats = useMemo(() => {
     const rows = signals.value;
@@ -28,6 +28,8 @@ export function Signals() {
       const { result } = await post("/api/signals/sync", {});
       await loadSignals();
       showToast(result.ok ? `已同步 ${result.signalCount} 条社群信号` : result.reason || "社群信号同步未完成");
+    } catch (err) {
+      showToast(`同步失败：${err.message}`);
     } finally {
       setBusy(false);
     }

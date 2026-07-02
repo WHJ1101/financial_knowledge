@@ -1,23 +1,22 @@
-import { existsSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, unlinkSync } from "node:fs";
+import { join, resolve, sep } from "node:path";
 
 import db, { DATA_DIR } from "../services/db.js";
 import { getSettings } from "./settings.js";
+import { localDate, localDateTime, localDateTimeWithWeekday } from "../../lib/datetime.js";
+import { isLlmConfigured } from "../../lib/llmClient.js";
 
-const TIME_ZONE = "Asia/Shanghai";
 const REPORT_DIR = join(DATA_DIR, "reports");
-
-function localDate() {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: TIME_ZONE, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
-}
 
 function startOfDayOffset(days) {
   const d = new Date(Date.now() + days * 86400000);
-  return new Intl.DateTimeFormat("en-CA", { timeZone: TIME_ZONE, year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
+  return localDate(d);
 }
 
 export function getStatus() {
-  const today = localDate();
+  const now = new Date();
+  const today = localDate(now);
+  const nowDisplay = localDateTimeWithWeekday(now);
   const sevenDaysAgo = startOfDayOffset(-6);
   const visibleReports = visibleReportRows(db.prepare("SELECT * FROM reports ORDER BY created_at DESC").all()).map(formatReport);
   const todayUpdates = visibleReports.filter((report) => report.localDate === today).length;
@@ -27,13 +26,18 @@ export function getStatus() {
   const automationCount = visibleReports.filter((report) => report.origin === "automation").length;
   const manualCount = visibleReports.filter((report) => report.origin === "manual").length;
   const settings = getSettings();
+  const llmConfigured = isLlmConfigured();
 
   return {
     app: "financial_knowledge", version: "0.2.0",
-    now: localDateTime(),
+    now: nowDisplay,
+    today,
+    nowIso: now.toISOString(),
+    nowDisplay,
     todayUpdates, unreadCount, recentCount, reportCount,
     originCounts: { automation: automationCount, manual: manualCount },
-    settings
+    llm: { configured: llmConfigured },
+    settings: { ...settings, llmConfigured }
   };
 }
 
@@ -63,8 +67,18 @@ export function toggleReportStar(id) {
 }
 
 export function archiveReport(id) {
-  db.prepare("UPDATE reports SET archived=1, updated_at=? WHERE id=?").run(new Date().toISOString(), id);
+  db.prepare("UPDATE reports SET archived = CASE WHEN archived=1 THEN 0 ELSE 1 END, updated_at=? WHERE id=?").run(new Date().toISOString(), id);
   return getReport(id);
+}
+
+export function deleteReport(id) {
+  const row = db.prepare("SELECT * FROM reports WHERE id=?").get(id);
+  if (!row) return null;
+
+  const fileDeleted = deleteReportFile(row);
+  db.prepare("DELETE FROM reports WHERE id=?").run(id);
+  appendReportLog("report_delete", "Deleted report: " + row.title, { id: row.id, title: row.title, file: row.file, fileDeleted });
+  return { deleted: true, fileDeleted };
 }
 
 export function insertReport(report) {
@@ -115,16 +129,40 @@ function findReplacementReport(row) {
 }
 
 function reportFileExists(row) {
-  return Boolean(row?.file) && existsSync(join(REPORT_DIR, row.file));
+  if (!row?.file) return false;
+  try {
+    return existsSync(resolveReportFilePath(row.file));
+  } catch {
+    return false;
+  }
 }
 
-function getSetting(key) {
-  const row = db.prepare("SELECT value FROM settings WHERE key=?").get(key);
-  return row ? JSON.parse(row.value) : null;
+function deleteReportFile(row) {
+  if (!row?.file) return false;
+  const filePath = resolveReportFilePath(row.file);
+  try {
+    unlinkSync(filePath);
+    return true;
+  } catch (err) {
+    if (err?.code === "ENOENT") return false;
+    throw err;
+  }
 }
 
-function localDateTime(date = new Date()) {
-  const parts = new Intl.DateTimeFormat("zh-CN", { timeZone: TIME_ZONE, year: "numeric", month: "2-digit", day: "2-digit", weekday: "short", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).formatToParts(date);
-  const v = Object.fromEntries(parts.map(p => [p.type, p.value]));
-  return `${v.weekday} · ${v.year}-${v.month}-${v.day} ${v.hour}:${v.minute}:${v.second}`;
+function resolveReportFilePath(file) {
+  const base = resolve(REPORT_DIR);
+  const target = resolve(REPORT_DIR, file);
+  if (target !== base && target.startsWith(base + sep)) return target;
+  throw Object.assign(new Error("Forbidden report path"), { statusCode: 403 });
+}
+
+function appendReportLog(type, message, meta = {}) {
+  db.prepare("INSERT INTO logs (id,type,message,meta,created_at,local_time) VALUES (?,?,?,?,?,?)").run(
+    Date.now() + "-" + Math.random().toString(16).slice(2),
+    type,
+    message,
+    JSON.stringify(meta),
+    new Date().toISOString(),
+    localDateTime()
+  );
 }

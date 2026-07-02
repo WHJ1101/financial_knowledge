@@ -5,10 +5,11 @@ import { readFile, stat, mkdir, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 
 import db, { DATA_DIR } from "./services/db.js";
-import { canImportReport, getAuthSession, login, logoutCookie } from "./services/auth.js";
+import { canImportReport, getAuthSession, isAuthRequired, login, logoutCookie } from "./services/auth.js";
 import { startMarketPoller, searchStocks, getStockQuote } from "./services/market-data.js";
 import { startScheduler } from "./services/scheduler.js";
-import { getStatus, getReports, getReport, markReportRead, toggleReportStar, archiveReport, insertReport, getAllReportsForPipeline } from "./routes/reports.js";
+import { isDailyBriefingTask } from "./services/task-kinds.js";
+import { getStatus, getReports, getReport, markReportRead, toggleReportStar, archiveReport, deleteReport, insertReport, getAllReportsForPipeline } from "./routes/reports.js";
 import { getStocks, upsertStock, deleteStock, getPositions, upsertPosition, updatePosition, deletePosition, reanalyzeStock, reanalyzePosition } from "./routes/stocks.js";
 import { getIndices, getMarketSnapshot } from "./routes/market.js";
 import { getDecisions, createDailyDecision } from "./routes/decisions.js";
@@ -19,12 +20,28 @@ import { modernizeReportHtml, renderReportHtml } from "./templates/report.js";
 import { syncFeishuCommunitySignals } from "../lib/communitySignalPipeline.js";
 import { runDailyMarketBriefingPipeline } from "../lib/dailyMarketBriefingPipeline.js";
 import { runResearchPipeline } from "../lib/researchPipeline.js";
+import { localDate, localDateTime } from "../lib/datetime.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
 const PORT = Number(process.env.PORT || 4173);
 const HOST = process.env.HOST || (process.env.NODE_ENV === "production" ? "0.0.0.0" : "127.0.0.1");
 const REPORT_DIR = join(DATA_DIR, "reports");
 const DIST_DIR = join(__dirname, "../dist");
+
+// 安全护栏：未配置鉴权时禁止监听对外地址，避免报告 / 持仓 / 可烧钱的 LLM 端点全公网裸奔。
+// 需要有意在无鉴权下对外暴露（如内网可信环境），显式设置 FINANCE_KNOWLEDGE_ALLOW_INSECURE_HOST=true 绕过。
+function assertHostIsSafe() {
+  const loopbackHosts = new Set(["127.0.0.1", "::1", "localhost"]);
+  if (isAuthRequired() || loopbackHosts.has(HOST) || process.env.FINANCE_KNOWLEDGE_ALLOW_INSECURE_HOST === "true") return;
+  console.error(
+    `[安全] 拒绝在 ${HOST}:${PORT} 上以无鉴权模式对外监听。\n` +
+    `      请设置 FINANCE_KNOWLEDGE_AUTH_PASSWORD 开启登录，或将 HOST 设为 127.0.0.1 仅本机访问。\n` +
+    `      如确需在可信内网无鉴权暴露，显式设置 FINANCE_KNOWLEDGE_ALLOW_INSECURE_HOST=true。`
+  );
+  process.exit(1);
+}
+assertHostIsSafe();
 
 const REPORT_TYPES = {
   industry: { label: "产业链深度", path: "investing/themes", accent: "#00a676" },
@@ -107,6 +124,7 @@ async function handleApi(req, res, url) {
   const reportMatch = p.match(/^\/api\/reports\/([^/]+)$/);
   if (m === "GET" && reportMatch) { const r = getReport(decode(reportMatch[1])); return r ? json(res, 200, { report: r }) : json(res, 404, { error: "Not found" }); }
   if (m === "POST" && reportMatch) { const r = markReportRead(decode(reportMatch[1])); return r ? json(res, 200, { report: r }) : json(res, 404, { error: "Not found" }); }
+  if (m === "DELETE" && reportMatch) { const r = deleteReport(decode(reportMatch[1])); return r ? json(res, 200, r) : json(res, 404, { error: "Not found" }); }
 
   // Report star/archive
   const starMatch = p.match(/^\/api\/reports\/([^/]+)\/star$/);
@@ -263,7 +281,7 @@ async function runDailyJob(source = "scheduled") {
 }
 
 async function runAutomationTask(task) {
-  if (isDailyMarketBriefingTask(task)) return runDailyJob("scheduled");
+  if (isDailyBriefingTask(task)) return runDailyJob("scheduled");
   appendLog("automation_task", `No executor configured for task: ${task.name || task.id}`, { id: task.id });
   return { skipped: true, reason: "当前任务尚未配置自动执行器", taskId: task.id };
 }
@@ -351,9 +369,6 @@ function summarizeSignalSync(result = {}) {
   };
 }
 
-function isDailyMarketBriefingTask(task = {}) {
-  return task.id === "daily-research" || /每日市场简报|日更/.test(`${task.name || ""} ${task.implementation || ""}`);
-}
 
 // Utilities
 function json(res, code, data, headers = {}) { res.writeHead(code, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", ...headers }); res.end(JSON.stringify(data)); }
@@ -379,8 +394,6 @@ function appendLog(type, message, meta = {}) {
   );
 }
 
-function localDate(d = new Date()) { return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit" }).format(d); }
-function localDateTime() { const parts = new Intl.DateTimeFormat("zh-CN", { timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).formatToParts(new Date()); const v = Object.fromEntries(parts.map(p => [p.type, p.value])); return `${v.year}-${v.month}-${v.day} ${v.hour}:${v.minute}:${v.second}`; }
 function buildId(date, topic, type) { const hash = createHash("sha1").update(`${topic}-${type}-${Date.now()}`).digest("hex").slice(0, 8); return `${date}-${type}-${slugify(topic).slice(0, 48)}-${hash}`; }
 function slugify(s) { return String(s).trim().toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-+|-+$/g, "").slice(0, 80); }
 function buildTitle(topic, type, date) { const s = { industry: "产业链深度", market: "市场复盘", stock: "个股跟踪", policy: "政策日报", custom: "主题调研" }[type] || "主题调研"; return topic.includes(date) || topic.includes(s) ? topic : `${topic} - ${s}`; }

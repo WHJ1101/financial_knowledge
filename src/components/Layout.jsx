@@ -1,7 +1,10 @@
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 import { Sidebar } from "./Sidebar.jsx";
 import { Toast } from "./Toast.jsx";
+import { buildKnowledgeHash } from "../lib/hash-route.js";
 import { query, marketSnapshot, loadReports } from "../store.js";
+
+const SEARCH_DEBOUNCE_MS = 300;
 
 const WEEKDAYS = new Set(["Mon", "Tue", "Wed", "Thu", "Fri"]);
 
@@ -119,6 +122,8 @@ function MarketIndexCard({ item }) {
 export function Layout({ route, auth, onLogout, children }) {
   const [clockTick, setClockTick] = useState(() => Date.now());
   const [marketOffset, setMarketOffset] = useState(0);
+  const [searchText, setSearchText] = useState(query.value);
+  const searchTimer = useRef(null);
 
   useEffect(() => {
     const timer = setInterval(() => setClockTick(Date.now()), 60_000);
@@ -129,9 +134,30 @@ export function Layout({ route, auth, onLogout, children }) {
     setMarketOffset(0);
   }, [route]);
 
+  useEffect(() => () => clearTimeout(searchTimer.current), []);
+
+  const activeQuery = query.value;
+  useEffect(() => {
+    setSearchText(activeQuery);
+  }, [activeQuery]);
+
   const handleSearch = (e) => {
-    query.value = e.target.value.trim();
-    loadReports();
+    const rawValue = e.target.value;
+    const value = rawValue.trim();
+    setSearchText(rawValue);
+    clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => {
+      query.value = value;
+      if (value) {
+        location.hash = buildKnowledgeHash({ q: value });
+        loadReports();
+        return;
+      }
+      if (route === "#knowledge") {
+        history.replaceState(null, "", "#knowledge");
+        loadReports();
+      }
+    }, SEARCH_DEBOUNCE_MS);
   };
 
   const snap = marketSnapshot.value;
@@ -156,7 +182,7 @@ export function Layout({ route, auth, onLogout, children }) {
         <header class="topbar">
           <label class="search-box">
             <span>⌕</span>
-            <input type="search" placeholder="搜索报告、标的..." onInput={handleSearch} autocomplete="off" />
+            <input type="search" placeholder="搜索报告、标的..." value={searchText} onInput={handleSearch} autocomplete="off" />
           </label>
           <div class="top-market-wrap">
             <button

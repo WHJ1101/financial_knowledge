@@ -1,5 +1,6 @@
 import db from "../services/db.js";
 import { displayDailySchedule, formatDailySchedule, normalizeDailyScheduleTime, parseDailyScheduleTime } from "../services/schedule-config.js";
+import { isDailyBriefingTask } from "../services/task-kinds.js";
 
 export function getTasks() {
   return db.prepare("SELECT * FROM automation_tasks ORDER BY created_at DESC").all().map(formatTask);
@@ -55,7 +56,7 @@ function formatTask(row) {
     prompt: row.prompt,
     schedule: scheduleTime ? displayDailySchedule(scheduleTime) : row.schedule || "手动触发",
     scheduleTime: scheduleTime || "",
-    executable: isDailyTask(row),
+    executable: isDailyBriefingTask(row),
     createdAt: row.created_at,
     updatedAt: row.updated_at
   };
@@ -66,6 +67,3 @@ function normalizeTaskSchedule(value) {
   return time ? formatDailySchedule(time) : "手动触发";
 }
 
-function isDailyTask(row) {
-  return row.id === "daily-research" || /每日市场简报|日更/.test(`${row.name || ""} ${row.implementation || ""}`);
-}

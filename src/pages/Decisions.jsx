@@ -9,6 +9,7 @@ export function Decisions() {
   const handleGenerate = async () => {
     setBusy(true);
     try { await post("/api/decisions/daily"); await refresh(); showToast("决策指南已更新"); }
+    catch (err) { showToast(`生成失败：${err.message}`); }
     finally { setBusy(false); }
   };
 

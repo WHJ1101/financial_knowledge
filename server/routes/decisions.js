@@ -1,5 +1,6 @@
 import db from "../services/db.js";
 import { getMarketData } from "../services/market-data.js";
+import { localDate, localDateTime } from "../../lib/datetime.js";
 
 export function getDecisions() {
   // 每天只保留最新一条（按 date 去重）
@@ -74,14 +75,4 @@ function appendLog(type, message, meta = {}) {
     `${Date.now()}-${Math.random().toString(16).slice(2)}`, type, message,
     JSON.stringify(meta), new Date().toISOString(), localDateTime()
   );
-}
-
-function localDate() {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
-}
-
-function localDateTime() {
-  const parts = new Intl.DateTimeFormat("zh-CN", { timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).formatToParts(new Date());
-  const v = Object.fromEntries(parts.map(p => [p.type, p.value]));
-  return `${v.year}-${v.month}-${v.day} ${v.hour}:${v.minute}:${v.second}`;
 }

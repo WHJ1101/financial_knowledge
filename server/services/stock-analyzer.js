@@ -1,37 +1,10 @@
 import db from "./db.js";
 import { searchStocks, getStockQuote } from "./market-data.js";
-
-const HTTP_TIMEOUT_MS = 30000;
-
-function resolveLlmUrl() {
-  if (process.env.FINANCE_KNOWLEDGE_LLM_API_URL) return process.env.FINANCE_KNOWLEDGE_LLM_API_URL;
-  if (process.env.LLM_API_URL) return process.env.LLM_API_URL;
-  if (process.env.OPENAI_BASE_URL) return `${process.env.OPENAI_BASE_URL.replace(/\/$/, "")}/chat/completions`;
-  if (process.env.FINANCE_KNOWLEDGE_LLM_API_KEY || process.env.LLM_API_KEY || process.env.OPENAI_API_KEY) return "https://api.openai.com/v1/chat/completions";
-  return "";
-}
+import { callChatCompletion, extractContent, parseLlmJson } from "../../lib/llmClient.js";
 
 async function callLlm(messages) {
-  const apiUrl = resolveLlmUrl();
-  const apiKey = process.env.FINANCE_KNOWLEDGE_LLM_API_KEY || process.env.LLM_API_KEY || process.env.OPENAI_API_KEY || "";
-  const model = process.env.FINANCE_KNOWLEDGE_LLM_MODEL || process.env.LLM_MODEL || process.env.OPENAI_MODEL || "gpt-4o-mini";
-
-  if (!apiUrl && !apiKey) throw new Error("未配置 LLM_API_KEY 或 LLM_API_URL");
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), HTTP_TIMEOUT_MS);
-  try {
-    const res = await fetch(apiUrl, {
-      method: "POST",
-      headers: { "content-type": "application/json", ...(apiKey ? { authorization: `Bearer ${apiKey}` } : {}) },
-      body: JSON.stringify({ model, messages, temperature: 0.3, response_format: { type: "json_object" } }),
-      signal: controller.signal
-    });
-    const text = await res.text();
-    if (!res.ok) throw new Error(`HTTP ${res.status}: ${text.slice(0, 200)}`);
-    const data = JSON.parse(text);
-    return JSON.parse(data.choices[0].message.content);
-  } finally { clearTimeout(timeout); }
+  const response = await callChatCompletion({ messages, temperature: 0.3 });
+  return parseLlmJson(extractContent(response));
 }
 
 export async function analyzeStock(code, name, market) {
