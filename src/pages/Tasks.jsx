@@ -90,7 +90,7 @@ export function Tasks() {
         </div>
       </section>
 
-      <div class="board-filters" style="margin-bottom:12px">
+      <div class="board-filters task-tabs">
         <button class={`filter-btn ${tab === "tasks" ? "active" : ""}`} onClick={() => setTab("tasks")}>任务</button>
         <button class={`filter-btn ${tab === "logs" ? "active" : ""}`} onClick={() => setTab("logs")}>日志</button>
       </div>

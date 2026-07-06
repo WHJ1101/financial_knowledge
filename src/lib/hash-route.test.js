@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { buildKnowledgeHash, getHashPage, parseHashQuery } from "./hash-route.js";
+import { buildKnowledgeHash, getHashPage, parseHashQuery, parseKnowledgeFilters } from "./hash-route.js";
 
 test("buildKnowledgeHash keeps Chinese search text in hash query", () => {
   const hash = buildKnowledgeHash({ q: "光模块", origin: "manual", topic: "产业链深度", filter: "starred" });
@@ -12,4 +12,13 @@ test("buildKnowledgeHash keeps Chinese search text in hash query", () => {
 
 test("buildKnowledgeHash omits empty and all filters", () => {
   assert.equal(buildKnowledgeHash({ q: "  ", origin: "all", topic: "all", filter: "all" }), "#knowledge");
+});
+
+test("parseKnowledgeFilters normalizes invalid values", () => {
+  assert.deepEqual(parseKnowledgeFilters("#knowledge?q=%20AI%20&origin=bad&topic=&filter=weird"), {
+    q: "AI",
+    origin: "all",
+    topic: "all",
+    filter: "all"
+  });
 });

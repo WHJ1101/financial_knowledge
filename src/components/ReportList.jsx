@@ -1,5 +1,6 @@
 import { del, post } from "../api.js";
 import { loadReports, loadStatus, showToast } from "../store.js";
+import { confirmArchive, confirmDelete } from "../lib/confirm.js";
 
 export function ReportList({ reports, emptyText = "暂无报告" }) {
   if (!reports.length) return <div class="empty-state"><p>{emptyText}</p></div>;
@@ -16,10 +17,11 @@ export function ReportList({ reports, emptyText = "暂无报告" }) {
     } catch (err) { showToast(`标星失败：${err.message}`); }
   };
 
-  const handleArchive = async (e, id) => {
+  const handleArchive = async (e, report) => {
     e.stopPropagation();
+    if (!report.archived && !confirmArchive(report.title)) return;
     try {
-      await post(`/api/reports/${encodeURIComponent(id)}/archive`);
+      await post(`/api/reports/${encodeURIComponent(report.id)}/archive`);
       await reloadReports();
       showToast("归档状态已切换");
     } catch (err) { showToast(`归档失败：${err.message}`); }
@@ -27,7 +29,7 @@ export function ReportList({ reports, emptyText = "暂无报告" }) {
 
   const handleDelete = async (e, report) => {
     e.stopPropagation();
-    if (!globalThis.confirm("确定删除报告「" + report.title + "」？此操作会同时移除网页报告文件。")) return;
+    if (!confirmDelete(report.title, "此操作会同时移除网页报告文件。")) return;
     try {
       await del("/api/reports/" + encodeURIComponent(report.id));
       await reloadReports();
@@ -46,7 +48,7 @@ export function ReportList({ reports, emptyText = "暂无报告" }) {
           </div>
           <div class="report-chips">
             <button class={`star-btn ${r.starred ? "starred" : ""}`} onClick={(e) => handleStar(e, r.id)} title="标星">★</button>
-            <button class={"star-btn " + (r.archived ? "starred" : "")} onClick={(e) => handleArchive(e, r.id)} title={r.archived ? "取消归档" : "归档"} style="font-size:13px">📦</button>
+            <button class={"star-btn " + (r.archived ? "starred" : "")} onClick={(e) => handleArchive(e, r)} title={r.archived ? "取消归档" : "归档"}>📦</button>
             <button class="star-btn danger" onClick={(e) => handleDelete(e, r)} title="删除报告">删</button>
             <span class="origin-chip" data-origin={r.origin}>{r.originLabel}</span>
           </div>

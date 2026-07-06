@@ -36,6 +36,14 @@ test("deleteReport returns null when report does not exist", () => {
   assert.equal(deleteReport("missing-report-id"), null);
 });
 
+test("deleteReport rejects report files outside report directory", () => {
+  const id = "delete-report-path-traversal";
+  insertReport({ id, file: "../escape.html" });
+
+  assert.throws(() => deleteReport(id), /Forbidden report path/);
+  assert.equal(db.prepare("SELECT id FROM reports WHERE id=?").get(id).id, id);
+});
+
 function insertReport({ id, file }) {
   db.prepare(`
     INSERT INTO reports

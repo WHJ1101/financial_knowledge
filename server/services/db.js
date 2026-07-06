@@ -9,7 +9,7 @@ const DB_PATH = join(DATA_DIR, "app.db");
 const MIGRATION_MARKER = join(DATA_DIR, ".better-sqlite3-migrated");
 
 mkdirSync(DATA_DIR, { recursive: true });
-backupExistingDatabaseOnce();
+const migrationBackupPath = backupExistingDatabaseOnce();
 
 const db = new Database(DB_PATH);
 db.pragma("journal_mode = WAL");
@@ -26,16 +26,21 @@ const DDL = [
   `CREATE TABLE IF NOT EXISTS logs (id TEXT PRIMARY KEY, type TEXT, message TEXT, meta TEXT DEFAULT '{}', created_at TEXT, local_time TEXT)`,
   `CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)`,
   `CREATE TABLE IF NOT EXISTS quote_overrides (code TEXT PRIMARY KEY, name TEXT, market TEXT, price REAL NOT NULL, change_pct TEXT, source_label TEXT DEFAULT '手动行情', note TEXT, updated_at TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS report_asset_links (id TEXT PRIMARY KEY, report_id TEXT NOT NULL, asset_code TEXT NOT NULL, asset_name TEXT, asset_market TEXT, relation TEXT DEFAULT 'related', source TEXT DEFAULT 'manual', created_at TEXT NOT NULL, updated_at TEXT)`,
   `CREATE INDEX IF NOT EXISTS idx_reports_local_date ON reports(local_date)`,
   `CREATE INDEX IF NOT EXISTS idx_reports_type ON reports(type)`,
   `CREATE INDEX IF NOT EXISTS idx_reports_status ON reports(status)`,
   `CREATE INDEX IF NOT EXISTS idx_reports_starred ON reports(starred)`,
   `CREATE INDEX IF NOT EXISTS idx_signals_date ON community_signals(date)`,
   `CREATE INDEX IF NOT EXISTS idx_signals_importance ON community_signals(importance)`,
-  `CREATE INDEX IF NOT EXISTS idx_logs_created ON logs(created_at)`
+  `CREATE INDEX IF NOT EXISTS idx_logs_created ON logs(created_at)`,
+  `CREATE INDEX IF NOT EXISTS idx_report_asset_links_report ON report_asset_links(report_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_report_asset_links_asset ON report_asset_links(asset_code)`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_report_asset_links_unique ON report_asset_links(report_id, asset_code, relation, source)`
 ];
 
 for (const stmt of DDL) db.exec(stmt);
+if (migrationBackupPath) appendStorageMigrationLog(migrationBackupPath);
 
 for (const alter of [
   "ALTER TABLE stocks ADD COLUMN analysis_status TEXT DEFAULT 'pending'",
@@ -82,10 +87,23 @@ function normalizeParam(value) {
 }
 
 function backupExistingDatabaseOnce() {
-  if (!existsSync(DB_PATH) || existsSync(MIGRATION_MARKER)) return;
+  if (!existsSync(DB_PATH) || existsSync(MIGRATION_MARKER)) return null;
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-  copyFileSync(DB_PATH, join(DATA_DIR, `app.db.pre-better-sqlite3-${stamp}.bak`));
+  const backupPath = join(DATA_DIR, `app.db.pre-better-sqlite3-${stamp}.bak`);
+  copyFileSync(DB_PATH, backupPath);
   writeFileSync(MIGRATION_MARKER, new Date().toISOString(), "utf8");
+  return backupPath;
+}
+
+function appendStorageMigrationLog(backupPath) {
+  db.prepare("INSERT INTO logs (id,type,message,meta,created_at,local_time) VALUES (?,?,?,?,?,?)").run(
+    Date.now() + "-" + Math.random().toString(16).slice(2),
+    "storage_migration",
+    "Created better-sqlite3 migration backup",
+    JSON.stringify({ backupPath }),
+    new Date().toISOString(),
+    null
+  );
 }
 
 export default dbWrapper;

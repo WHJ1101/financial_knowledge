@@ -1,6 +1,7 @@
 import db from "../services/db.js";
+import { appendLog } from "../services/logs.js";
 import { getIndices } from "./market.js";
-import { localDate, localDateTime } from "../../lib/datetime.js";
+import { localDate } from "../../lib/datetime.js";
 
 export function getDecisions() {
   // 每天只保留最新一条（按 date 去重）
@@ -65,9 +66,3 @@ function formatDecision(row) {
   };
 }
 
-function appendLog(type, message, meta = {}) {
-  db.prepare("INSERT INTO logs (id,type,message,meta,created_at,local_time) VALUES (?,?,?,?,?,?)").run(
-    `${Date.now()}-${Math.random().toString(16).slice(2)}`, type, message,
-    JSON.stringify(meta), new Date().toISOString(), localDateTime()
-  );
-}

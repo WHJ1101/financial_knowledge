@@ -15,9 +15,6 @@ export const logs = signal([]);
 export const query = signal("");
 export const toast = signal("");
 
-export async function refresh() {
-  await Promise.allSettled([loadStatus(), loadReports(), loadPortfolio(), loadDecisions(), loadSignals(), loadTasks(), loadLogs(), loadMarket()]);
-}
 
 export async function loadRouteData(route) {
   const page = getHashPage(route);

@@ -7,6 +7,7 @@ import test from "node:test";
 const root = await mkdtemp(join(tmpdir(), "financial-knowledge-quotes-"));
 process.env.FINANCE_KNOWLEDGE_DATA_DIR = root;
 
+const { default: db } = await import("../services/db.js");
 const { getStockQuote } = await import("../services/market-data.js");
 const { getBatchQuotes, upsertQuoteOverride, deleteQuoteOverride } = await import("./quotes.js");
 
@@ -31,4 +32,14 @@ test("manual quote override can be deleted", () => {
 
   assert.deepEqual(deleteQuoteOverride("delete-override"), { deleted: true });
   assert.deepEqual(deleteQuoteOverride("delete-override"), { deleted: false });
+});
+
+test("manual quote override writes compact audit logs", () => {
+  upsertQuoteOverride({ code: "audit-override", price: 4.5 });
+  deleteQuoteOverride("audit-override");
+
+  const logs = db.prepare("SELECT type, meta FROM logs WHERE type=? AND meta LIKE ? ORDER BY created_at DESC LIMIT 2").all("quote_override", "%audit-override%");
+  assert.equal(logs.length, 2);
+  assert.equal(JSON.parse(logs[0].meta).code, "audit-override");
+  assert.equal(JSON.parse(logs[1].meta).code, "audit-override");
 });

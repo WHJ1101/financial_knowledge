@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import { Sidebar } from "./Sidebar.jsx";
 import { Toast } from "./Toast.jsx";
-import { buildKnowledgeHash } from "../lib/hash-route.js";
-import { query, marketSnapshot, loadReports } from "../store.js";
+import { buildKnowledgeHash, parseKnowledgeFilters } from "../lib/hash-route.js";
+import { query, marketSnapshot } from "../store.js";
 
 const SEARCH_DEBOUNCE_MS = 300;
 
@@ -147,14 +147,15 @@ export function Layout({ route, auth, onLogout, children }) {
     setSearchText(rawValue);
     clearTimeout(searchTimer.current);
     searchTimer.current = setTimeout(() => {
+      const filters = route === "#knowledge" ? parseKnowledgeFilters(location.hash) : {};
       query.value = value;
       if (value) {
-        location.hash = buildKnowledgeHash({ q: value });
+        location.hash = buildKnowledgeHash({ ...filters, q: value });
         return;
       }
       if (route === "#knowledge") {
-        history.replaceState(null, "", "#knowledge");
-        loadReports();
+        const nextHash = buildKnowledgeHash({ ...filters, q: "" });
+        location.hash = nextHash;
       }
     }, SEARCH_DEBOUNCE_MS);
   };

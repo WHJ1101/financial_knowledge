@@ -8,6 +8,16 @@ export function parseHashQuery(hash = "") {
   return new URLSearchParams(query);
 }
 
+export function parseKnowledgeFilters(hash = "") {
+  const params = parseHashQuery(hash);
+  return {
+    q: String(params.get("q") || "").trim(),
+    origin: normalizeOption(params.get("origin"), ["automation", "manual"]),
+    topic: normalizeTopic(params.get("topic")),
+    filter: normalizeOption(params.get("filter"), ["starred", "archived"])
+  };
+}
+
 export function buildKnowledgeHash(filters = {}) {
   const params = new URLSearchParams();
   const q = String(filters.q || "").trim();
@@ -17,4 +27,13 @@ export function buildKnowledgeHash(filters = {}) {
   if (filters.filter && filters.filter !== "all") params.set("filter", filters.filter);
   const query = params.toString();
   return query ? `#knowledge?${query}` : "#knowledge";
+}
+
+function normalizeOption(value, allowed) {
+  const option = String(value || "").trim();
+  return allowed.includes(option) ? option : "all";
+}
+
+function normalizeTopic(value) {
+  return String(value || "").trim() || "all";
 }

@@ -1,12 +1,10 @@
-import { existsSync, unlinkSync } from "node:fs";
-import { join, resolve, sep } from "node:path";
-
-import db, { DATA_DIR } from "../services/db.js";
+import db from "../services/db.js";
 import { getSettings } from "./settings.js";
-import { localDate, localDateTime, localDateTimeWithWeekday } from "../../lib/datetime.js";
+import { localDate, localDateTimeWithWeekday } from "../../lib/datetime.js";
 import { isLlmConfigured } from "../../lib/llmClient.js";
-
-const REPORT_DIR = join(DATA_DIR, "reports");
+import { appendLog } from "../services/logs.js";
+import { deleteReportFile, reportFileExists as fileExists } from "../services/report-file-store.js";
+import { deleteReportAssetLinks, syncAutoReportAssetLinks } from "./report-assets.js";
 
 function startOfDayOffset(days) {
   const d = new Date(Date.now() + days * 86400000);
@@ -75,9 +73,10 @@ export function deleteReport(id) {
   const row = db.prepare("SELECT * FROM reports WHERE id=?").get(id);
   if (!row) return null;
 
-  const fileDeleted = deleteReportFile(row);
+  const fileDeleted = deleteReportFile(row.file);
+  deleteReportAssetLinks(id);
   db.prepare("DELETE FROM reports WHERE id=?").run(id);
-  appendReportLog("report_delete", "Deleted report: " + row.title, { id: row.id, title: row.title, file: row.file, fileDeleted });
+  appendLog("report_delete", "Deleted report: " + row.title, { id: row.id, title: row.title, file: row.file, fileDeleted });
   return { deleted: true, fileDeleted };
 }
 
@@ -89,6 +88,7 @@ export function insertReport(report) {
     report.originLabel, report.localDate, report.file, report.wikiPath, report.accent,
     JSON.stringify(report.highlights||[]), report.createdAt, report.updatedAt||report.createdAt
   );
+  syncAutoReportAssetLinks(report);
 }
 
 export function getAllReportsForPipeline() {
@@ -129,40 +129,5 @@ function findReplacementReport(row) {
 }
 
 function reportFileExists(row) {
-  if (!row?.file) return false;
-  try {
-    return existsSync(resolveReportFilePath(row.file));
-  } catch {
-    return false;
-  }
-}
-
-function deleteReportFile(row) {
-  if (!row?.file) return false;
-  const filePath = resolveReportFilePath(row.file);
-  try {
-    unlinkSync(filePath);
-    return true;
-  } catch (err) {
-    if (err?.code === "ENOENT") return false;
-    throw err;
-  }
-}
-
-function resolveReportFilePath(file) {
-  const base = resolve(REPORT_DIR);
-  const target = resolve(REPORT_DIR, file);
-  if (target !== base && target.startsWith(base + sep)) return target;
-  throw Object.assign(new Error("Forbidden report path"), { statusCode: 403 });
-}
-
-function appendReportLog(type, message, meta = {}) {
-  db.prepare("INSERT INTO logs (id,type,message,meta,created_at,local_time) VALUES (?,?,?,?,?,?)").run(
-    Date.now() + "-" + Math.random().toString(16).slice(2),
-    type,
-    message,
-    JSON.stringify(meta),
-    new Date().toISOString(),
-    localDateTime()
-  );
+  return fileExists(row?.file);
 }

@@ -1,4 +1,5 @@
 import db from "../services/db.js";
+import { appendLog } from "../services/logs.js";
 import { getStockQuote, searchStocks } from "../services/market-data.js";
 
 export async function getBatchQuotes(items = []) {
@@ -31,11 +32,14 @@ export function upsertQuoteOverride(body = {}) {
     String(body.note || "").trim(),
     now
   );
-  return getQuoteOverride(code);
+  const quote = getQuoteOverride(code);
+  appendLog("quote_override", "Saved manual quote override: " + code, { code, price, sourceLabel: quote?.sourceLabel || "手动行情" });
+  return quote;
 }
 
 export function deleteQuoteOverride(code) {
   const result = db.prepare("DELETE FROM quote_overrides WHERE code=?").run(code);
+  if (result.changes > 0) appendLog("quote_override", "Deleted manual quote override: " + code, { code });
   return { deleted: result.changes > 0 };
 }
 

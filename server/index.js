@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import { fileURLToPath } from "node:url";
 import { dirname, join, extname, resolve, sep } from "node:path";
-import { readFile, stat, mkdir, writeFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import { createHash } from "node:crypto";
 
 import db, { DATA_DIR } from "./services/db.js";
@@ -9,11 +9,15 @@ import { canImportReport, getAuthSession, isAuthRequired, login, logoutCookie } 
 import { startMarketPoller, searchStocks, getStockQuote } from "./services/market-data.js";
 import { startScheduler } from "./services/scheduler.js";
 import { isDailyBriefingTask } from "./services/task-kinds.js";
-import { getStatus, getReports, getReport, markReportRead, toggleReportStar, archiveReport, deleteReport, insertReport, getAllReportsForPipeline } from "./routes/reports.js";
+import { appendLog } from "./services/logs.js";
+import { buildReportFile, ensureReportRoot, REPORT_DIR } from "./services/report-file-store.js";
+import { saveReport } from "./services/report-writer.js";
+import { getStatus, getReports, getReport, markReportRead, toggleReportStar, archiveReport, deleteReport, getAllReportsForPipeline } from "./routes/reports.js";
 import { getStocks, upsertStock, deleteStock, getPositions, upsertPosition, updatePosition, deletePosition, reanalyzeStock, reanalyzePosition } from "./routes/stocks.js";
 import { getIndices, getMarketSnapshot } from "./routes/market.js";
 import { deleteQuoteOverride, getBatchQuotes, upsertQuoteOverride } from "./routes/quotes.js";
 import { buildExport } from "./routes/export.js";
+import { deleteReportAssetLink, getAssetReportLinks, getReportAssetLinks, upsertReportAssetLink } from "./routes/report-assets.js";
 import { getDecisions, createDailyDecision } from "./routes/decisions.js";
 import { getTasks, createTask, toggleTask, updateTaskSchedule, getLogs } from "./routes/tasks.js";
 import { getSignals, getTopCommunitySignals, replaceCommunitySignalSnapshot } from "./routes/signals.js";
@@ -22,13 +26,12 @@ import { modernizeReportHtml, renderReportHtml } from "./templates/report.js";
 import { syncFeishuCommunitySignals } from "../lib/communitySignalPipeline.js";
 import { runDailyMarketBriefingPipeline } from "../lib/dailyMarketBriefingPipeline.js";
 import { runResearchPipeline } from "../lib/researchPipeline.js";
-import { localDate, localDateTime } from "../lib/datetime.js";
+import { localDate } from "../lib/datetime.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const PORT = Number(process.env.PORT || 4173);
 const HOST = process.env.HOST || (process.env.NODE_ENV === "production" ? "0.0.0.0" : "127.0.0.1");
-const REPORT_DIR = join(DATA_DIR, "reports");
 const DIST_DIR = join(__dirname, "../dist");
 
 // 安全护栏：未配置鉴权时禁止监听对外地址，避免报告 / 持仓 / 可烧钱的 LLM 端点全公网裸奔。
@@ -55,7 +58,7 @@ const REPORT_TYPES = {
 
 const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".json": "application/json; charset=utf-8", ".svg": "image/svg+xml", ".ico": "image/x-icon" };
 
-await mkdir(REPORT_DIR, { recursive: true });
+await ensureReportRoot();
 startMarketPoller();
 startScheduler(runAutomationTask);
 
@@ -109,14 +112,21 @@ async function handleApi(req, res, url) {
 
   if (m === "GET" && p === "/api/status") return json(res, 200, getStatus());
   if (m === "GET" && p === "/api/reports") return json(res, 200, { reports: getReports(url.searchParams.get("q"), url.searchParams.get("origin")) });
+  const reportAssetsMatch = p.match(/^\/api\/reports\/([^/]+)\/assets$/);
+  if (m === "GET" && reportAssetsMatch) return json(res, 200, { assets: getReportAssetLinks(decode(reportAssetsMatch[1])) });
+  if (m === "POST" && reportAssetsMatch) { const body = await readBody(req); return json(res, 200, { asset: upsertReportAssetLink(decode(reportAssetsMatch[1]), body) }); }
+  const reportAssetDeleteMatch = p.match(/^\/api\/report-asset-links\/([^/]+)$/);
+  if (m === "DELETE" && reportAssetDeleteMatch) return json(res, 200, deleteReportAssetLink(decode(reportAssetDeleteMatch[1])));
+  const assetReportsMatch = p.match(/^\/api\/assets\/([^/]+)\/reports$/);
+  if (m === "GET" && assetReportsMatch) return json(res, 200, { reports: getAssetReportLinks(decode(assetReportsMatch[1])) });
   if (m === "GET" && p === "/api/market/snapshot") return json(res, 200, getMarketSnapshot());
   if (m === "GET" && p === "/api/market/indices") return json(res, 200, { indices: getIndices() });
   if (m === "GET" && p === "/api/search") { const q = url.searchParams.get("q"); if (!q) return json(res, 400, { error: "q required" }); return json(res, 200, { results: await searchStocks(q) }); }
   if (m === "POST" && p === "/api/quotes/batch") { const body = await readBody(req); return json(res, 200, { quotes: await getBatchQuotes(body.items || body.codes || []) }); }
   if (m === "POST" && p === "/api/quote-overrides") { const body = await readBody(req); return json(res, 200, { quote: upsertQuoteOverride(body) }); }
-  const quoteOverrideMatch = p.match(/^/api/quote-overrides/(.+)$/);
+  const quoteOverrideMatch = p.match(/^\/api\/quote-overrides\/(.+)$/);
   if (m === "DELETE" && quoteOverrideMatch) return json(res, 200, deleteQuoteOverride(decode(quoteOverrideMatch[1])));
-  const quoteMatch = p.match(/^/api/quote/(.+)$/);
+  const quoteMatch = p.match(/^\/api\/quote\/(.+)$/);
   if (m === "GET" && quoteMatch) { const quote = await getStockQuote(decode(quoteMatch[1])); return quote ? json(res, 200, quote) : json(res, 404, { error: "Not found" }); }
   if (m === "GET" && p === "/api/stocks") return json(res, 200, { stocks: getStocks() });
   if (m === "GET" && p === "/api/positions") return json(res, 200, { positions: getPositions() });
@@ -189,7 +199,7 @@ async function createReport({ topic, type, source = "manual" }) {
   const existing = origin === "automation" ? findExistingAutomationReport({ localDay, title, topic, type }) : null;
   const createdAt = existing?.created_at || now;
   const id = existing?.id || buildId(localDay, topic, type);
-  const file = `${localDay}/${id}.html`;
+  const file = buildReportFile(localDay, id);
 
   const previousReports = getAllReportsForPipeline();
   const brief = await runResearchPipeline({ topic, type, previousReports, dataDir: DATA_DIR });
@@ -206,11 +216,12 @@ async function createReport({ topic, type, source = "manual" }) {
   };
 
   const html = renderReportHtml(report, brief);
-  await mkdir(join(REPORT_DIR, localDay), { recursive: true });
-  await writeFile(join(REPORT_DIR, file), html, "utf8");
-  insertReport(report);
-  appendLog("research", `Created report: ${report.title}`, { id: report.id });
-  return report;
+  return saveReport({
+    report,
+    html,
+    logType: "research",
+    logMessage: "Created report: " + report.title
+  });
 }
 
 function findExistingAutomationReport({ localDay, title, topic, type }) {
@@ -232,7 +243,7 @@ async function importReport(body = {}) {
   const createdAt = body.createdAt ? new Date(body.createdAt).toISOString() : new Date().toISOString();
   const localDay = /^\d{4}-\d{2}-\d{2}$/.test(body.localDate || "") ? body.localDate : localDate(new Date(createdAt));
   const id = body.id ? safeId(body.id) : buildId(localDay, topic, type);
-  const file = `${localDay}/${id}.html`;
+  const file = buildReportFile(localDay, id);
   const source = String(body.source || "chat").trim();
   const origin = ["scheduled", "daily", "automation"].includes(source) || body.origin === "automation" ? "automation" : "manual";
   const tags = normalizeList(body.tags);
@@ -261,11 +272,13 @@ async function importReport(body = {}) {
   };
 
   const html = normalizeImportedHtml(body, report, brief);
-  await mkdir(join(REPORT_DIR, localDay), { recursive: true });
-  await writeFile(join(REPORT_DIR, file), html, "utf8");
-  insertReport(report);
-  appendLog("report_import", `Imported report: ${report.title}`, { id: report.id, source });
-  return report;
+  return saveReport({
+    report,
+    html,
+    logType: "report_import",
+    logMessage: "Imported report: " + report.title,
+    logMeta: { source }
+  });
 }
 
 async function runDailyJob(source = "scheduled") {
@@ -305,7 +318,7 @@ async function createDailyMarketBriefReport({ source = "scheduled", now = new Da
   const existing = findExistingAutomationReport({ localDay, title, topic, type });
   const createdAt = existing?.created_at || nowIso;
   const id = existing?.id || `${localDay}-daily-briefing-${createHash("sha1").update(`${title}-${nowIso}`).digest("hex").slice(0, 8)}`;
-  const file = `${localDay}/${id}.html`;
+  const file = buildReportFile(localDay, id);
   const positions = db.prepare("SELECT * FROM positions ORDER BY updated_at DESC").all();
 
   const brief = await runDailyMarketBriefingPipeline({
@@ -343,11 +356,13 @@ async function createDailyMarketBriefReport({ source = "scheduled", now = new Da
   };
 
   const html = renderReportHtml(report, brief);
-  await mkdir(join(REPORT_DIR, localDay), { recursive: true });
-  await writeFile(join(REPORT_DIR, file), html, "utf8");
-  insertReport(report);
-  appendLog("daily_market_briefing", `Created report: ${report.title}`, { id: report.id, window: report.briefingWindow });
-  return report;
+  return saveReport({
+    report,
+    html,
+    logType: "daily_market_briefing",
+    logMessage: "Created report: " + report.title,
+    logMeta: { window: report.briefingWindow }
+  });
 }
 
 async function syncCommunitySignals({ now = new Date(), source = "manual" } = {}) {
@@ -404,11 +419,6 @@ async function serveFile(res, baseDir, reqPath) {
   res.end(content);
 }
 
-function appendLog(type, message, meta = {}) {
-  db.prepare("INSERT INTO logs (id,type,message,meta,created_at,local_time) VALUES (?,?,?,?,?,?)").run(
-    `${Date.now()}-${Math.random().toString(16).slice(2)}`, type, message, JSON.stringify(meta), new Date().toISOString(), localDateTime()
-  );
-}
 
 function buildId(date, topic, type) { const hash = createHash("sha1").update(`${topic}-${type}-${Date.now()}`).digest("hex").slice(0, 8); return `${date}-${type}-${slugify(topic).slice(0, 48)}-${hash}`; }
 function slugify(s) { return String(s).trim().toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-+|-+$/g, "").slice(0, 80); }

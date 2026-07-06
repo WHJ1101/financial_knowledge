@@ -1,5 +1,6 @@
 import { useState, useEffect } from "preact/hooks";
 import { Layout } from "./components/Layout.jsx";
+import { ErrorBoundary } from "./components/ErrorBoundary.jsx";
 import { Today } from "./pages/Today.jsx";
 import { Knowledge } from "./pages/Knowledge.jsx";
 import { Signals } from "./pages/Signals.jsx";
@@ -8,13 +9,13 @@ import { Decisions } from "./pages/Decisions.jsx";
 import { Tasks } from "./pages/Tasks.jsx";
 import { Settings } from "./pages/Settings.jsx";
 import { ReportReader } from "./pages/ReportReader.jsx";
-import { getHashPage, parseHashQuery } from "./lib/hash-route.js";
+import { getHashPage, parseKnowledgeFilters } from "./lib/hash-route.js";
 import { loadMarket, loadRouteData, query } from "./store.js";
 import { get, post } from "./api.js";
 
 function syncKnowledgeSearch(hash) {
   if (getHashPage(hash) !== "#knowledge") return;
-  query.value = parseHashQuery(hash).get("q") || "";
+  query.value = parseKnowledgeFilters(hash).q;
 }
 
 export function App() {
@@ -62,7 +63,7 @@ export function App() {
     const routePage = getHashPage(route);
     if (routePage.startsWith("#report/")) return <ReportReader id={decodeURIComponent(routePage.replace("#report/", ""))} />;
     switch (routePage) {
-      case "#knowledge": return <Knowledge />;
+      case "#knowledge": return <Knowledge route={route} />;
       case "#signals": return <Signals />;
       case "#portfolio": return <Portfolio />;
       case "#decisions": return <Decisions />;
@@ -72,7 +73,8 @@ export function App() {
     }
   };
 
-  return <Layout route={getHashPage(route)} auth={auth} onLogout={handleLogout}>{page()}</Layout>;
+  const routePage = getHashPage(route);
+  return <Layout route={routePage} auth={auth} onLogout={handleLogout}><ErrorBoundary resetKey={routePage}>{page()}</ErrorBoundary></Layout>;
 }
 
 function LoginPage({ configured, onLogin }) {
