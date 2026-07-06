@@ -128,7 +128,10 @@ function extractAssetHints(report) {
     CODE_RE.lastIndex = 0;
     let match;
     while ((match = CODE_RE.exec(text))) {
-      addAsset(byCode, knownAssets.get(match[2]) || { code: match[2], name: "", market: "" });
+      // 只对已知资产（持仓/自选/手动行情中存在的代码）自动建链。
+      // 正文里的普通 6 位数字（金额、成交额等）不应误判为标的，需求 Open Decision 4 明确要求避免误关联。
+      const known = knownAssets.get(match[2]);
+      if (known) addAsset(byCode, known);
     }
   }
 

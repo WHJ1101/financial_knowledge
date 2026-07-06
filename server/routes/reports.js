@@ -1,10 +1,25 @@
 import db from "../services/db.js";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { getSettings } from "./settings.js";
 import { localDate, localDateTimeWithWeekday } from "../../lib/datetime.js";
 import { isLlmConfigured } from "../../lib/llmClient.js";
 import { appendLog } from "../services/logs.js";
 import { deleteReportFile, reportFileExists as fileExists } from "../services/report-file-store.js";
 import { deleteReportAssetLinks, syncAutoReportAssetLinks } from "./report-assets.js";
+
+// 版本号从 package.json 读取，避免与源码里的硬编码漂移。
+const APP_VERSION = readAppVersion();
+
+function readAppVersion() {
+  try {
+    const pkgPath = join(dirname(fileURLToPath(import.meta.url)), "../../package.json");
+    return JSON.parse(readFileSync(pkgPath, "utf8")).version || "0.0.0";
+  } catch {
+    return "0.0.0";
+  }
+}
 
 function startOfDayOffset(days) {
   const d = new Date(Date.now() + days * 86400000);
@@ -27,7 +42,7 @@ export function getStatus() {
   const llmConfigured = isLlmConfigured();
 
   return {
-    app: "financial_knowledge", version: "0.2.0",
+    app: "financial_knowledge", version: APP_VERSION,
     now: nowDisplay,
     today,
     nowIso: now.toISOString(),
@@ -73,10 +88,15 @@ export function deleteReport(id) {
   const row = db.prepare("SELECT * FROM reports WHERE id=?").get(id);
   if (!row) return null;
 
+  // 文件删除不可回滚，放在事务外先执行；DB 侧的三步（删关联、删报告、写日志）
+  // 必须原子完成，任一步失败则整体回滚，避免"关联已删但报告还在"的中间态。
   const fileDeleted = deleteReportFile(row.file);
-  deleteReportAssetLinks(id);
-  db.prepare("DELETE FROM reports WHERE id=?").run(id);
-  appendLog("report_delete", "Deleted report: " + row.title, { id: row.id, title: row.title, file: row.file, fileDeleted });
+  const runDelete = db.transaction(() => {
+    deleteReportAssetLinks(id);
+    db.prepare("DELETE FROM reports WHERE id=?").run(id);
+    appendLog("report_delete", "Deleted report: " + row.title, { id: row.id, title: row.title, file: row.file, fileDeleted });
+  });
+  runDelete();
   return { deleted: true, fileDeleted };
 }
 

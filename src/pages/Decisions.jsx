@@ -1,5 +1,5 @@
 import { useState } from "preact/hooks";
-import { decisions, loadDecisionsData, showToast } from "../store.js";
+import { decisions, status, loadDecisionsData, showToast } from "../store.js";
 import { post } from "../api.js";
 
 export function Decisions() {
@@ -13,7 +13,7 @@ export function Decisions() {
     finally { setBusy(false); }
   };
 
-  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Shanghai" });
+  const today = status.value?.today || localToday();
   const todayDecision = decisions.value.find(d => d.date === today);
   const history = decisions.value.filter(d => d.date !== today);
 
@@ -56,8 +56,7 @@ export function Decisions() {
   );
 }
 
-function DecisionDetail({ d }) {
-  return (
+function DecisionDetail({ d }) {  return (
     <div class="decision-detail">
       <p><b>概况：</b>{d.summary}</p>
       <p><b>行动建议：</b>{d.action}</p>
@@ -82,4 +81,9 @@ function DecisionDetail({ d }) {
       )}
     </div>
   );
+}
+
+// status 未就绪时的本地兜底，避免今日决策日期为空。
+function localToday() {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
 }

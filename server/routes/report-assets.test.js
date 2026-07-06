@@ -83,6 +83,18 @@ test("auto sync does not remove manual links when a report is regenerated", () =
   assert.equal(links[0].source, "manual");
 });
 
+test("insertReport does not auto-link unknown 6-digit numbers", () => {
+  insertReport(buildReport({
+    id: "no-false-positive-report",
+    title: "本月投入 300000 元，成交额 600000 万复盘",
+    topic: "资金复盘",
+    tags: ["123456"]
+  }));
+
+  // 300000 / 600000 / 123456 都不是已知资产，不应产生 auto 关联。
+  assert.deepEqual(getReportAssetLinks("no-false-positive-report"), []);
+});
+
 function insertReportRow({ id, title }) {
   db.prepare(`
     INSERT INTO reports

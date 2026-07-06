@@ -44,6 +44,25 @@ test("deleteReport rejects report files outside report directory", () => {
   assert.equal(db.prepare("SELECT id FROM reports WHERE id=?").get(id).id, id);
 });
 
+test("deleteReport rolls back report and asset links when a DB write fails mid-transaction", () => {
+  const id = "delete-report-rollback";
+  insertReport({ id, file: "2026-07-02/missing-rollback.html" });
+  db.prepare(`
+    INSERT INTO report_asset_links (id,report_id,asset_code,asset_name,asset_market,relation,source,created_at,updated_at)
+    VALUES (?,?,?,?,?,?,?,?,?)
+  `).run("link-rollback", id, "000001", "平安银行", "A股", "related", "manual", "2026-07-02T00:00:00.000Z", "2026-07-02T00:00:00.000Z");
+
+  // 制造事务内失败：删掉 logs 表，使事务最后一步 appendLog 抛错，验证前面的删除全部回滚。
+  db.exec("DROP TABLE logs");
+  try {
+    assert.throws(() => deleteReport(id));
+    assert.equal(db.prepare("SELECT id FROM reports WHERE id=?").get(id).id, id, "报告行应回滚保留");
+    assert.equal(db.prepare("SELECT id FROM report_asset_links WHERE id=?").get("link-rollback").id, "link-rollback", "资产链应回滚保留");
+  } finally {
+    db.exec("CREATE TABLE IF NOT EXISTS logs (id TEXT PRIMARY KEY, type TEXT, message TEXT, meta TEXT DEFAULT '{}', created_at TEXT, local_time TEXT)");
+  }
+});
+
 function insertReport({ id, file }) {
   db.prepare(`
     INSERT INTO reports
