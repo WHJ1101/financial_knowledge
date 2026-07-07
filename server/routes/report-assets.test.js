@@ -12,6 +12,7 @@ const { deleteReport, insertReport } = await import("./reports.js");
 const {
   deleteReportAssetLink,
   getAssetReportLinks,
+  getKnownAssets,
   getReportAssetLinks,
   upsertReportAssetLink
 } = await import("./report-assets.js");
@@ -81,6 +82,32 @@ test("auto sync does not remove manual links when a report is regenerated", () =
   assert.equal(links.length, 1);
   assert.equal(links[0].assetCode, "000651");
   assert.equal(links[0].source, "manual");
+});
+
+test("insertReport reuses caller-provided knownAssets without re-querying (A3)", () => {
+  // 依赖前一测试插入的 300750/宁德时代。批量调用方一次 getKnownAssets() 后传参复用，
+  // 结果应与内部按需查询完全一致。
+  const knownAssets = getKnownAssets();
+  assert.ok(knownAssets.has("300750"));
+
+  insertReport(buildReport({
+    id: "batch-known-assets-report",
+    title: "宁德时代 300750 批量导入",
+    topic: "动力电池"
+  }), { knownAssets });
+
+  const links = getReportAssetLinks("batch-known-assets-report");
+  assert.equal(links.length, 1);
+  assert.equal(links[0].assetCode, "300750");
+  assert.equal(links[0].source, "auto");
+
+  // 传入空 Map 时不产生 auto 关联，证明确实使用了传入的数据而非内部重查。
+  insertReport(buildReport({
+    id: "batch-empty-assets-report",
+    title: "宁德时代 300750 批量导入二",
+    topic: "动力电池"
+  }), { knownAssets: new Map() });
+  assert.deepEqual(getReportAssetLinks("batch-empty-assets-report"), []);
 });
 
 test("insertReport does not auto-link unknown 6-digit numbers", () => {

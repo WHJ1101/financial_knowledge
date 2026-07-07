@@ -12,6 +12,7 @@ export const decisions = signal([]);
 export const signals = signal([]);
 export const tasks = signal([]);
 export const logs = signal([]);
+export const pressure = signal([]);
 export const query = signal("");
 export const toast = signal("");
 
@@ -33,7 +34,7 @@ export async function loadShellData() {
 }
 
 export async function loadTodayData() {
-  await Promise.allSettled([loadStatus(), loadReports(), loadMarket()]);
+  await Promise.allSettled([loadStatus(), loadReports(), loadMarket(), loadPressure()]);
 }
 
 export async function loadKnowledgeData() {
@@ -142,6 +143,15 @@ export async function loadMarket() {
     indices.value = idx.indices;
   } catch (err) {
     // 行情为后台轮询，失败静默保留旧值，不打断用户操作。
+  }
+}
+
+export async function loadPressure() {
+  try {
+    const data = await get("/api/pressure");
+    pressure.value = data.themes || [];
+  } catch (err) {
+    // 压力卡片为增强信息，失败静默保留旧值，不打断今日页其余内容。
   }
 }
 

@@ -1,7 +1,8 @@
 import { useState } from "preact/hooks";
-import { status, reports, loadTodayData, showToast } from "../store.js";
+import { status, reports, pressure, loadTodayData, showToast } from "../store.js";
 import { post } from "../api.js";
 import { ReportList } from "../components/ReportList.jsx";
+import { PressureCard } from "../components/PressureCard.jsx";
 
 export function Today() {
   const s = status.value;
@@ -35,10 +36,22 @@ export function Today() {
     } finally { setBusy(false); }
   };
 
+  const handlePressureSync = async () => {
+    setBusy(true);
+    try {
+      await post("/api/pressure/sync", {});
+      await loadTodayData();
+      showToast("板块压力已刷新");
+    } catch (err) {
+      showToast(`压力刷新失败：${err.message}`);
+    } finally { setBusy(false); }
+  };
+
   const today = s?.today || "";
   const activeReports = reports.value.filter(r => !r.archived);
   const todayReports = activeReports.filter(r => r.localDate === today);
   const historyReports = activeReports.filter(r => r.localDate !== today).slice(0, 20);
+  const pressureThemes = pressure.value || [];
 
   return (
     <div class="nav-page">
@@ -51,6 +64,21 @@ export function Today() {
         <a href="#knowledge" class="stat-card"><span>今日更新</span><strong>{s?.todayUpdates ?? 0}</strong><p>网页报告</p></a>
         <a href="#knowledge" class="stat-card"><span>未读合计</span><strong>{s?.unreadCount ?? 0}</strong><p>近 7 天</p></a>
       </section>
+
+      {pressureThemes.length > 0 && (
+        <section class="board pressure-board">
+          <div class="board-head">
+            <div>
+              <h2>板块压力监控</h2>
+              <p>放量抛售 + 板块下杀 + 恐慌上升 + 资金逃离高 beta 的四维合成分</p>
+            </div>
+            <button class="ghost-button" onClick={handlePressureSync} disabled={busy}>刷新压力</button>
+          </div>
+          <div class="pressure-grid">
+            {pressureThemes.map((theme) => <PressureCard key={theme.id} theme={theme} />)}
+          </div>
+        </section>
+      )}
 
       <section class="composer">
         <div>

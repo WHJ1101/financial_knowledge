@@ -132,7 +132,7 @@ function sessionCookieHeader(token) {
   return serializeCookie(COOKIE_NAME, token, {
     httpOnly: true,
     sameSite: "Lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: shouldUseSecureCookie(),
     path: "/",
     maxAge: SESSION_TTL_SECONDS
   });
@@ -142,10 +142,18 @@ function clearCookieHeader() {
   return serializeCookie(COOKIE_NAME, "", {
     httpOnly: true,
     sameSite: "Lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: shouldUseSecureCookie(),
     path: "/",
     maxAge: 0
   });
+}
+
+function shouldUseSecureCookie() {
+  const configured = process.env.FINANCE_KNOWLEDGE_COOKIE_SECURE || process.env.COOKIE_SECURE || "";
+  const value = configured.trim().toLowerCase();
+  if (["true", "1", "yes", "on"].includes(value)) return true;
+  if (["false", "0", "no", "off"].includes(value)) return false;
+  return process.env.NODE_ENV === "production";
 }
 
 function serializeCookie(name, value, options = {}) {

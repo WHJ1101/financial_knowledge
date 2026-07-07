@@ -100,7 +100,8 @@ export function deleteReport(id) {
   return { deleted: true, fileDeleted };
 }
 
-export function insertReport(report) {
+// options.knownAssets：批量导入时由调用方一次查询后传入，避免每篇报告重查已知资产表。
+export function insertReport(report, options = {}) {
   const existing = db.prepare("SELECT starred, archived FROM reports WHERE id=?").get(report.id);
   db.prepare(`INSERT OR REPLACE INTO reports (id,title,topic,type,type_label,summary,tags,status,starred,archived,source,origin,origin_label,local_date,file,wiki_path,accent,highlights,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(
     report.id, report.title, report.topic, report.type, report.typeLabel, report.summary,
@@ -108,7 +109,7 @@ export function insertReport(report) {
     report.originLabel, report.localDate, report.file, report.wikiPath, report.accent,
     JSON.stringify(report.highlights||[]), report.createdAt, report.updatedAt||report.createdAt
   );
-  syncAutoReportAssetLinks(report);
+  syncAutoReportAssetLinks(report, options);
 }
 
 export function getAllReportsForPipeline() {

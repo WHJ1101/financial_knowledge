@@ -70,10 +70,12 @@ export function deleteReportAssetLinks(reportId) {
   db.prepare("DELETE FROM report_asset_links WHERE report_id=?").run(reportId);
 }
 
-export function syncAutoReportAssetLinks(report) {
+// knownAssets 可由批量调用方传入（一次 getKnownAssets() 后复用），
+// 避免批量导入 N 篇报告时 N 次全表重查；单篇路径不传则按需查询。
+export function syncAutoReportAssetLinks(report, { knownAssets } = {}) {
   if (!report?.id) return [];
   db.prepare("DELETE FROM report_asset_links WHERE report_id=? AND source='auto'").run(report.id);
-  const assets = extractAssetHints(report);
+  const assets = extractAssetHints(report, knownAssets || getKnownAssets());
   return assets.map(asset => upsertLink({
     reportId: report.id,
     assetCode: asset.code,
@@ -112,8 +114,7 @@ function upsertLink({ reportId, assetCode, assetName = "", assetMarket = "", rel
   return formatAssetLink(db.prepare("SELECT * FROM report_asset_links WHERE report_id=? AND asset_code=? AND relation=? AND source=?").get(reportId, assetCode, normalizedRelation, normalizedSource));
 }
 
-function extractAssetHints(report) {
-  const knownAssets = getKnownAssets();
+function extractAssetHints(report, knownAssets) {
   const byCode = new Map();
   const texts = [
     report.title,
@@ -142,7 +143,7 @@ function extractAssetHints(report) {
   return Array.from(byCode.values()).slice(0, 20);
 }
 
-function getKnownAssets() {
+export function getKnownAssets() {
   const rows = [
     ...db.prepare("SELECT code, name, market FROM positions").all(),
     ...db.prepare("SELECT code, name, market FROM stocks").all(),
