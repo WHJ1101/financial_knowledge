@@ -131,8 +131,8 @@ export const apiRoutes = [
   { method: "POST", path: "/api/pressure/sync", handler: async () => ({ status: 201, body: await runPressureMonitor({ source: "manual" }) }) },
   {
     method: "POST", path: "/api/signals/sync",
-    handler: async () => {
-      const result = await syncCommunitySignals({ source: "manual" });
+    handler: async ({ body }) => {
+      const result = await syncCommunitySignals({ source: "manual", force: !!body?.force });
       return { status: 201, body: { result: summarizeSignalSync(result) } };
     }
   },

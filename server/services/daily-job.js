@@ -5,7 +5,7 @@ import { appendLog } from "./logs.js";
 import { isDailyBriefingTask } from "./task-kinds.js";
 import { createDailyMarketBriefReport } from "./report-lifecycle.js";
 import { getSettings } from "../routes/settings.js";
-import { getTopCommunitySignals, replaceCommunitySignalSnapshot } from "../routes/signals.js";
+import { getTopCommunitySignals, replaceCommunitySignalSnapshot, hasFeishuSignalsForDate } from "../routes/signals.js";
 import { runPressureMonitor, getPressureSnapshot } from "./pressure-monitor.js";
 import { syncFeishuCommunitySignals } from "../../lib/communitySignalPipeline.js";
 import { localDate } from "../../lib/datetime.js";
@@ -18,9 +18,8 @@ export async function runDailyJob(source = "scheduled") {
 
   const now = new Date();
   const signalSync = await syncCommunitySignals({ now, source });
-  const communitySignals = signalSync.signals?.length
-    ? signalSync.signals
-    : getTopCommunitySignals({ limit: 8, now });
+  // 信号已逐天落库，简报统一取库里最新的置顶信号（含本次刚回填的天），不再区分本次是否有新增。
+  const communitySignals = getTopCommunitySignals({ limit: 8, now });
   const reports = [await createDailyMarketBriefReport({ source, now, communitySignals, signalSync })];
   const pressure = await runPressureMonitorSafely(source);
   // 每日压力摘要推送：用最新快照现算后推飞书；内部吞异常记日志，不阻断日更。
@@ -50,13 +49,21 @@ export async function runAutomationTask(task) {
   return { skipped: true, reason: "当前任务尚未配置自动执行器", taskId: task.id };
 }
 
-export async function syncCommunitySignals({ now = new Date(), source = "manual" } = {}) {
-  const result = await syncFeishuCommunitySignals({ dataDir: DATA_DIR, now });
-  if (result.signals?.length) replaceCommunitySignalSnapshot(result.signals);
+export async function syncCommunitySignals({ now = new Date(), source = "manual", force = false } = {}) {
+  // 逐天同步：已入库的 feishu 天直接跳过，只抽取缺失的天，避免每次取全量并重复落库。
+  const shouldProcessDate = force ? () => true : (date) => !hasFeishuSignalsForDate(date);
+  const result = await syncFeishuCommunitySignals({ dataDir: DATA_DIR, now, shouldProcessDate });
+
+  // 按天分别快照落库：replaceCommunitySignalSnapshot 以 source+date+sourceTitle 为粒度覆盖，天与天互不干扰。
+  let written = 0;
+  for (const day of result.days || []) {
+    if (day.signals?.length) written += replaceCommunitySignalSnapshot(day.signals).changed || 0;
+  }
+
   appendLog(
     "community_signal_sync",
     result.ok
-      ? `Synced ${result.signals.length} community signals`
+      ? `Synced ${written} community signals across ${result.processedDates?.length || 0} day(s)`
       : result.skipped ? `Community signal sync skipped: ${result.reason}` : `Community signal sync failed: ${result.reason}`,
     { source, ...summarizeSignalSync(result) }
   );
@@ -72,6 +79,8 @@ export function summarizeSignalSync(result = {}) {
     extractionMethod: result.extractionMethod || "",
     extractionError: result.extractionError || "",
     signalCount: result.signals?.length || 0,
+    processedDates: result.processedDates || [],
+    skippedDates: result.skippedDates || [],
     sourceTitle: result.source?.title || "",
     outputPath: result.source?.outputPath || ""
   };

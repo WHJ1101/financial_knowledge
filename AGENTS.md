@@ -63,5 +63,5 @@ docker compose up -d --build
 
 生产环境必须配置登录密码、会话密钥和导入 token。
 
-迭代后，要进行codegraph的状态更新
+迭代后，运行：codegraph sync 进行codegraph状态同步
 

@@ -90,6 +90,13 @@ export function replaceCommunitySignalSnapshot(signals = []) {
   return { changed: inserted, replaced: deleted };
 }
 
+// 判断某天的飞书信号是否已入库，用于逐天同步时跳过已处理的天。
+export function hasFeishuSignalsForDate(date) {
+  if (!date) return false;
+  const row = db.prepare("SELECT 1 FROM community_signals WHERE source='feishu' AND date=? LIMIT 1").get(date);
+  return !!row;
+}
+
 function formatSignal(row) {
   return {
     id: row.id,
