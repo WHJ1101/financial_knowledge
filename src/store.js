@@ -13,6 +13,8 @@ export const signals = signal([]);
 export const tasks = signal([]);
 export const logs = signal([]);
 export const pressure = signal([]);
+export const portfolioHistory = signal({ status: "idle", series: [], coverage: null, range: "6m", error: "" });
+let portfolioHistoryRequestId = 0;
 export const query = signal("");
 export const toast = signal("");
 
@@ -42,7 +44,7 @@ export async function loadKnowledgeData() {
 }
 
 export async function loadPortfolioData() {
-  await Promise.allSettled([loadPortfolio(), loadMarket()]);
+  await Promise.allSettled([loadPortfolio(), loadMarket(), loadPortfolioHistory(portfolioHistory.value.range)]);
 }
 
 export async function loadSignalsData() {
@@ -152,6 +154,18 @@ export async function loadPressure() {
     pressure.value = data.themes || [];
   } catch (err) {
     // 压力卡片为增强信息，失败静默保留旧值，不打断今日页其余内容。
+  }
+}
+
+// 组合走势曲线：带 loading/error 与请求序号 guard，避免旧范围结果覆盖新范围。
+export async function loadPortfolioHistory(range = "6m") {
+  const requestId = ++portfolioHistoryRequestId;
+  portfolioHistory.value = { ...portfolioHistory.value, status: "loading", range, error: "" };
+  try {
+    const data = await get(`/api/portfolio/history?range=${encodeURIComponent(range)}`);
+    if (requestId === portfolioHistoryRequestId) portfolioHistory.value = { ...data, status: "ready", error: "" };
+  } catch (err) {
+    if (requestId === portfolioHistoryRequestId) portfolioHistory.value = { ...portfolioHistory.value, status: "error", range, error: err.message };
   }
 }
 

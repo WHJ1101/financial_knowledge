@@ -90,3 +90,28 @@ test("GET /api/pressure is protected and returns two themes (P4-1, P4-4)", async
   }
 });
 
+// P3-2 / P3-3 / P3-5：组合历史查询路由注册、返回结构完整、非法 range 400、受保护
+test("GET /api/portfolio/history registered, protected, returns full shape (P3-2/3/5)", async () => {
+  const matched = matchApiRoute("GET", "/api/portfolio/history");
+  assert.ok(matched, "route registered in table");
+  assert.equal(matched.route.public, undefined, "protected route");
+
+  const ok = await matched.route.handler({ req: {}, url: new URL("http://x/api/portfolio/history?range=6m"), params: [], body: {} });
+  assert.equal(ok.status, 200);
+  // 新库无数据 → series 空但结构完整（P3-4 前端降级）
+  assert.equal(ok.body.basis, "current-holdings");
+  assert.ok("calculationScope" in ok.body && "asOf" in ok.body && "fullCoverageSince" in ok.body && "syncStatus" in ok.body);
+  assert.ok(Array.isArray(ok.body.series));
+  assert.ok(ok.body.coverage && Array.isArray(ok.body.coverage.skipped) && Array.isArray(ok.body.coverage.assets));
+
+  // 非法 range → 400
+  const bad = await matched.route.handler({ req: {}, url: new URL("http://x/api/portfolio/history?range=weird"), params: [], body: {} });
+  assert.equal(bad.status, 400);
+});
+
+test("POST /api/portfolio/history/sync registered and protected (P3-6)", () => {
+  const matched = matchApiRoute("POST", "/api/portfolio/history/sync");
+  assert.ok(matched, "sync route registered");
+  assert.equal(matched.route.public, undefined, "protected route");
+});
+

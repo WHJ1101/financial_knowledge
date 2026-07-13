@@ -1,4 +1,6 @@
 import db from "./db.js";
+import { fetchWithTimeout } from "../../lib/http.js";
+import { localDate } from "../../lib/datetime.js";
 
 const SECIDS = {
   "000001.SH": "1.000001",
@@ -294,4 +296,87 @@ function formatTimestampDate(value) {
 function toNumber(value) {
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
+}
+
+// —— 场外基金历史净值抓取（.doc/持仓市值走势曲线设计与验收清单 §4.1）——
+
+const FUND_HTTP_TIMEOUT_MS = Number(process.env.FUND_NAV_TIMEOUT_MS || 8000);
+const FUND_MAX_ATTEMPTS = Number(process.env.FUND_NAV_MAX_ATTEMPTS || 3);
+const FUND_RETRY_MS = Number(process.env.FUND_NAV_RETRY_MS || 600);
+
+// 抓取场外基金完整历史「前复权净值」序列 [{date, close}]（close 见 parseFundNavHistory 口径）。
+// 复用 pingzhongdata 接口。无效 code 返回 []；HTTP/网络错误向调用方抛出，供采集层记录失败。
+export async function fetchFundNavHistory(code, { fetchImpl = globalThis.fetch } = {}) {
+  if (!/^\d{6}$/.test(String(code || ""))) return [];
+  const url = `https://fund.eastmoney.com/pingzhongdata/${code}.js?v=${Date.now()}`;
+  const text = await fetchTextWithRetry(url, { fetchImpl, timeout: FUND_HTTP_TIMEOUT_MS });
+  return parseFundNavHistory(text);
+}
+
+// 从 pingzhongdata 文本解析「前复权净值」序列。
+// close = 最新单位净值 × 累计净值(t) / 最新累计净值（§1.3 口径③）：
+//   历史涨跌率取自累计净值（消除分红除息假暴跌），末点=最新单位净值（与成本/概览口径一致，不虚高）。
+// 无 Data_ACWorthTrend（个别老基金）时降级为单位净值（factor=1），并给每点标 navKind:"unit"。
+export function parseFundNavHistory(text) {
+  const acRaw = readJsArrayVar(text, "Data_ACWorthTrend");   // [[x, y], ...] 累计净值
+  const unitRaw = readJsArrayVar(text, "Data_netWorthTrend"); // [{x,y,equityReturn}] 单位净值
+
+  const latestUnit = Array.isArray(unitRaw) && unitRaw.length ? toNumber(unitRaw.at(-1)?.y) : null;
+
+  // 优先用累计净值序列；缺失时降级用单位净值序列。
+  if (Array.isArray(acRaw) && acRaw.length) {
+    const acPoints = normalizeNavPoints(acRaw.map((row) => ({ x: row?.[0], y: row?.[1] })));
+    if (!acPoints.length) return [];
+    const latestAc = acPoints.at(-1).close;
+    // factor 把累计净值缩放到「以最新单位净值为锚」：末点 close == latestUnit。
+    const factor = latestUnit && latestAc ? latestUnit / latestAc : 1;
+    return acPoints.map((p) => ({ date: p.date, close: round4(p.close * factor) }));
+  }
+
+  if (Array.isArray(unitRaw) && unitRaw.length) {
+    const unitPoints = normalizeNavPoints(unitRaw.map((row) => ({ x: row?.x, y: row?.y })));
+    return unitPoints.map((p) => ({ date: p.date, close: p.close, navKind: "unit" }));
+  }
+
+  return [];
+}
+
+// 把 [{x:ms, y:nav}] 清洗为 [{date:YYYY-MM-DD(北京时间), close>0}]，升序、同日去重（保留后者）。
+function normalizeNavPoints(rows) {
+  const byDate = new Map();
+  for (const row of rows) {
+    const ts = Number(row?.x);
+    const nav = toNumber(row?.y);
+    if (!Number.isFinite(ts) || nav == null || nav <= 0) continue;
+    const date = localDate(new Date(ts)); // Asia/Shanghai
+    byDate.set(date, nav);
+  }
+  return Array.from(byDate.entries())
+    .sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
+    .map(([date, close]) => ({ date, close }));
+}
+
+// 带重试的文本抓取：数据源偶发 socket 关闭/超时，重试后再失败才抛给调用方。非 2xx 抛错。
+async function fetchTextWithRetry(url, { fetchImpl = globalThis.fetch, timeout = FUND_HTTP_TIMEOUT_MS } = {}) {
+  let lastErr;
+  for (let attempt = 1; attempt <= FUND_MAX_ATTEMPTS; attempt++) {
+    try {
+      const res = await fetchWithTimeout(url, {
+        fetchImpl,
+        timeout,
+        headers: { referer: "https://fund.eastmoney.com/", "user-agent": "Mozilla/5.0" },
+      });
+      const text = await res.text();
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return text;
+    } catch (err) {
+      lastErr = err;
+      if (attempt < FUND_MAX_ATTEMPTS) await new Promise((r) => setTimeout(r, FUND_RETRY_MS * attempt));
+    }
+  }
+  throw lastErr;
+}
+
+function round4(n) {
+  return Math.round(n * 10000) / 10000;
 }

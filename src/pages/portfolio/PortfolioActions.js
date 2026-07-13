@@ -1,8 +1,13 @@
 import { del, post, put } from "../../api.js";
-import { loadPortfolio, showToast } from "../../store.js";
+import { loadPortfolio, loadPortfolioHistory, portfolioHistory, showToast } from "../../store.js";
 import { confirmDelete } from "../../lib/confirm.js";
 
 export const pendingAnimate = new Set();
+
+// 持仓变更后刷新曲线：组合曲线的当前仓位口径必须随 positions 实时变化（§5.3）。
+function refreshPortfolioHistory() {
+  loadPortfolioHistory(portfolioHistory.value.range);
+}
 
 export async function reanalyzeStock(code) {
   try {
@@ -39,6 +44,7 @@ export async function updatePosition(id, form) {
     });
     pendingAnimate.add(id);
     await loadPortfolio();
+    refreshPortfolioHistory();
     showToast("已更新，重新分析中...");
   } catch (err) { showToast(`更新失败：${err.message}`); }
 }
@@ -48,6 +54,7 @@ export async function deletePosition(id, name = "该持仓") {
   try {
     await del(`/api/positions/${encodeURIComponent(id)}`);
     await loadPortfolio();
+    refreshPortfolioHistory();
     showToast("已删除");
   } catch (err) { showToast(`删除失败：${err.message}`); }
 }

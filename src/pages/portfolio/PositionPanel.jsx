@@ -1,7 +1,7 @@
 import { useRef, useState } from "preact/hooks";
 
 import { get, post } from "../../api.js";
-import { loadPortfolio, showToast } from "../../store.js";
+import { loadPortfolio, loadPortfolioHistory, portfolioHistory, showToast } from "../../store.js";
 import { derivePositionNumbers, normalizePositionPayload, positionEntryHint } from "../../lib/position-math.js";
 import { formatMoney, formatNumber, formatSignedMoney, formatSignedPct } from "../../lib/format.js";
 import { ActionChip, EmptyTable, PanelHeader, RiskBadge, SearchField } from "./PortfolioShared.jsx";
@@ -53,6 +53,7 @@ export function PositionPanel({ holdings, selectedKey, sort, onSort, onSelect })
       setForm({ code: "", name: "", market: "A股", quoteSecid: "", amount: "", marketValue: "", shares: "", cost: "" });
       setQuote(null);
       await loadPortfolio();
+      loadPortfolioHistory(portfolioHistory.value.range); // 新增持仓后按当前范围刷新曲线（§5.3）
       onSelect(created.id || form.code);
       showToast("已添加，AI 分析中...");
     } catch (err) {

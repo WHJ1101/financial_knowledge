@@ -28,6 +28,7 @@ const DDL = [
   `CREATE TABLE IF NOT EXISTS quote_overrides (code TEXT PRIMARY KEY, name TEXT, market TEXT, price REAL NOT NULL, change_pct TEXT, source_label TEXT DEFAULT '手动行情', note TEXT, updated_at TEXT NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS report_asset_links (id TEXT PRIMARY KEY, report_id TEXT NOT NULL, asset_code TEXT NOT NULL, asset_name TEXT, asset_market TEXT, relation TEXT DEFAULT 'related', source TEXT DEFAULT 'manual', created_at TEXT NOT NULL, updated_at TEXT)`,
   `CREATE TABLE IF NOT EXISTS daily_bars (secid TEXT NOT NULL, date TEXT NOT NULL, close REAL, volume REAL, updated_at TEXT, PRIMARY KEY (secid, date))`,
+  `CREATE TABLE IF NOT EXISTS secid_map (code TEXT PRIMARY KEY, secid TEXT NOT NULL, kind TEXT NOT NULL, resolved_at TEXT)`,
   `CREATE INDEX IF NOT EXISTS idx_reports_local_date ON reports(local_date)`,
   `CREATE INDEX IF NOT EXISTS idx_reports_type ON reports(type)`,
   `CREATE INDEX IF NOT EXISTS idx_reports_status ON reports(status)`,

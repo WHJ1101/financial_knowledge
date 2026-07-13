@@ -8,6 +8,8 @@ import { searchStocks, getStockQuote } from "./services/market-data.js";
 import { createReport, importReport } from "./services/report-lifecycle.js";
 import { runDailyJob, syncCommunitySignals, summarizeSignalSync } from "./services/daily-job.js";
 import { getPressureSnapshot, runPressureMonitor } from "./services/pressure-monitor.js";
+import { getPortfolioHistory } from "./routes/portfolio-history.js";
+import { syncPortfolioBars } from "./services/portfolio-history.js";
 import { getStatus, getReports, getReport, markReportRead, toggleReportStar, archiveReport, deleteReport } from "./routes/reports.js";
 import { getStocks, upsertStock, deleteStock, getPositions, upsertPosition, updatePosition, deletePosition, reanalyzeStock, reanalyzePosition } from "./routes/stocks.js";
 import { getIndices, getMarketSnapshot } from "./routes/market.js";
@@ -93,6 +95,17 @@ export const apiRoutes = [
   { method: "GET", path: "/api/settings", handler: () => ({ status: 200, body: { settings: getSettings() } }) },
   { method: "GET", path: "/api/pressure", handler: () => ({ status: 200, body: { themes: getPressureSnapshot() } }) },
   {
+    method: "GET", path: "/api/portfolio/history",
+    handler: ({ url }) => {
+      const range = url.searchParams.get("range") || "6m";
+      try {
+        return { status: 200, body: getPortfolioHistory({ range }) };
+      } catch (err) {
+        return { status: err.statusCode || 500, body: { error: err.message } };
+      }
+    }
+  },
+  {
     method: "GET", pattern: /^\/api\/export\/(positions|reports)\.(csv|json)$/,
     handler: ({ params }) => {
       const payload = buildExport(params[0], params[1]);
@@ -129,6 +142,7 @@ export const apiRoutes = [
   { method: "POST", path: "/api/research", handler: async ({ body }) => ({ status: 201, body: { report: await createReport(body) } }) },
   { method: "POST", path: "/api/jobs/daily", handler: async () => ({ status: 201, body: await runDailyJob("daily") }) },
   { method: "POST", path: "/api/pressure/sync", handler: async () => ({ status: 201, body: await runPressureMonitor({ source: "manual" }) }) },
+  { method: "POST", path: "/api/portfolio/history/sync", handler: async () => ({ status: 201, body: { results: await syncPortfolioBars() } }) },
   {
     method: "POST", path: "/api/signals/sync",
     handler: async ({ body }) => {

@@ -80,26 +80,29 @@ function delay(ms) {
 }
 
 // 拉取一组 secid 的日线并落库。单个 secid 失败不影响其余（各自 try/catch）。
+// 并发抓取：网络往返是主要耗时（实测串行 8 个 secid ≈4.8s，其中 Yahoo VIX/VIX3M 各 ~1.1s），
+// 改 Promise.all 并发后 ≈1.6s（≈最慢单个），省约 66%。upsertBars 是 better-sqlite3 同步写，
+// 在各自 await fetch 之后由事件循环串行执行，无并发写竞争；Promise.all 保序，返回顺序与入参一致。
 export async function syncDailyBars(secids = [], { fetchImpl = globalThis.fetch } = {}) {
   const now = new Date().toISOString();
-  const results = [];
-  for (const secid of secids) {
+  return Promise.all(secids.map(async (secid) => {
     try {
       const bars = await fetchDailyBars(secid, { fetchImpl });
       const written = upsertBars(secid, bars, now);
-      results.push({ secid, ok: true, count: written });
+      return { secid, ok: true, count: written };
     } catch (err) {
-      results.push({ secid, ok: false, count: 0, error: err.message });
+      return { secid, ok: false, count: 0, error: err.message };
     }
-  }
-  return results;
+  }));
 }
 
-function upsertBars(secid, bars, now) {
+// UPSERT 一组日线到 daily_bars（复合主键天然幂等）。now 省略时取当前时间。
+// 导出为持久化边界，供压力监控（syncDailyBars）与组合历史回补（syncPortfolioBars）共用。
+export function upsertBars(secid, bars, now = new Date().toISOString()) {
   if (!bars.length) return 0;
   const stmt = db.prepare("INSERT OR REPLACE INTO daily_bars (secid,date,close,volume,updated_at) VALUES (?,?,?,?,?)");
   const tx = db.transaction((rows) => {
-    for (const bar of rows) stmt.run(secid, bar.date, bar.close, bar.volume, now);
+    for (const bar of rows) stmt.run(secid, bar.date, bar.close, bar.volume ?? null, now);
   });
   tx(bars);
   return bars.length;
@@ -109,4 +112,60 @@ function upsertBars(secid, bars, now) {
 export function getBars(secid, limit = DEFAULT_LIMIT) {
   const rows = db.prepare("SELECT date, close, volume FROM daily_bars WHERE secid=? ORDER BY date DESC LIMIT ?").all(secid, limit);
   return rows.reverse().map((row) => ({ date: row.date, close: row.close, volume: row.volume }));
+}
+
+// 读取某 secid 全部历史日线，按日期升序返回（组合曲线 range=all 需要完整序列）。
+export function getAllBars(secid) {
+  const rows = db.prepare("SELECT date, close, volume FROM daily_bars WHERE secid=? ORDER BY date ASC").all(secid);
+  return rows.map((row) => ({ date: row.date, close: row.close, volume: row.volume }));
+}
+
+// 交易所历史日线回补（.doc/持仓市值走势曲线设计与验收清单 §4.1.1）。
+// 组合历史与压力监控统一 fqt=1 前复权（消除份额折算假暴跌 + 避免同 secid 复权口径互相污染）。
+// 返回 { bars(升序,去重,close>0), truncated, requests }。lmt 非硬上限，多数标的一次拉全；
+// 分页以「最早日期不再向前推进」为主停止条件，maxChunks 仅作死循环兜底。
+export async function fetchHistoricalExchangeBars(secid, { fetchImpl = globalThis.fetch, chunkSize = 2000, maxChunks = 100 } = {}) {
+  const byDate = new Map();
+  let end = "20500101";
+  let requests = 0;
+  let truncated = false;
+  let earliestSeen = null;
+
+  for (let chunk = 0; chunk < maxChunks; chunk++) {
+    const url = `https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=${encodeURIComponent(secid)}&klt=101&fqt=1&fields1=f1,f2&fields2=f51,f53,f56&beg=0&end=${end}&lmt=${chunkSize}`;
+    const json = await fetchJsonWithRetry(url, { fetchImpl });
+    requests += 1;
+    const klines = json?.data?.klines;
+    if (!Array.isArray(klines) || !klines.length) break;
+
+    for (const line of klines) {
+      const [date, close, volume] = String(line).split(",");
+      const closeNum = Number(close);
+      if (!date || !Number.isFinite(closeNum) || closeNum <= 0) continue;
+      const volumeNum = Number(volume);
+      byDate.set(date, { date, close: closeNum, volume: Number.isFinite(volumeNum) ? volumeNum : null });
+    }
+
+    // 本页返回不足分页大小 → 已到最早，停止。
+    if (klines.length < chunkSize) break;
+
+    const pageEarliest = String(klines[0]).split(",")[0];
+    // 最早日期没有继续向前推进（接口返回固定窗口 / 游标异常）→ 停止，避免死循环。
+    if (earliestSeen && pageEarliest >= earliestSeen) break;
+    earliestSeen = pageEarliest;
+    // 把当前最早日期减一天作为下一页 end，继续向更早翻。
+    end = shiftDate(pageEarliest, -1);
+
+    if (chunk === maxChunks - 1) truncated = true;
+  }
+
+  const bars = Array.from(byDate.values()).sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+  return { bars, truncated, requests };
+}
+
+// 把 YYYY-MM-DD 平移 deltaDays 天，返回 YYYYMMDD（东财 end 参数格式）。
+function shiftDate(ymd, deltaDays) {
+  const d = new Date(`${ymd}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + deltaDays);
+  return d.toISOString().slice(0, 10).replace(/-/g, "");
 }

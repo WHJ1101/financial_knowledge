@@ -1,7 +1,11 @@
+import { useState } from "preact/hooks";
 import { CHART_COLORS } from "../../lib/portfolio-analysis.js";
 import { formatMoney, formatPercent, formatSignedMoney, formatSignedPct } from "../../lib/format.js";
+import { PortfolioTrendChart } from "../../components/PortfolioTrendChart.jsx";
+import { portfolioHistory } from "../../store.js";
 
 export function PortfolioAnalysisPanel({ analysis }) {
+  const [trendMetric, setTrendMetric] = useState("marketValue");
   if (!analysis.count) {
     return (
       <div class="portfolio-analysis">
@@ -33,6 +37,8 @@ export function PortfolioAnalysisPanel({ analysis }) {
         <SnapshotMetric label="最大单仓" value={formatPercent(analysis.maxWeight)} hint={analysis.largestHolding?.name || "暂无"} tone={analysis.maxWeight > 35 ? "warn" : ""} />
         <SnapshotMetric label="健康度" value={`${analysis.healthScore}`} hint={analysis.healthLabel} tone={analysis.healthTone} />
       </div>
+
+      <PortfolioTrendChart state={portfolioHistory.value} metric={trendMetric} onMetric={setTrendMetric} />
 
       <div class="portfolio-analysis-grid two">
         <DistributionCard title="市场分布" subtitle="A股、科创成长、美股海外和固收方向" rows={analysis.marketRows} center={`${formatPercent(analysis.topMarketWeight, 0)}`} centerLabel="第一方向" />

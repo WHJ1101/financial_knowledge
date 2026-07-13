@@ -7,6 +7,7 @@ import { createDailyMarketBriefReport } from "./report-lifecycle.js";
 import { getSettings } from "../routes/settings.js";
 import { getTopCommunitySignals, replaceCommunitySignalSnapshot, hasFeishuSignalsForDate } from "../routes/signals.js";
 import { runPressureMonitor, getPressureSnapshot } from "./pressure-monitor.js";
+import { syncPortfolioBars, summarizePortfolioSync } from "./portfolio-history.js";
 import { syncFeishuCommunitySignals } from "../../lib/communitySignalPipeline.js";
 import { localDate } from "../../lib/datetime.js";
 import { notifyDailyPressureBriefing } from "./feishu-notify.js";
@@ -22,6 +23,8 @@ export async function runDailyJob(source = "scheduled") {
   const communitySignals = getTopCommunitySignals({ limit: 8, now });
   const reports = [await createDailyMarketBriefReport({ source, now, communitySignals, signalSync })];
   const pressure = await runPressureMonitorSafely(source);
+  // 组合历史回补：与压力监控同构，失败仅记日志不阻断日更主流程。
+  const portfolioHistory = await syncPortfolioBarsSafely(source);
   // 每日压力摘要推送：用最新快照现算后推飞书；内部吞异常记日志，不阻断日更。
   await notifyDailyPressureBriefing(getPressureSnapshot(), { now });
   db.prepare("INSERT OR REPLACE INTO settings (key,value) VALUES (?,?)").run("lastDailyRun", JSON.stringify(today));
@@ -29,8 +32,9 @@ export async function runDailyJob(source = "scheduled") {
   db.prepare("INSERT OR REPLACE INTO settings (key,value) VALUES (?,?)").run("lastDailyBriefingWindowEnd", JSON.stringify(reports[0].briefingWindow?.end || null));
   db.prepare("INSERT OR REPLACE INTO settings (key,value) VALUES (?,?)").run("lastDailyBriefingSourceStats", JSON.stringify(reports[0].sourceStats || []));
   db.prepare("INSERT OR REPLACE INTO settings (key,value) VALUES (?,?)").run("lastCommunitySignalSync", JSON.stringify(summarizeSignalSync(signalSync)));
-  appendLog("daily_job", `Daily job created ${reports.length} reports`, { source, signalSync: summarizeSignalSync(signalSync) });
-  return { skipped: false, reports, signalSync: summarizeSignalSync(signalSync), pressure };
+  const portfolioSummary = Array.isArray(portfolioHistory) ? summarizePortfolioSync(portfolioHistory) : portfolioHistory;
+  appendLog("daily_job", `Daily job created ${reports.length} reports`, { source, signalSync: summarizeSignalSync(signalSync), portfolioHistory: portfolioSummary });
+  return { skipped: false, reports, signalSync: summarizeSignalSync(signalSync), pressure, portfolioHistory: portfolioSummary };
 }
 
 // 压力监控失败不能阻断日更主流程（每日简报已生成），异常仅记日志。
@@ -39,6 +43,16 @@ async function runPressureMonitorSafely(source) {
     return await runPressureMonitor({ source });
   } catch (err) {
     appendLog("pressure_monitor", `Pressure monitor failed: ${err.message}`, { source });
+    return { error: err.message };
+  }
+}
+
+// 组合历史回补失败不能阻断日更主流程，异常仅记日志（仿 runPressureMonitorSafely）。
+async function syncPortfolioBarsSafely(source) {
+  try {
+    return await syncPortfolioBars();
+  } catch (err) {
+    appendLog("portfolio_history", `Portfolio bars sync failed: ${err.message}`, { source });
     return { error: err.message };
   }
 }
