@@ -1,5 +1,2 @@
-
-> financial_knowledge@0.7.0 start:env
-> node --env-file=.env server/index.js
-
 Financial Knowledge at http://127.0.0.1:4173
+Market data fetch failed: fetch failed

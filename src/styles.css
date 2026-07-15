@@ -734,3 +734,35 @@ a { color: inherit; text-decoration: none; }
 .portfolio-trend-note.warn { color: var(--amber); }
 .portfolio-trend-empty { padding: 32px 12px; text-align: center; color: var(--muted); font-size: 13px; }
 .portfolio-trend-empty.error { color: var(--red); }
+
+/* 走势图交互：缩放/平移/hover tooltip/放大弹层（.doc 交互增强） */
+.portfolio-trend-plot { position: relative; }
+.portfolio-trend-plot .portfolio-trend-svg { cursor: crosshair; touch-action: none; user-select: none; }
+.portfolio-trend-plot.zoomed .portfolio-trend-svg { cursor: grab; }
+.portfolio-trend-plot.dragging .portfolio-trend-svg { cursor: grabbing; }
+.portfolio-trend-anno { transition: opacity 0.12s; }
+.portfolio-trend-anno.faded { opacity: 0.25; }
+.chart-cursor { stroke: var(--muted); opacity: 0.7; }
+.portfolio-trend-reset { position: absolute; top: 6px; right: 6px; border: 1px solid var(--line); background: #fff; color: var(--muted); font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; cursor: pointer; }
+.portfolio-trend-reset:hover { color: var(--accent); border-color: var(--accent); }
+/* tooltip 浮层：按可见比例定位，translateX(-50%) 居中 + clamp 防溢出 */
+.chart-tip { position: absolute; top: 0; transform: translateX(-50%); background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; font-size: 12px; box-shadow: 0 2px 8px rgba(15,23,42,0.12); pointer-events: none; white-space: nowrap; display: flex; flex-direction: column; gap: 1px; z-index: 2; max-width: 90%; }
+.chart-tip-date { color: var(--muted); font-size: 10px; }
+.chart-tip strong { font-size: 13px; }
+
+/* 压力 sparkline hover + 放大 */
+.pressure-spark-row { display: flex; align-items: center; gap: 6px; }
+.pressure-spark-wrap { position: relative; flex: 1; min-width: 0; }
+.pressure-zoom-btn { flex: none; border: 1px solid var(--line); background: #fff; color: var(--muted); width: 24px; height: 24px; border-radius: 6px; cursor: pointer; font-size: 13px; line-height: 1; }
+.pressure-zoom-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+/* 图表放大弹层 */
+.chart-modal-backdrop { position: fixed; inset: 0; background: rgba(15,23,42,0.45); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 20px; }
+.chart-modal { background: #fff; border-radius: 10px; width: min(720px, 100%); max-height: 90vh; overflow: auto; box-shadow: 0 12px 40px rgba(15,23,42,0.25); }
+.chart-modal-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+.chart-modal-head strong { font-size: 15px; }
+.chart-modal-close { border: 0; background: none; font-size: 22px; line-height: 1; color: var(--muted); cursor: pointer; padding: 0 4px; }
+.chart-modal-close:hover { color: var(--ink); }
+.chart-modal-body { padding: 16px; }
+.pressure-large-wrap { position: relative; }
+.pressure-large-wrap .pressure-spark { height: auto; }
