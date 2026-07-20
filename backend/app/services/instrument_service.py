@@ -32,10 +32,18 @@ def resolve_or_create_instrument(session: Session, code: str, market: str | None
         return existing
     now = datetime.now(UTC)
     inst = Instrument(
-        id=uuid.uuid4(), asset_class=norm.asset_class, exchange=norm.exchange,
-        canonical_symbol=norm.canonical_symbol, display_code=norm.display_code,
-        name=name or norm.display_code, market=(market or ""), provider_ids={},
-        source="user", active=True, created_at=now, updated_at=now,
+        id=uuid.uuid4(),
+        asset_class=norm.asset_class,
+        exchange=norm.exchange,
+        canonical_symbol=norm.canonical_symbol,
+        display_code=norm.display_code,
+        name=name or norm.display_code,
+        market=(market or ""),
+        provider_ids={},
+        source="user",
+        active=True,
+        created_at=now,
+        updated_at=now,
     )
     session.add(inst)
     session.flush()

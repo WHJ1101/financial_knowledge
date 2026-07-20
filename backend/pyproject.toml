@@ -21,6 +21,7 @@ dependencies = [
     # 外部 HTTP + 宏观数据
     "httpx>=0.28.0",
     "akshare>=1.15.0",
+    "exchange-calendars>=4.8.0",
     # LLM 编排 + 检查点（加密 Serializer 需 pycryptodome）
     "langchain-openai>=0.2.0",
     "langgraph>=0.2.0",
@@ -53,15 +54,16 @@ ignore = ["B008"]
 
 [tool.ruff.lint.per-file-ignores]
 "scripts/*" = ["S105"]  # 迁移/PoC 脚本里的测试用固定串
+"app/services/report_template.py" = ["E501"]  # 内嵌报告 CSS 模板，长行不折行更可读
 
 [tool.mypy]
 python_version = "3.13"
 strict = true
 plugins = ["pydantic.mypy"]
 
-# akshare 无类型标注（第三方数据库），仅在 adapter 内部使用（ADR-011）
+# 行情/交易日历三方库未发布 py.typed；只在 provider/calendar 边界使用。
 [[tool.mypy.overrides]]
-module = ["akshare.*"]
+module = ["akshare.*", "exchange_calendars.*", "pandas.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

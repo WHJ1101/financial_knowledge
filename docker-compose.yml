@@ -1,23 +1,134 @@
+# 投研工作台生产部署（方案 §10.1）：caddy + init-db + api + worker + postgres 五服务。
+# api 与 worker 同镜像不同入口；Caddy 独占静态 + TLS；postgres 不暴露公网端口。
 services:
-  financial_knowledge:
-    build: .
-    container_name: financial_knowledge
+  caddy:
+    build:
+      context: .
+      dockerfile: infra/docker/caddy.Dockerfile
     restart: unless-stopped
     ports:
-      - "${PORT:-4173}:4173"
+      - "80:80"
+      - "443:443"
     environment:
-      NODE_ENV: production
-      HOST: 0.0.0.0
-      PORT: 4173
-      FINANCE_KNOWLEDGE_DATA_DIR: /app/data
-      FINANCE_KNOWLEDGE_AUTH_REQUIRED: "${FINANCE_KNOWLEDGE_AUTH_REQUIRED:-true}"
-      FINANCE_KNOWLEDGE_AUTH_USERNAME: "${FINANCE_KNOWLEDGE_AUTH_USERNAME:-admin}"
-      FINANCE_KNOWLEDGE_AUTH_PASSWORD: "${FINANCE_KNOWLEDGE_AUTH_PASSWORD:?set FINANCE_KNOWLEDGE_AUTH_PASSWORD in .env}"
-      FINANCE_KNOWLEDGE_AUTH_SECRET: "${FINANCE_KNOWLEDGE_AUTH_SECRET:?set FINANCE_KNOWLEDGE_AUTH_SECRET in .env}"
-      FINANCE_KNOWLEDGE_IMPORT_TOKEN: "${FINANCE_KNOWLEDGE_IMPORT_TOKEN:?set FINANCE_KNOWLEDGE_IMPORT_TOKEN in .env}"
-      FINANCE_KNOWLEDGE_COOKIE_SECURE: "${FINANCE_KNOWLEDGE_COOKIE_SECURE:-}"
-      FINANCE_KNOWLEDGE_LLM_API_KEY: "${FINANCE_KNOWLEDGE_LLM_API_KEY:-}"
-      FINANCE_KNOWLEDGE_LLM_API_URL: "${FINANCE_KNOWLEDGE_LLM_API_URL:-https://openrouter.ai/api/v1/chat/completions}"
-      FINANCE_KNOWLEDGE_LLM_MODEL: "${FINANCE_KNOWLEDGE_LLM_MODEL:-openai/gpt-4o-mini}"
+      FK_DOMAIN: "${FK_DOMAIN:-localhost}"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+
+  init-db:
+    build:
+      context: .
+      dockerfile: infra/docker/backend.Dockerfile
+    restart: "no"
+    command: ["true"]
+    environment:
+      FINANCE_KNOWLEDGE_RUN_INIT: "true"
+      FINANCE_KNOWLEDGE_DATABASE_URL: "postgresql+psycopg2://fk:${POSTGRES_PASSWORD:?set in .env}@postgres:5432/financial_knowledge"
+      FINANCE_KNOWLEDGE_SUPERADMIN_USERNAME: "${FINANCE_KNOWLEDGE_SUPERADMIN_USERNAME:-admin}"
+      FINANCE_KNOWLEDGE_SUPERADMIN_PASSWORD: "${FINANCE_KNOWLEDGE_SUPERADMIN_PASSWORD:?set in .env}"
     volumes:
       - ./data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    build:
+      context: .
+      dockerfile: infra/docker/backend.Dockerfile
+    restart: unless-stopped
+    environment:
+      FINANCE_KNOWLEDGE_DATABASE_URL: "postgresql+psycopg2://fk:${POSTGRES_PASSWORD:?set in .env}@postgres:5432/financial_knowledge"
+      FINANCE_KNOWLEDGE_SESSION_SECRET: "${FINANCE_KNOWLEDGE_SESSION_SECRET:?set in .env}"
+      FINANCE_KNOWLEDGE_BYOK_MASTER_KEY: "${FINANCE_KNOWLEDGE_BYOK_MASTER_KEY:?set in .env}"
+      FINANCE_KNOWLEDGE_LANGGRAPH_AES_KEY: "${FINANCE_KNOWLEDGE_LANGGRAPH_AES_KEY:-}"
+      FINANCE_KNOWLEDGE_LLM_ALLOWED_HOSTS: "${FINANCE_KNOWLEDGE_LLM_ALLOWED_HOSTS:-}"
+      FINANCE_KNOWLEDGE_DATA_SOURCE_URLS: "${FINANCE_KNOWLEDGE_DATA_SOURCE_URLS:-}"
+      FINANCE_KNOWLEDGE_DAILY_BRIEFING_EASTMONEY_DISABLED: "${FINANCE_KNOWLEDGE_DAILY_BRIEFING_EASTMONEY_DISABLED:-false}"
+      FINANCE_KNOWLEDGE_SUPERADMIN_USERNAME: "${FINANCE_KNOWLEDGE_SUPERADMIN_USERNAME:-admin}"
+      FINANCE_KNOWLEDGE_SUPERADMIN_PASSWORD: "${FINANCE_KNOWLEDGE_SUPERADMIN_PASSWORD:?set in .env}"
+      FINANCE_KNOWLEDGE_IMPORT_TOKEN: "${FINANCE_KNOWLEDGE_IMPORT_TOKEN:-}"
+      FINANCE_KNOWLEDGE_COOKIE_SECURE: "true"
+      FINANCE_KNOWLEDGE_ALLOWED_ORIGINS: '["https://${FK_DOMAIN:-localhost}"]'
+      FINANCE_KNOWLEDGE_ENVIRONMENT: production
+      FEISHU_APP_ID: "${FEISHU_APP_ID:-}"
+      FEISHU_APP_SECRET: "${FEISHU_APP_SECRET:-}"
+      FEISHU_WEBHOOK_URL: "${FEISHU_WEBHOOK_URL:-}"
+      FEISHU_WEBHOOK_SECRET: "${FEISHU_WEBHOOK_SECRET:-}"
+      FEISHU_PUSH_CHAT_ID: "${FEISHU_PUSH_CHAT_ID:-}"
+      FEISHU_PUSH_OPEN_ID: "${FEISHU_PUSH_OPEN_ID:-}"
+      FEISHU_PUSH_USER_ID: "${FEISHU_PUSH_USER_ID:-}"
+      FEISHU_PUSH_EMAIL: "${FEISHU_PUSH_EMAIL:-}"
+      FEISHU_SIGNAL_WIKI_URL: "${FEISHU_SIGNAL_WIKI_URL:-}"
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      init-db:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  worker:
+    build:
+      context: .
+      dockerfile: infra/docker/backend.Dockerfile
+    restart: unless-stopped
+    command: ["python", "-m", "app.worker"]
+    environment:
+      FINANCE_KNOWLEDGE_DATABASE_URL: "postgresql+psycopg2://fk:${POSTGRES_PASSWORD:?set in .env}@postgres:5432/financial_knowledge"
+      FINANCE_KNOWLEDGE_SESSION_SECRET: "${FINANCE_KNOWLEDGE_SESSION_SECRET:?set in .env}"
+      FINANCE_KNOWLEDGE_BYOK_MASTER_KEY: "${FINANCE_KNOWLEDGE_BYOK_MASTER_KEY:?set in .env}"
+      FINANCE_KNOWLEDGE_LANGGRAPH_AES_KEY: "${FINANCE_KNOWLEDGE_LANGGRAPH_AES_KEY:-}"
+      FINANCE_KNOWLEDGE_LLM_ALLOWED_HOSTS: "${FINANCE_KNOWLEDGE_LLM_ALLOWED_HOSTS:-}"
+      FINANCE_KNOWLEDGE_DATA_SOURCE_URLS: "${FINANCE_KNOWLEDGE_DATA_SOURCE_URLS:-}"
+      FINANCE_KNOWLEDGE_DAILY_BRIEFING_EASTMONEY_DISABLED: "${FINANCE_KNOWLEDGE_DAILY_BRIEFING_EASTMONEY_DISABLED:-false}"
+      FINANCE_KNOWLEDGE_SUPERADMIN_USERNAME: "${FINANCE_KNOWLEDGE_SUPERADMIN_USERNAME:-admin}"
+      FINANCE_KNOWLEDGE_SUPERADMIN_PASSWORD: "${FINANCE_KNOWLEDGE_SUPERADMIN_PASSWORD:?set in .env}"
+      FINANCE_KNOWLEDGE_COOKIE_SECURE: "true"
+      FINANCE_KNOWLEDGE_ENVIRONMENT: production
+      FEISHU_APP_ID: "${FEISHU_APP_ID:-}"
+      FEISHU_APP_SECRET: "${FEISHU_APP_SECRET:-}"
+      FEISHU_WEBHOOK_URL: "${FEISHU_WEBHOOK_URL:-}"
+      FEISHU_WEBHOOK_SECRET: "${FEISHU_WEBHOOK_SECRET:-}"
+      FEISHU_PUSH_CHAT_ID: "${FEISHU_PUSH_CHAT_ID:-}"
+      FEISHU_PUSH_OPEN_ID: "${FEISHU_PUSH_OPEN_ID:-}"
+      FEISHU_PUSH_USER_ID: "${FEISHU_PUSH_USER_ID:-}"
+      FEISHU_PUSH_EMAIL: "${FEISHU_PUSH_EMAIL:-}"
+      FEISHU_SIGNAL_WIKI_URL: "${FEISHU_SIGNAL_WIKI_URL:-}"
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      init-db:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import pathlib,sys; from sqlalchemy import text; from app.db import engine; sys.exit(1) if b'app.worker' not in pathlib.Path('/proc/1/cmdline').read_bytes() else None; c=engine.connect(); c.execute(text('SELECT 1')); c.close()"]
+      interval: 15s
+      timeout: 5s
+      retries: 4
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: fk
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?set in .env}"
+      POSTGRES_DB: financial_knowledge
+    # 不映射公网端口（方案 §10.3）；仅 compose 内网可达
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fk -d financial_knowledge"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

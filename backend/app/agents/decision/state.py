@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal, TypedDict
+from typing import Annotated, Any, Literal, TypedDict
 
 from pydantic import BaseModel, Field
 
@@ -24,6 +24,8 @@ class AnalystView(BaseModel):
 class DebateView(BaseModel):
     points: list[str] = Field(default_factory=list)
     rebuttal: str = ""
+    confidence: int = Field(default=0, ge=0, le=100)
+    data_gaps: list[str] = Field(default_factory=list)
 
 
 class ActionView(BaseModel):
@@ -61,12 +63,17 @@ class DecisionState(TypedDict, total=False):
     """LangGraph 图状态（方案 §7.3）。"""
 
     run_id: str
+    horizon: str
+    question: str | None
     target: TargetSnapshot
     evidence: dict[str, Any]  # 四面证据 {technical, fundamental, macro, sentiment}
     evidence_gaps: list[str]
-    analyst_views: dict[str, dict[str, Any]]  # 角色→AnalystView.dict
+    # 四个 LangGraph 并行节点分别写一个角色；reducer 合并 channel，
+    # checkpointer 可记录每个角色的独立 task write。
+    analyst_views: Annotated[dict[str, dict[str, Any]], lambda left, right: {**left, **right}]
     bull_case: dict[str, Any] | None
     bear_case: dict[str, Any] | None
+    model_assignments: dict[str, Any]
     judge_result: dict[str, Any] | None
     risk_review: dict[str, Any] | None
     report: dict[str, Any] | None

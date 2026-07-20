@@ -7,11 +7,27 @@ from __future__ import annotations
 
 from app.providers.base import InstrumentRef
 from app.providers.eastmoney import (
+    _first_ok,
     eastmoney_secid,
     parse_fundamentals,
     parse_kline,
     parse_quote,
 )
+
+
+async def test_first_ok_builds_fallback_lazily() -> None:
+    calls: list[str] = []
+
+    async def primary() -> str | None:
+        calls.append("primary")
+        return "ok"
+
+    async def fallback() -> str | None:
+        calls.append("fallback")
+        return "fallback"
+
+    assert await _first_ok(primary, fallback) == "ok"
+    assert calls == ["primary"]
 
 # 东财 kline 真实响应形状（fields2=f51,f53,f56）
 _KLINE_FIXTURE = {
@@ -23,8 +39,16 @@ _KLINE_FIXTURE = {
 
 # 东财 push2 stock/get 基本面（辩论文档附录 A：江波龙 PE 143.0 需 f162=14300）
 _FUND_FIXTURE = {
-    "data": {"f57": "301308", "f58": "江波龙", "f162": 14300, "f167": 1855, "f116": 50000000000,
-             "f173": 39.4, "f184": 132.8, "f185": 2644}
+    "data": {
+        "f57": "301308",
+        "f58": "江波龙",
+        "f162": 14300,
+        "f167": 1855,
+        "f116": 50000000000,
+        "f173": 39.4,
+        "f184": 132.8,
+        "f185": 2644,
+    }
 }
 _QUOTE_FIXTURE = {"data": {"f43": 4530, "f58": "江波龙", "f170": 250}}
 

@@ -84,11 +84,17 @@ def parse_observations(
         else:
             data_gap = "无发布时间字段，进 data_gap（不用抓取时间冒充）"
 
-        out.append(MacroObservationDTO(
-            observation_period=period, release_at=release_at, value=value, unit=unit,
-            revision_hash=_revision_hash(period, value, str(release_raw)),
-            raw=dict(rec), data_gap=data_gap,
-        ))
+        out.append(
+            MacroObservationDTO(
+                observation_period=period,
+                release_at=release_at,
+                value=value,
+                unit=unit,
+                revision_hash=_revision_hash(period, value, str(release_raw)),
+                raw=dict(rec),
+                data_gap=data_gap,
+            )
+        )
     return out
 
 

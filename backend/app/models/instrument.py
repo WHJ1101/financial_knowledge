@@ -17,9 +17,7 @@ from app.models.base import Base, TimestampMixin, uuid_pk
 
 class Instrument(Base, TimestampMixin):
     __tablename__ = "instruments"
-    __table_args__ = (
-        UniqueConstraint("exchange", "asset_class", "canonical_symbol", name="uq_instrument_identity"),
-    )
+    __table_args__ = (UniqueConstraint("exchange", "asset_class", "canonical_symbol", name="uq_instrument_identity"),)
 
     id: Mapped[uuid.UUID] = uuid_pk()
     asset_class: Mapped[str] = mapped_column(String(24))  # equity/etf/open_end_fund/hk_stock/us_stock

@@ -7,3 +7,16 @@ data
 dist
 node_modules
 npm-debug.log
+
+# Python（构建上下文是根，需显式排除 backend 下的虚拟环境/缓存，
+# 否则宿主机 macOS venv 会覆盖容器内 Linux venv，导致 uvicorn 可执行文件缺失）
+backend/.venv
+backend/__pycache__
+**/__pycache__
+**/*.pyc
+backend/.pytest_cache
+backend/.mypy_cache
+backend/.ruff_cache
+backend/e2e_debate_sample.json
+frontend/node_modules
+frontend/dist

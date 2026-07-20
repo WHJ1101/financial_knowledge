@@ -24,6 +24,9 @@ class WatchlistItemView(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: uuid.UUID
     instrument_id: uuid.UUID
+    code: str = ""  # instrument.display_code
+    name: str = ""
+    market: str = ""
     status: str
     thesis: str | None
     advice: str | None
@@ -36,10 +39,14 @@ class PositionView(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: uuid.UUID
     instrument_id: uuid.UUID
+    code: str = ""  # instrument.display_code
+    name: str = ""
+    market: str = ""
     shares: float
     cost: float
     reason: str | None
     risk: str | None
+    analysis_detail: dict[str, Any]
     analysis_status: str
 
 
@@ -58,6 +65,7 @@ class ReportView(BaseModel):
     highlights: list[Any]
     content_status: str
     created_at: datetime
+    is_owner: bool = False
     # 个人态（合并自 user_report_states）
     starred: bool = False
     archived: bool = False
@@ -111,4 +119,3 @@ class SignalStateRequest(BaseModel):
 
 class OkResponse(BaseModel):
     ok: bool = True
-

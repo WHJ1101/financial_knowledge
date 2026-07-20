@@ -44,4 +44,5 @@ class Position(Base, TimestampMixin):
     cost: Mapped[float] = mapped_column(Numeric(20, 4), default=0)
     reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     risk: Mapped[str | None] = mapped_column(Text, nullable=True)
+    analysis_detail: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
     analysis_status: Mapped[str] = mapped_column(String(16), default="pending")

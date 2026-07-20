@@ -35,6 +35,7 @@ class InviteCreateRequest(BaseModel):
 
 
 class InviteView(BaseModel):
+    id: str
     code: str | None = None  # 仅生成时返回一次明文
     code_hint: str
     expires_at: datetime

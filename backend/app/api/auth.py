@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import uuid
+from datetime import UTC, datetime
+
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -36,11 +39,11 @@ router = APIRouter(prefix="/api/v1", tags=["auth"])
 def _set_session_cookies(resp: Response, token: str) -> None:
     settings = get_settings()
     csrf = issue_csrf_token()
-    resp.set_cookie(SESSION_COOKIE, token, httponly=True, secure=settings.cookie_secure,
-                    samesite="lax", max_age=7 * 24 * 3600)
+    resp.set_cookie(
+        SESSION_COOKIE, token, httponly=True, secure=settings.cookie_secure, samesite="lax", max_age=7 * 24 * 3600
+    )
     # CSRF cookie 非 HttpOnly（前端需读取回填到 X-CSRF-Token 头，double-submit）
-    resp.set_cookie(CSRF_COOKIE, csrf, httponly=False, secure=settings.cookie_secure,
-                    samesite="lax", max_age=24 * 3600)
+    resp.set_cookie(CSRF_COOKIE, csrf, httponly=False, secure=settings.cookie_secure, samesite="lax", max_age=24 * 3600)
 
 
 @router.get("/auth/csrf", response_model=CsrfView)
@@ -48,7 +51,14 @@ def get_csrf(response: Response) -> CsrfView:
     """匿名可取 CSRF token（登录/注册前，方案 §9.2）。"""
     settings = get_settings()
     token = issue_csrf_token()
-    response.set_cookie(CSRF_COOKIE, token, httponly=False, secure=settings.cookie_secure, samesite="lax")
+    response.set_cookie(
+        CSRF_COOKIE,
+        token,
+        httponly=False,
+        secure=settings.cookie_secure,
+        samesite="lax",
+        max_age=24 * 3600,
+    )
     return CsrfView(csrf_token=token)
 
 
@@ -82,8 +92,9 @@ def login(body: LoginRequest, response: Response, session: Session = Depends(get
 
 
 @router.post("/auth/logout", response_model=SessionView, dependencies=[Depends(require_csrf)])
-def logout(response: Response, fk_session: str | None = Cookie(default=None),
-           session: Session = Depends(get_session)) -> SessionView:
+def logout(
+    response: Response, fk_session: str | None = Cookie(default=None), session: Session = Depends(get_session)
+) -> SessionView:
     if fk_session:
         auth_service.logout(session, fk_session)
     response.delete_cookie(SESSION_COOKIE)
@@ -110,17 +121,48 @@ def me(user: User = Depends(get_current_user)) -> UserView:
 
 
 @router.post("/invites", response_model=InviteView, dependencies=[Depends(require_csrf)])
-def create_invite(body: InviteCreateRequest, admin: User = Depends(require_superadmin),
-                  session: Session = Depends(get_session)) -> InviteView:
+def create_invite(
+    body: InviteCreateRequest, admin: User = Depends(require_superadmin), session: Session = Depends(get_session)
+) -> InviteView:
     invite, code = auth_service.create_invite(session, admin.id, body.ttl_hours, body.hint)
-    return InviteView(code=code, code_hint=invite.code_hint, expires_at=invite.expires_at)
+    return InviteView(id=str(invite.id), code=code, code_hint=invite.code_hint, expires_at=invite.expires_at)
 
 
 @router.get("/invites", response_model=list[InviteView])
 def list_invites(_: User = Depends(require_superadmin), session: Session = Depends(get_session)) -> list[InviteView]:
     invites = session.execute(select(InviteCode).order_by(InviteCode.created_at.desc())).scalars().all()
     return [
-        InviteView(code_hint=i.code_hint, expires_at=i.expires_at,
-                   used_at=i.used_at, revoked_at=i.revoked_at)
+        InviteView(
+            id=str(i.id),
+            code_hint=i.code_hint,
+            expires_at=i.expires_at,
+            used_by=str(i.used_by) if i.used_by else None,
+            used_at=i.used_at,
+            revoked_at=i.revoked_at,
+        )
         for i in invites
     ]
+
+
+@router.post("/invites/{invite_id}/revoke", response_model=InviteView, dependencies=[Depends(require_csrf)])
+def revoke_invite(
+    invite_id: uuid.UUID,
+    _: User = Depends(require_superadmin),
+    session: Session = Depends(get_session),
+) -> InviteView:
+    invite = session.get(InviteCode, invite_id)
+    if invite is None:
+        raise HTTPException(status_code=404, detail="Not Found")
+    if invite.used_at is not None:
+        raise HTTPException(status_code=409, detail="邀请码已使用，无法撤销")
+    if invite.revoked_at is None:
+        invite.revoked_at = datetime.now(UTC)
+        session.commit()
+    return InviteView(
+        id=str(invite.id),
+        code_hint=invite.code_hint,
+        expires_at=invite.expires_at,
+        used_by=str(invite.used_by) if invite.used_by else None,
+        used_at=invite.used_at,
+        revoked_at=invite.revoked_at,
+    )

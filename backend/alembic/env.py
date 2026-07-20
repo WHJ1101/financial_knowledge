@@ -1,10 +1,8 @@
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+from sqlalchemy import engine_from_config, pool
 
 from alembic import context
-
 from app.config import get_settings
 from app.models import Base
 
@@ -32,6 +30,7 @@ def include_name(name, type_, parent_names):  # noqa: ANN001, ANN201
     if type_ == "table" and name is not None:
         return not name.startswith(_EXCLUDED_PREFIXES)
     return True
+
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -78,9 +77,7 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata, include_name=include_name
-        )
+        context.configure(connection=connection, target_metadata=target_metadata, include_name=include_name)
 
         with context.begin_transaction():
             context.run_migrations()

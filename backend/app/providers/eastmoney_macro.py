@@ -32,8 +32,13 @@ _SPEC: dict[str, dict[str, Any]] = {
     "ppi": {"report": "RPT_ECONOMY_PPI", "field": "BASE_SAME", "unit": "%", "vtype": "yoy", "lag_days": 45},
     "pmi": {"report": "RPT_ECONOMY_PMI", "field": "MAKE_INDEX", "unit": "点", "vtype": "absolute", "lag_days": 32},
     "gdp": {"report": "RPT_ECONOMY_GDP", "field": "SUM_SAME", "unit": "%", "vtype": "yoy", "lag_days": 50},
-    "m2": {"report": "RPT_ECONOMY_CURRENCY_SUPPLY", "field": "BASIC_CURRENCY_SAME",
-           "unit": "%", "vtype": "yoy", "lag_days": 50},
+    "m2": {
+        "report": "RPT_ECONOMY_CURRENCY_SUPPLY",
+        "field": "BASIC_CURRENCY_SAME",
+        "unit": "%",
+        "vtype": "yoy",
+        "lag_days": 50,
+    },
 }
 
 
@@ -65,11 +70,17 @@ def parse_datacenter(payload: dict[str, Any], spec: dict[str, Any]) -> list[Macr
         except (ValueError, TypeError):
             value = None
         release_at = _estimate_release_at(report_date, spec["lag_days"])
-        out.append(MacroObservationDTO(
-            observation_period=period, release_at=release_at, value=value, unit=spec["unit"],
-            revision_hash=_revision_hash(period, value), raw=dict(row),
-            data_gap=None if release_at else "报告期解析失败",
-        ))
+        out.append(
+            MacroObservationDTO(
+                observation_period=period,
+                release_at=release_at,
+                value=value,
+                unit=spec["unit"],
+                revision_hash=_revision_hash(period, value),
+                raw=dict(row),
+                data_gap=None if release_at else "报告期解析失败",
+            )
+        )
     return out
 
 

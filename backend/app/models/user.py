@@ -1,4 +1,4 @@
-"""用户体系：users / sessions / invite_codes / user_llm_configs（方案 §4.2）。
+"""用户体系：users / sessions / invite_codes / llm_profiles / llm_agent_routes。
 
 鉴权用数据库 session（可撤销，Review R6）；密码 argon2（argon2-cffi）；
 邀请码存摘要、单次使用；BYOK key 加密存储（Fernet，方案 §9.6）。
@@ -7,7 +7,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, String, Text, UniqueConstraint, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base, TimestampMixin, uuid_pk
@@ -53,16 +53,43 @@ class InviteCode(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
 
-class UserLlmConfig(Base, TimestampMixin):
-    """BYOK：每用户 LLM 配置。api_key_ciphertext 为 Fernet 密文，绝不明文（方案 §9.6）。"""
+class LlmProfile(Base, TimestampMixin):
+    """一个可复用的 BYOK 模型配置；同一用户可保存多个 API Key/模型。"""
 
-    __tablename__ = "user_llm_configs"
+    __tablename__ = "llm_profiles"
+    __table_args__ = (
+        UniqueConstraint("user_id", "name", name="uq_llm_profile_user_name"),
+        Index(
+            "uq_llm_profiles_one_default_per_user",
+            "user_id",
+            unique=True,
+            postgresql_where=text("is_default"),
+        ),
+    )
 
-    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    id: Mapped[uuid.UUID] = uuid_pk()
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(64))
     api_key_ciphertext: Mapped[str] = mapped_column(Text)
     api_url: Mapped[str] = mapped_column(Text)
     model: Mapped[str] = mapped_column(String(128))
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_default: Mapped[bool] = mapped_column(Boolean, default=False)
     key_version: Mapped[int] = mapped_column(Integer, default=1)  # 预留轮换（方案 §16）
+
+
+class LlmAgentRoute(Base, TimestampMixin):
+    """把一个用途/Agent 角色路由到某个模型配置。未配置的角色使用默认配置。"""
+
+    __tablename__ = "llm_agent_routes"
+    __table_args__ = (UniqueConstraint("user_id", "purpose", "role", name="uq_llm_route_user_purpose_role"),)
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    purpose: Mapped[str] = mapped_column(String(32))
+    role: Mapped[str] = mapped_column(String(32))
+    profile_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("llm_profiles.id", ondelete="CASCADE"), index=True)
+    temperature: Mapped[float] = mapped_column(Float, default=0.3)
 
 
 class RateLimitBucket(Base):

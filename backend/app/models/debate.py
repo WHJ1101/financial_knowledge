@@ -8,7 +8,7 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import BigInteger, DateTime, ForeignKey, Index, Integer, String, Text, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -17,12 +17,26 @@ from app.models.base import Base
 
 class Debate(Base):
     __tablename__ = "debates"
+    __table_args__ = (
+        Index(
+            "uq_debates_owner_instrument_active",
+            "owner_id",
+            "instrument_id",
+            unique=True,
+            postgresql_where=text("status IN ('queued', 'running')"),
+        ),
+    )
 
     id: Mapped[str] = mapped_column(String(32), primary_key=True)  # ULID
     owner_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), index=True)
     execution_owner_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))  # BYOK 执行身份
     instrument_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("instruments.id"), index=True)
     graph_thread_id: Mapped[str] = mapped_column(String(128), unique=True)  # LangGraph 线程，服务端生成
+    horizon: Mapped[str] = mapped_column(String(16), default="swing")
+    question: Mapped[str | None] = mapped_column(Text, nullable=True)
+    queue_job_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True, index=True)
+    attempt: Mapped[int] = mapped_column(Integer, default=0)
+    model_assignments: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
     status: Mapped[str] = mapped_column(String(16), default="queued")  # queued|running|done|failed|canceled
     progress: Mapped[int] = mapped_column(Integer, default=0)
     stage: Mapped[str | None] = mapped_column(String(32), nullable=True)
@@ -34,4 +48,5 @@ class Debate(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    cancel_requested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))

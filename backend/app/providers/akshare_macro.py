@@ -60,11 +60,17 @@ def parse_jin10(records: list[dict[str, Any]], unit: str) -> list[MacroObservati
         except ValueError:
             release_at = None
 
-        out.append(MacroObservationDTO(
-            observation_period=date_str, release_at=release_at, value=value, unit=unit,
-            revision_hash=_revision_hash(date_str, value), raw=dict(rec),
-            data_gap=None if (release_at and value is not None) else "未发布或日期解析失败",
-        ))
+        out.append(
+            MacroObservationDTO(
+                observation_period=date_str,
+                release_at=release_at,
+                value=value,
+                unit=unit,
+                revision_hash=_revision_hash(date_str, value),
+                raw=dict(rec),
+                data_gap=None if (release_at and value is not None) else "未发布或日期解析失败",
+            )
+        )
     return out
 
 
@@ -101,10 +107,15 @@ def to_orm_rows(snapshot: MacroSeriesSnapshot, series_id: str) -> list[dict[str,
     now = datetime.now(UTC)
     return [
         {
-            "series_id": series_id, "observation_period": obs.observation_period,
-            "release_at": obs.release_at, "value": obs.value, "unit": obs.unit,
-            "source": snapshot.ref.source, "retrieved_at": now,
-            "revision_hash": obs.revision_hash, "raw_payload": obs.raw,
+            "series_id": series_id,
+            "observation_period": obs.observation_period,
+            "release_at": obs.release_at,
+            "value": obs.value,
+            "unit": obs.unit,
+            "source": snapshot.ref.source,
+            "retrieved_at": now,
+            "revision_hash": obs.revision_hash,
+            "raw_payload": obs.raw,
         }
         for obs in snapshot.observations
     ]

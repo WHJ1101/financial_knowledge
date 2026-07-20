@@ -2,6 +2,14 @@
 
 from __future__ import annotations
 
+import asyncio
+from datetime import UTC, datetime
+from zoneinfo import ZoneInfo
+
+from sqlalchemy import delete
+
+from app.db import SessionLocal
+from app.models import CommunitySignal, DailyBar, Log, Setting
 from app.services.pressure import (
     build_status,
     compute_theme_pressure,
@@ -54,3 +62,42 @@ def test_compute_volume_ratio_no_nan():
     result = compute_theme_pressure(bars, config)
     assert result["composite"] is not None
     assert result["subScores"][0]["score"] is not None
+
+
+def test_pressure_monitor_persists_bars_crossing_and_summary(monkeypatch):
+    async def fake_fetch(secid: str):
+        return [{"date": "2026-07-16", "close": 100, "volume": 1000}]
+
+    async def fake_notify(_themes):
+        return {"ok": True, "count": 1}
+
+    theme = {
+        "id": "test-theme",
+        "name": "测试主题",
+        "market": "A股",
+        "secids": ["1.TEST"],
+        "date": "2026-07-16",
+        "composite": 75.0,
+        "crossing": "up-70",
+        "status": "压力抬升中",
+        "subScores": [{"label": "量比", "score": 80, "rawText": "1.5x"}],
+    }
+    monkeypatch.setattr("app.services.pressure_monitor._all_secids", lambda: ["1.TEST"])
+    monkeypatch.setattr("app.services.pressure_monitor._fetch_pressure_bars", fake_fetch)
+    monkeypatch.setattr("app.services.pressure_monitor.get_pressure_snapshot", lambda _session: [theme])
+    monkeypatch.setattr("app.providers.feishu.notify_pressure_crossings", fake_notify)
+
+    from app.services.pressure_monitor import run_pressure_monitor
+
+    signal_id = f"pressure-test-theme-{datetime.now(UTC).astimezone(ZoneInfo('Asia/Shanghai')).strftime('%Y-%m-%d')}"
+    with SessionLocal() as session:
+        result = asyncio.run(run_pressure_monitor(session))
+        assert result["signalsWritten"] == 1
+        assert session.get(DailyBar, ("1.TEST", "2026-07-16")) is not None
+        assert session.get(CommunitySignal, signal_id) is not None
+        assert session.get(Setting, "lastPressureRun").value["signalsWritten"] == 1
+        session.execute(delete(Log).where(Log.type == "pressure_monitor"))
+        session.execute(delete(CommunitySignal).where(CommunitySignal.id == signal_id))
+        session.execute(delete(DailyBar).where(DailyBar.secid == "1.TEST"))
+        session.execute(delete(Setting).where(Setting.key == "lastPressureRun"))
+        session.commit()

@@ -24,8 +24,15 @@ def admin_user():
     with SessionLocal() as s:
         s.execute(delete(RateLimitBucket))
         username = f"admin_{uuid.uuid4().hex[:8]}"
-        u = User(id=uuid.uuid4(), username=username, password_hash=hash_password("admin-pass-123"),
-                 role="superadmin", status="active", created_at=datetime.now(UTC), updated_at=datetime.now(UTC))
+        u = User(
+            id=uuid.uuid4(),
+            username=username,
+            password_hash=hash_password("admin-pass-123"),
+            role="superadmin",
+            status="active",
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
+        )
         s.add(u)
         s.commit()
         uid = u.id
@@ -51,6 +58,13 @@ def _csrf_headers(client: TestClient) -> dict:
     return {"X-CSRF-Token": client.cookies.get("fk_csrf"), "Origin": "http://localhost:5173"}
 
 
+def test_csrf_cookie_lifetime_matches_token_lifetime():
+    resp = TestClient(app).get("/api/v1/auth/csrf")
+
+    assert resp.status_code == 200
+    assert "Max-Age=86400" in resp.headers["set-cookie"]
+
+
 def test_login_success_and_me(admin_user):
     username, password, _ = admin_user
     client, headers = _client_with_csrf()
@@ -69,11 +83,43 @@ def test_login_wrong_password(admin_user):
     assert resp.status_code == 401
 
 
+def test_failed_logins_are_rate_limited_even_when_auth_rolls_back(admin_user):
+    username, _, _ = admin_user
+    client, headers = _client_with_csrf()
+    statuses = [
+        client.post(
+            "/api/v1/auth/login",
+            json={"username": username, "password": "wrong"},
+            headers=headers,
+        ).status_code
+        for _ in range(11)
+    ]
+    assert statuses[:10] == [401] * 10
+    assert statuses[10] == 429
+
+
 def test_login_without_csrf_rejected(admin_user):
     username, password, _ = admin_user
     client = TestClient(app)
     resp = client.post("/api/v1/auth/login", json={"username": username, "password": password})
     assert resp.status_code == 403
+
+
+@pytest.mark.parametrize(
+    "origin",
+    ["http://localhost:5173", "http://127.0.0.1:5173", "http://[::1]:5173"],
+)
+def test_local_dev_origins_pass_csrf_origin_check(admin_user, origin):
+    username, _, _ = admin_user
+    client = TestClient(app)
+    token = client.get("/api/v1/auth/csrf").json()["csrf_token"]
+    resp = client.post(
+        "/api/v1/auth/login",
+        json={"username": username, "password": "wrong-password"},
+        headers={"X-CSRF-Token": token, "Origin": origin},
+    )
+    # Origin 已通过，后续才会进入用户名/密码校验。
+    assert resp.status_code == 401, resp.text
 
 
 def test_disabled_user_cannot_access(admin_user):
@@ -101,17 +147,21 @@ def test_invite_register_flow(admin_user):
     # 新用户注册
     client2, headers2 = _client_with_csrf()
     new_username = f"member_{uuid.uuid4().hex[:8]}"
-    reg = client2.post("/api/v1/auth/register",
-                       json={"invite_code": code, "username": new_username, "password": "member-pass-123"},
-                       headers=headers2)
+    reg = client2.post(
+        "/api/v1/auth/register",
+        json={"invite_code": code, "username": new_username, "password": "member-pass-123"},
+        headers=headers2,
+    )
     assert reg.status_code == 200, reg.text
     assert reg.json()["user"]["role"] == "member"
 
     # 复用同一邀请码 → 拒绝
     client3, headers3 = _client_with_csrf()
-    reg2 = client3.post("/api/v1/auth/register",
-                        json={"invite_code": code, "username": f"x_{uuid.uuid4().hex[:8]}", "password": "pass-1234"},
-                        headers=headers3)
+    reg2 = client3.post(
+        "/api/v1/auth/register",
+        json={"invite_code": code, "username": f"x_{uuid.uuid4().hex[:8]}", "password": "pass-1234"},
+        headers=headers3,
+    )
     assert reg2.status_code == 400
 
     # 清理新用户（先删引用它的 invite_codes.used_by）
@@ -121,14 +171,52 @@ def test_invite_register_flow(admin_user):
         s.commit()
 
 
+def test_invite_can_be_revoked(admin_user):
+    username, password, uid = admin_user
+    client, headers = _client_with_csrf()
+    client.post("/api/v1/auth/login", json={"username": username, "password": password}, headers=headers)
+    created = client.post(
+        "/api/v1/invites",
+        json={"ttl_hours": 24, "hint": "revoke"},
+        headers=_csrf_headers(client),
+    )
+    assert created.status_code == 200
+    data = created.json()
+    revoked = client.post(f"/api/v1/invites/{data['id']}/revoke", headers=_csrf_headers(client))
+    assert revoked.status_code == 200
+    assert revoked.json()["revoked_at"] is not None
+
+    anonymous, anonymous_headers = _client_with_csrf()
+    registration = anonymous.post(
+        "/api/v1/auth/register",
+        json={
+            "invite_code": data["code"],
+            "username": f"member_{uuid.uuid4().hex[:8]}",
+            "password": "member-pass-123",
+        },
+        headers=anonymous_headers,
+    )
+    assert registration.status_code == 400
+    with SessionLocal() as session:
+        session.execute(delete(InviteCode).where(InviteCode.created_by == uid))
+        session.commit()
+
+
 def test_expired_invite_rejected(admin_user):
     _, _, uid = admin_user
     # 直接插一个已过期邀请码
     code_plain = "expired-code-xyz"  # noqa: S105 (测试固定值)
     with SessionLocal() as s:
-        s.add(InviteCode(id=uuid.uuid4(), code_hash=token_digest(code_plain), code_hint="exp",
-                         created_by=uid, expires_at=datetime.now(UTC) - timedelta(hours=1),
-                         created_at=datetime.now(UTC)))
+        s.add(
+            InviteCode(
+                id=uuid.uuid4(),
+                code_hash=token_digest(code_plain),
+                code_hint="exp",
+                created_by=uid,
+                expires_at=datetime.now(UTC) - timedelta(hours=1),
+                created_at=datetime.now(UTC),
+            )
+        )
         s.commit()
     client, headers = _client_with_csrf()
     reg = client.post(

@@ -27,9 +27,7 @@ def check_and_incr(session: Session, action: str, identifier: str) -> bool:
     """
     window_seconds, limit = _LIMITS[action]
     now = datetime.now(UTC)
-    window_start = datetime.fromtimestamp(
-        (int(now.timestamp()) // window_seconds) * window_seconds, tz=UTC
-    )
+    window_start = datetime.fromtimestamp((int(now.timestamp()) // window_seconds) * window_seconds, tz=UTC)
     expires_at = window_start + timedelta(seconds=window_seconds)
     key = _key_hash(f"{action}:{identifier}")
 
@@ -46,4 +44,6 @@ def check_and_incr(session: Session, action: str, identifier: str) -> bool:
         {"k": key, "a": action, "ws": window_start, "exp": expires_at},
     )
     count = row.scalar_one()
+    # 失败的登录/注册随后会抛异常；先独立提交限流桶，避免请求回滚把失败次数一并抹掉。
+    session.commit()
     return bool(count <= limit)

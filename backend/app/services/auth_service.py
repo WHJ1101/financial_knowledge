@@ -39,8 +39,12 @@ def login(session: Session, username: str, password: str) -> tuple[User, str]:
     now = datetime.now(UTC)
     session.add(
         UserSession(
-            id=uuid.uuid4(), user_id=user.id, token_hash=token_digest(token),
-            expires_at=now + SESSION_TTL, created_at=now, last_seen_at=now,
+            id=uuid.uuid4(),
+            user_id=user.id,
+            token_hash=token_digest(token),
+            expires_at=now + SESSION_TTL,
+            created_at=now,
+            last_seen_at=now,
         )
     )
     session.commit()
@@ -65,8 +69,13 @@ def register_with_invite(session: Session, invite_code: str, username: str, pass
 
     # 先建用户拿 id，再原子占用邀请码；占用失败则回滚
     user = User(
-        id=uuid.uuid4(), username=username, password_hash=hash_password(password),
-        role="member", status="active", created_at=now, updated_at=now,
+        id=uuid.uuid4(),
+        username=username,
+        password_hash=hash_password(password),
+        role="member",
+        status="active",
+        created_at=now,
+        updated_at=now,
     )
     session.add(user)
     session.flush()
@@ -93,8 +102,12 @@ def create_invite(session: Session, superadmin_id: uuid.UUID, ttl_hours: int, hi
     code = generate_token(24)
     now = datetime.now(UTC)
     invite = InviteCode(
-        id=uuid.uuid4(), code_hash=token_digest(code), code_hint=hint or code[:6],
-        created_by=superadmin_id, expires_at=now + timedelta(hours=ttl_hours), created_at=now,
+        id=uuid.uuid4(),
+        code_hash=token_digest(code),
+        code_hint=hint or code[:6],
+        created_by=superadmin_id,
+        expires_at=now + timedelta(hours=ttl_hours),
+        created_at=now,
     )
     session.add(invite)
     session.commit()

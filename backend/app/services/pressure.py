@@ -51,11 +51,14 @@ def compute_theme_pressure(bars: dict[str, list[Bar]], config: dict[str, Any]) -
     for item in sub_series:
         point = score_by_date(item["scores"])
         raw_point = raw_by_date(item["danger"])
-        sub_scores.append({
-            "key": item["key"], "label": item["label"],
-            "score": _round1(point["score"]) if point and point["score"] is not None else None,
-            "rawText": _describe_raw(item["sub"], raw_point["value"] if raw_point else None),
-        })
+        sub_scores.append(
+            {
+                "key": item["key"],
+                "label": item["label"],
+                "score": _round1(point["score"]) if point and point["score"] is not None else None,
+                "rawText": _describe_raw(item["sub"], raw_point["value"] if raw_point else None),
+            }
+        )
 
     volume_sub = next((s for s in sub_scores if s["key"] == config.get("volumeKey")), sub_scores[0])
 
@@ -64,8 +67,7 @@ def compute_theme_pressure(bars: dict[str, list[Bar]], config: dict[str, Any]) -
         "composite": _round1(latest["composite"]),
         "subScores": sub_scores,
         "series30": [
-            {"date": p["date"], "composite": _round1(p["composite"])}
-            for p in composite_series[-SERIES_POINTS:]
+            {"date": p["date"], "composite": _round1(p["composite"])} for p in composite_series[-SERIES_POINTS:]
         ],
         "status": build_status(composite_series, volume_sub.get("score") if volume_sub else None),
         "crossing": detect_crossing(composite_series),
@@ -207,8 +209,13 @@ def _describe_raw(sub: dict[str, Any], value: float | None) -> str:
 
 def _empty_result(config: dict[str, Any]) -> dict[str, Any]:
     return {
-        "date": None, "composite": None,
-        "subScores": [{"key": s["key"], "label": s["label"], "score": None, "rawText": "数据不足"}
-                      for s in (config.get("subs") or [])],
-        "series30": [], "status": "数据不足", "crossing": None,
+        "date": None,
+        "composite": None,
+        "subScores": [
+            {"key": s["key"], "label": s["label"], "score": None, "rawText": "数据不足"}
+            for s in (config.get("subs") or [])
+        ],
+        "series30": [],
+        "status": "数据不足",
+        "crossing": None,
     }

@@ -1,115 +1,76 @@
-# Financial Knowledge — 投研助手
+# 投研工作台 — Financial Knowledge
 
-个人 AI 投研工作台：沉淀定时任务、网页按钮和 Codex 对话产出的投研报告，并结合行情、自选股、持仓和历史知识库做决策辅助。
+小范围可信多用户的 AI 投研工作台：多角色辩论决策、行情/宏观/情绪四面证据、持仓与知识库管理。
+后端 Python（FastAPI + LangGraph），前端 React + TypeScript，数据 PostgreSQL。
 
-## 快速启动
+> 架构方案见 `.doc/投研工作台全栈重构技术方案.md`。
+
+## 技术栈
+
+| 层 | 技术 |
+|---|---|
+| 前端 | React + TypeScript + Vite + TanStack Query |
+| 后端 | FastAPI + SQLAlchemy 2.0（同步）+ psycopg2 |
+| Agent | LangGraph + langchain-openai（BYOK，各用户自带 key） |
+| 队列 | procrastinate（PG 任务队列 + 周期调度） |
+| 数据 | PostgreSQL 16 |
+| 数据源 | 东财行情/基本面/宏观、akshare 宏观（金十源） |
+| 部署 | Caddy(TLS) + init-db + api + worker + postgres |
+
+## 本地开发
 
 ```bash
+# 1. 起数据库
+docker compose -f docker-compose.dev.yml up -d postgres
+
+# 2. 后端
+cd backend
+uv sync
+cp .env.example .env          # 填 SESSION_SECRET / BYOK_MASTER_KEY / SUPERADMIN_PASSWORD 等
+uv run alembic upgrade head   # 建表
+uv run python -m scripts.import_sqlite   # 先 dry-run，核对快照和账本
+uv run python -m scripts.import_sqlite --apply --quarantine-orphans
+uv run python -m scripts.verify_migration
+uv run uvicorn app.main:app --reload      # API :8000
+uv run python -m app.worker               # worker（另开终端）
+
+# 3. 前端
+cd frontend
 npm install
-npm run migrate    # 首次运行：迁移 JSON 数据到 SQLite
-npm run dev        # 启动后端 + Vite 开发服务器
+npm run dev                   # :5173，/api 代理到后端
 ```
 
-生产模式：
+访问 `http://localhost:5173`，用 `.env` 里的超管账号登录。
+
+## 生产部署（Docker Compose）
 
 ```bash
-npm run build      # 构建前端
-npm start          # 启动后端（服务 dist/ 静态文件）
-```
-
-访问 `http://localhost:4173`（生产）或 `http://localhost:5173`（开发）。
-
-## 云端部署
-
-推荐用 Docker Compose 单机部署。代码进 Git，`data/` 作为服务器持久化目录挂载，不提交仓库。
-
-```bash
-cp .env.example .env
-# 编辑 .env：设置登录密码、会话密钥、导入 token、LLM key
+cp backend/.env.example .env
+# 编辑 .env：POSTGRES_PASSWORD / FK_DOMAIN / SESSION_SECRET / BYOK_MASTER_KEY /
+#            LANGGRAPH_AES_KEY / SUPERADMIN_PASSWORD
 docker compose up -d --build
 ```
 
-生产环境必须设置：
+五服务：一次性 `init-db` 完成迁移和队列表初始化，再启动 `caddy`（TLS + 静态 + 反代）、`api`、`worker`、`postgres`。
+Caddy 按 `FK_DOMAIN` 自动签发 Let's Encrypt 证书；postgres 不暴露公网端口。
 
-```bash
-FINANCE_KNOWLEDGE_AUTH_PASSWORD=...
-FINANCE_KNOWLEDGE_AUTH_SECRET=...
-FINANCE_KNOWLEDGE_IMPORT_TOKEN=...
-```
+## 多用户与 BYOK
 
-跨设备同步不是靠 Git，而是访问同一个云端实例。报告、持仓、任务和数据库都写入服务器 `data/`，建议定时备份该目录。
+- **邀请码注册**：仅超管在设置生成邀请码，成员凭码注册。
+- **BYOK**：每位成员可保存多个加密 LLM Profile（API Key、Endpoint、模型），并分别配置技术、基本面、宏观、情绪、多方、空方、裁判、风控八个 Agent；密钥仅掩码回显。
+- **数据归属**：行情/宏观/信号公共共享；持仓/自选/辩论按用户隔离，互不可见（超管亦然）。
 
-## Codex 报告入库
-
-Codex 或其他工具不要直接自动扫描聊天内容入库。需要显式调用导入入口：
-
-```bash
-FINANCE_KNOWLEDGE_BASE_URL=https://your-domain.example \
-FINANCE_KNOWLEDGE_IMPORT_TOKEN=... \
-npm run report:import -- report.json
-```
-
-`report.json` 可包含：
-
-```json
-{
-  "title": "半导体材料观察",
-  "topic": "锗、InP 与先进封装需求",
-  "type": "industry",
-  "summary": "一句话摘要",
-  "tags": ["产业链深度"],
-  "highlights": ["核心结论 1"],
-  "html": "<section><h2>正文</h2><p>...</p></section>"
-}
-```
-
-导入报告默认标记为“手动产出 / 对话入库”。
-
-## 架构
-
-```
-financial_knowledge/
-├── server/              # Node.js 后端
-│   ├── index.js         # HTTP server + 路由
-│   ├── routes/          # API 路由模块
-│   ├── services/        # SQLite、行情、调度器
-│   └── templates/       # HTML 报告模板
-├── src/                 # Preact 前端
-│   ├── pages/           # 7 个页面组件
-│   └── components/      # 通用组件
-├── lib/                 # 研究 pipeline
-├── data/                # 运行时数据目录，仅保留 .gitkeep
-└── vite.config.js
-```
-
-## 功能（7 页）
+## 核心功能
 
 | 页面 | 功能 |
 |------|------|
-| 今日 | 概览 + 发起调研 + 日更入口 + 报告列表 |
-| 知识库 | 全部报告浏览/搜索/筛选/标星/归档/删除 |
-| 信号源 | 社群与私域投研信号沉淀 |
-| 投资组合 | 自选股 + 持仓管理 + 指数/ETF 映射 |
-| 决策 | 每日决策指南生成 |
-| 任务 | 内置每日简报自动化配置 + 执行日志 |
-| 设置 | 数据源/模型/系统配置 |
-
-## 行情数据
-
-自动接入东方财富免费延迟行情，交易时间内 30 秒刷新。顶栏展示 A 股、港股、美股重点指数，投资组合页提供指数与 ETF 映射面板。
-
-## 研报生成
-
-支持模型调用（需配置环境变量）和本地数据源证据采集：
-
-```bash
-LLM_API_KEY='...' LLM_MODEL='gpt-4o-mini' npm start
-```
-
-本地数据源放入 `data/sources/*.json` 即可被 pipeline 自动采集。
+| 决策辩论 | 选标的、周期与问题 → 四面分析 → 多空开篇和交叉反驳 → 裁判裁决 → 独立风控（含模型审计、证伪条件、数据缺口） |
+| 投资组合 | 持仓、自选、趋势、组合分析与导出 |
+| 知识库 | 共享研报 + 私有报告，标星/归档/已读（个人态） |
+| 信号源 | 社群信号 + 个人确认/忽略 |
+| 设置 | 多 Profile BYOK、八 Agent 模型路由、邀请码管理 |
 
 ## 数据存储
 
-SQLite 数据库（`data/app.db`），使用 better-sqlite3 直接读写本地文件并开启 WAL 与外键约束。首次切换到新存储 Adapter 时会为已有 `app.db` 生成一次 `app.db.pre-better-sqlite3-*.bak` 备份；首次启动后仍可运行 `npm run migrate` 从旧 JSON 文件迁移。
-
-`data/` 中的报告、数据库、持仓、日志、数据源和个人配置都属于运行数据，不应提交 Git。云端部署时用磁盘挂载和备份保证跨设备访问。
+PostgreSQL 持久化在 `pgdata` 卷；报告 HTML 等运行数据在 `data/`（挂载，不提交 Git）。
+`.env`、密钥、持仓、数据库、报告 HTML 均不提交仓库。

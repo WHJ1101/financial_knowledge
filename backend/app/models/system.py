@@ -62,6 +62,8 @@ class Decision(Base):
     __tablename__ = "decisions"
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    owner_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    visibility: Mapped[str] = mapped_column(String(16), default="private")
     date: Mapped[str | None] = mapped_column(String(16), nullable=True)
     title: Mapped[str] = mapped_column(Text)
     summary: Mapped[str | None] = mapped_column(Text, nullable=True)

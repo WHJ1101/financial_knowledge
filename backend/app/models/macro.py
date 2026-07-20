@@ -34,9 +34,7 @@ class MacroSeries(Base, TimestampMixin):
 
 class MacroObservation(Base):
     __tablename__ = "macro_observations"
-    __table_args__ = (
-        UniqueConstraint("series_id", "observation_period", "revision_hash", name="uq_macro_obs"),
-    )
+    __table_args__ = (UniqueConstraint("series_id", "observation_period", "revision_hash", name="uq_macro_obs"),)
 
     id: Mapped[uuid.UUID] = uuid_pk()
     series_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("macro_series.id", ondelete="CASCADE"), index=True)

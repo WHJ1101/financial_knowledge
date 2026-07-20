@@ -11,6 +11,7 @@ import sys
 from procrastinate import App
 from procrastinate.contrib.sqlalchemy import SQLAlchemyPsycopg2Connector
 from sqlalchemy import text
+from sqlalchemy.engine import Connection
 
 from app.config import get_settings
 
@@ -26,8 +27,8 @@ def poc_noop(debate_id: str) -> None:  # 真实任务在 M8 落地；此处仅�
     pass
 
 
-def count_jobs(conn) -> int:
-    return conn.execute(text("SELECT count(*) FROM procrastinate_jobs WHERE task_name='poc_noop'")).scalar_one()
+def count_jobs(conn: Connection) -> int:
+    return int(conn.execute(text("SELECT count(*) FROM procrastinate_jobs WHERE task_name='poc_noop'")).scalar_one())
 
 
 def main() -> int:

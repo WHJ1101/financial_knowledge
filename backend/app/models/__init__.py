@@ -17,14 +17,15 @@ from app.models.market import (
 from app.models.portfolio import Position, WatchlistItem
 from app.models.report import Report, ReportAssetLink, UserReportState
 from app.models.system import AutomationTask, Decision, Log, Setting
-from app.models.user import InviteCode, RateLimitBucket, User, UserLlmConfig, UserSession
+from app.models.user import InviteCode, LlmAgentRoute, LlmProfile, RateLimitBucket, User, UserSession
 
 __all__ = [
     "Base",
     "User",
     "UserSession",
     "InviteCode",
-    "UserLlmConfig",
+    "LlmProfile",
+    "LlmAgentRoute",
     "RateLimitBucket",
     "Instrument",
     "WatchlistItem",
