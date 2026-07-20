@@ -1,0 +1,74 @@
+[project]
+name = "financial-knowledge-backend"
+version = "1.0.0"
+description = "投研工作台后端：FastAPI + LangGraph + PostgreSQL（多用户 + BYOK）"
+requires-python = ">=3.13"
+dependencies = [
+    # Web 框架
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.34.0",
+    "pydantic>=2.10.0",
+    "pydantic-settings>=2.7.0",
+    # 数据层：SQLAlchemy 同步 + psycopg2（procrastinate 同事务 defer 走 SQLAlchemyPsycopg2Connector，见方案 §4.7）
+    "sqlalchemy>=2.0.36",
+    "alembic>=1.14.0",
+    "psycopg2-binary>=2.9.10",
+    # procrastinate 3.x 核心硬依赖 psycopg3（import 时即加载），故 binary 绑定必装；
+    # 但同事务入队仍走 psycopg2 连接器（M0 实测结论，见方案 §4.7）
+    "psycopg[binary]>=3.2.0",
+    # 任务队列 + 调度（唯一队列，同事务入队走 SQLAlchemyPsycopg2Connector）
+    "procrastinate>=3.0.0",
+    # 外部 HTTP + 宏观数据
+    "httpx>=0.28.0",
+    "akshare>=1.15.0",
+    "exchange-calendars>=4.8.0",
+    # LLM 编排 + 检查点（加密 Serializer 需 pycryptodome）
+    "langchain-openai>=0.2.0",
+    "langgraph>=0.2.0",
+    "langgraph-checkpoint-postgres>=2.0.0",
+    "pycryptodome>=3.21.0",
+    # 安全：密码 argon2 / BYOK Fernet 加密 / CSRF token 签名
+    "argon2-cffi>=23.1.0",
+    "cryptography>=44.0.0",
+    "itsdangerous>=2.2.0",
+    # 证券 id
+    "python-ulid>=3.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.25.0",
+    "ruff>=0.9.0",
+    "mypy>=1.14.0",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+# B008：FastAPI 的 Depends()/Cookie()/Header() 作默认值是官方惯用法，非缺陷
+ignore = ["B008"]
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/*" = ["S105"]  # 迁移/PoC 脚本里的测试用固定串
+"app/services/report_template.py" = ["E501"]  # 内嵌报告 CSS 模板，长行不折行更可读
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+plugins = ["pydantic.mypy"]
+
+# 行情/交易日历三方库未发布 py.typed；只在 provider/calendar 边界使用。
+[[tool.mypy.overrides]]
+module = ["akshare.*", "exchange_calendars.*", "pandas.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.uv]
+package = false

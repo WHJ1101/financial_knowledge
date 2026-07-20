@@ -1,0 +1,25 @@
+# M0 阶段：仅起 postgres 供本地开发（api/worker/caddy 在后续里程碑补全）
+# 方案 §10.1 目标四服务：caddy + api + worker + postgres
+services:
+  postgres:
+    # 官方地址 postgres:16-alpine 拉取超时（国内网络），临时用公共代理；拉到本地后可改回
+    image: docker.m.daocloud.io/library/postgres:16-alpine
+    container_name: fk_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: fk
+      POSTGRES_PASSWORD: fk
+      POSTGRES_DB: financial_knowledge
+    ports:
+      # 仅本地开发暴露；生产不映射公网端口（方案 §10.3）
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - fk_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fk -d financial_knowledge"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  fk_pgdata:

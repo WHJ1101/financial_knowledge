@@ -1,0 +1,28 @@
+# 投研工作台 Caddy 配置（方案 §10/§11.1）
+# 职责唯一化：Caddy 独占前端静态 + 反代 /api；data/reports 不由 Caddy 暴露，
+# 报告内容只能经 FastAPI 的 /api/v1/reports/{id}/content 鉴权后访问（方案 §9.4）。
+
+{$FK_DOMAIN:localhost} {
+	# 自动 HTTPS：填真实域名时 Caddy 自动签发 Let's Encrypt 证书；localhost 用内部证书
+	encode gzip zstd
+
+	# API 反向代理到 FastAPI（同源 /api，避免跨域）
+	handle /api/* {
+		reverse_proxy api:8000
+	}
+
+	# 前端静态资源 + SPA fallback
+	handle {
+		root * /srv/dist
+		try_files {path} /index.html
+		file_server
+	}
+
+	# 安全响应头
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+}

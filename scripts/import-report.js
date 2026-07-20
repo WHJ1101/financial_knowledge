@@ -25,7 +25,7 @@ const token = process.env.FINANCE_KNOWLEDGE_IMPORT_TOKEN || process.env.REPORT_I
 const raw = inputPath === "-" ? await readStdin() : await readFile(inputPath, "utf8");
 const payload = JSON.parse(raw);
 
-const response = await fetch(`${baseUrl}/api/reports/import`, {
+const response = await fetch(`${baseUrl}/api/v1/reports/import`, {
   method: "POST",
   headers: {
     "content-type": "application/json",

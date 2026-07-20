@@ -1,0 +1,10 @@
+# 后端镜像构建排除（避免宿主机 macOS venv 覆盖容器 Linux venv）
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.env
+e2e_debate_sample.json
+data/
