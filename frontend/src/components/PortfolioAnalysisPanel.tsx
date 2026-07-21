@@ -1,7 +1,8 @@
 /** 组合分析面板：分布环形图 + 收益归因 + 健康度 + 底层主题穿透。 */
 import type { DistRow, PortfolioAnalysis } from "@/hooks/useMarket";
+import { GlassPanel } from "@/components/LiquidGlass";
 
-const COLORS = ["#9a6d24", "#2d6b43", "#a82f22", "#7c3aed", "#0891b2", "#b45309", "#64748b", "#be185d"];
+const COLORS = ["#9a6d24", "#536f50", "#a64b37", "#8d744d", "#6f7b65", "#b06f32", "#74695a", "#965b50"];
 
 function fmtMoney(v: number | null | undefined): string {
   if (v == null) return "暂无";
@@ -56,7 +57,7 @@ function DistributionCard({
   centerLabel: string;
 }) {
   return (
-    <section className="panel analysis-card">
+    <GlassPanel as="section" tone="data" className="analysis-card">
       <div className="analysis-card-head">
         <h3>{title}</h3>
         <p className="muted">{subtitle}</p>
@@ -78,14 +79,14 @@ function DistributionCard({
           )}
         </div>
       </div>
-    </section>
+    </GlassPanel>
   );
 }
 
 function AttributionCard({ rows }: { rows: PortfolioAnalysis["analysis"]["pnlRows"] }) {
   const max = Math.max(1, ...rows.map((r) => Math.abs(r.value)));
   return (
-    <section className="panel analysis-card">
+    <GlassPanel as="section" tone="data" className="analysis-card">
       <div className="analysis-card-head">
         <h3>收益归因</h3>
         <p className="muted">按持仓浮动盈亏贡献排序</p>
@@ -109,13 +110,13 @@ function AttributionCard({ rows }: { rows: PortfolioAnalysis["analysis"]["pnlRow
           <div className="muted">暂无可归因的盈亏数据</div>
         )}
       </div>
-    </section>
+    </GlassPanel>
   );
 }
 
 function HealthCard({ a }: { a: PortfolioAnalysis["analysis"] }) {
   return (
-    <section className="panel analysis-card">
+    <GlassPanel as="section" tone="data" className="analysis-card">
       <div className="analysis-card-head">
         <h3>仓位健康度</h3>
         <p className="muted">集中度、数据覆盖和风险暴露</p>
@@ -146,13 +147,13 @@ function HealthCard({ a }: { a: PortfolioAnalysis["analysis"] }) {
           </span>
         ))}
       </div>
-    </section>
+    </GlassPanel>
   );
 }
 
 function ThemeCard({ a }: { a: PortfolioAnalysis["analysis"] }) {
   return (
-    <section className="panel analysis-card">
+    <GlassPanel as="section" tone="data" className="analysis-card">
       <div className="analysis-card-head">
         <h3>底层主题暴露</h3>
         <p className="muted">规则估算，基金底仓穿透待接入 · 识别覆盖 {fmtPct(a.themeCoverage)}</p>
@@ -179,7 +180,7 @@ function ThemeCard({ a }: { a: PortfolioAnalysis["analysis"] }) {
           <div className="muted">暂无主题暴露数据</div>
         )}
       </div>
-    </section>
+    </GlassPanel>
   );
 }
 

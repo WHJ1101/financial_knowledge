@@ -1,6 +1,7 @@
 /** 任务自动化页（超管）：全局开关 + 内置任务 + 执行日志。 */
 import { useState } from "react";
 import { ApiError } from "@/api/client";
+import { GlassPanel } from "@/components/LiquidGlass";
 import { useRunDaily, useStatus } from "@/hooks/useStatus";
 import {
   useLogs,
@@ -122,7 +123,7 @@ function TaskList({ tasks, setNote }: { tasks: AutomationTask[]; setNote: (note:
   return (
     <div className="task-grid">
       {tasks.map((t) => (
-        <article key={t.id} className="panel task-card">
+        <GlassPanel as="article" tone="data" interactive key={t.id} className="task-card">
           <div className="task-card-head">
             <h3>{t.name}</h3>
             <span className={t.executable && t.enabled ? "badge badge-on" : "badge badge-neutral"}>
@@ -183,7 +184,7 @@ function TaskList({ tasks, setNote }: { tasks: AutomationTask[]; setNote: (note:
               </button>
             </div>
           )}
-        </article>
+        </GlassPanel>
       ))}
     </div>
   );
@@ -200,7 +201,7 @@ function LogList() {
   const visible = logs.data.slice((page - 1) * pageSize, page * pageSize);
   return (
     <>
-      <div className="log-list panel">
+      <GlassPanel tone="data" className="log-list">
         {visible.map((l) => (
           <div key={l.id} className="log-item">
             <span className="log-time muted">{l.localTime}</span>
@@ -208,7 +209,7 @@ function LogList() {
             <span className="log-msg">{l.message}</span>
           </div>
         ))}
-      </div>
+      </GlassPanel>
       <nav className="pagination" aria-label="日志分页">
         <button className="ghost-btn" disabled={page <= 1} onClick={() => setPage((value) => value - 1)}>上一页</button>
         <span>{page} / {pageCount}</span>

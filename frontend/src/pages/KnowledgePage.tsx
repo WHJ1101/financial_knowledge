@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ApiError } from "@/api/client";
+import { GlassPanel } from "@/components/LiquidGlass";
 import {
   useDeleteReport,
   useMarkRead,
@@ -186,7 +187,7 @@ function ReportCard({
   onDelete: () => void;
 }) {
   return (
-    <article className="panel report-card">
+    <GlassPanel as="article" tone="data" interactive className="report-card">
       <div className="report-card-head">
         <span className={r.visibility === "shared" ? "badge badge-neutral" : "badge badge-gap"}>
           {r.visibility === "shared" ? "共享" : "私有"}
@@ -224,6 +225,6 @@ function ReportCard({
           )}
         </div>
       </div>
-    </article>
+    </GlassPanel>
   );
 }

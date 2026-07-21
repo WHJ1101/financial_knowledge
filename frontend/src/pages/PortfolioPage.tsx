@@ -20,6 +20,7 @@ import { PortfolioTrendChart } from "@/components/PortfolioTrendChart";
 import { PortfolioAnalysisPanel } from "@/components/PortfolioAnalysisPanel";
 import { PositionDetail, WatchlistDetail } from "@/components/PortfolioDetailPanel";
 import { SearchField } from "@/components/SearchField";
+import { GlassPanel } from "@/components/LiquidGlass";
 
 type Tab = "positions" | "analysis" | "watchlist" | "etfs";
 type SortKey = "default" | "marketValue" | "pnlPct";
@@ -240,7 +241,7 @@ function PositionsTab() {
           }}
         />
       ) : (
-        <aside className="detail-panel panel detail-empty">选择一行查看分析详情</aside>
+        <GlassPanel as="aside" tone="data" className="detail-panel detail-empty">选择一行查看分析详情</GlassPanel>
       )}
     </div>
   );
@@ -341,7 +342,7 @@ function WatchlistTab() {
           }}
         />
       ) : (
-        <aside className="detail-panel panel detail-empty">选择一行查看分析详情</aside>
+        <GlassPanel as="aside" tone="data" className="detail-panel detail-empty">选择一行查看分析详情</GlassPanel>
       )}
     </div>
   );
@@ -356,7 +357,7 @@ function EtfsTab() {
   return (
     <div className="etf-grid">
       {rows.map((r) => (
-        <article className="panel etf-card" key={r.code}>
+        <GlassPanel as="article" tone="data" interactive className="etf-card" key={r.code}>
           <div className="etf-card-head">
             <h3>{r.name}</h3>
             <span className={`etf-pct ${String(r.changePct ?? "").startsWith("-") ? "down" : "up"}`}>
@@ -374,7 +375,7 @@ function EtfsTab() {
               ))}
             </div>
           </div>
-        </article>
+        </GlassPanel>
       ))}
     </div>
   );

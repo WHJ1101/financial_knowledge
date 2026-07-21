@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { ApiError } from "@/api/client";
+import { GlassPanel } from "@/components/LiquidGlass";
 import { useSession } from "@/hooks/useAuth";
 import { useSetSignalState, useSignals, useSyncSignals, type SignalView } from "@/hooks/useSignals";
 
@@ -148,7 +149,7 @@ function SignalRow({
   onSet: (s: SignalView["state"]) => void;
 }) {
   return (
-    <article className="panel signal-card">
+    <GlassPanel as="article" tone="data" interactive className="signal-card">
       <div className="signal-score">
         <strong>{signal.importance}</strong>
         <span>/5</span>
@@ -190,6 +191,6 @@ function SignalRow({
           忽略
         </button>
       </div>
-    </article>
+    </GlassPanel>
   );
 }

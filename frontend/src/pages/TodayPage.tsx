@@ -153,32 +153,44 @@ export function TodayPage() {
 
       <section className="stat-row" aria-label="今日概览" aria-busy={status.isLoading || undefined}>
         <GlassSurface className="stat-cell" pointerHighlight>
-          {status.isLoading
-            ? <GlassSkeleton variant="stat" />
-            : <span className="stat-num">{status.isSuccess ? (s?.todayUpdates ?? 0) : "暂无"}</span>}
-          <span className="muted">今日更新</span>
+          <span className="stat-mark" aria-hidden="true">更</span>
+          <span className="stat-content">
+            {status.isLoading
+              ? <GlassSkeleton variant="stat" />
+              : <span className="stat-num">{status.isSuccess ? (s?.todayUpdates ?? 0) : "暂无"}</span>}
+            <span className="muted">今日更新</span>
+          </span>
         </GlassSurface>
         <GlassSurface className="stat-cell" pointerHighlight>
-          {status.isLoading
-            ? <GlassSkeleton variant="stat" />
-            : <span className="stat-num">{status.isSuccess ? (s?.unreadCount ?? 0) : "暂无"}</span>}
-          <span className="muted">未读报告</span>
+          <span className="stat-mark" aria-hidden="true">读</span>
+          <span className="stat-content">
+            {status.isLoading
+              ? <GlassSkeleton variant="stat" />
+              : <span className="stat-num">{status.isSuccess ? (s?.unreadCount ?? 0) : "暂无"}</span>}
+            <span className="muted">未读报告</span>
+          </span>
         </GlassSurface>
         <GlassSurface className="stat-cell" pointerHighlight>
-          {status.isLoading
-            ? <GlassSkeleton variant="stat" />
-            : <span className="stat-num">{status.isSuccess ? (s?.reportCount ?? 0) : "暂无"}</span>}
-          <span className="muted">知识库总量</span>
+          <span className="stat-mark" aria-hidden="true">库</span>
+          <span className="stat-content">
+            {status.isLoading
+              ? <GlassSkeleton variant="stat" />
+              : <span className="stat-num">{status.isSuccess ? (s?.reportCount ?? 0) : "暂无"}</span>}
+            <span className="muted">知识库总量</span>
+          </span>
         </GlassSurface>
         <GlassSurface className="stat-cell stat-cell-status" pointerHighlight>
-          {status.isLoading
-            ? <GlassSkeleton variant="stat" />
-            : (
-              <StatusIndicator
-                tone={status.isError ? "warning" : s?.llm.configured ? "success" : "warning"}
-                label={status.isError ? "模型状态不可用" : s?.llm.configured ? "模型已配置" : "未配置模型"}
-              />
-            )}
+          <span className="stat-mark" aria-hidden="true">模</span>
+          <span className="stat-content stat-content-status">
+            {status.isLoading
+              ? <GlassSkeleton variant="stat" />
+              : (
+                <StatusIndicator
+                  tone={status.isError ? "warning" : s?.llm.configured ? "success" : "warning"}
+                  label={status.isError ? "模型状态不可用" : s?.llm.configured ? "模型已配置" : "未配置模型"}
+                />
+              )}
+          </span>
         </GlassSurface>
       </section>
 

@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { api, ApiError } from "@/api/client";
 import { useDeleteReport, useMarkRead, useReport } from "@/hooks/useReports";
-import { applyReportReaderTheme } from "@/styles/reportFrameTheme";
+import { GlassPanel } from "@/components/LiquidGlass";
+import { applyReportReaderTheme, type ReportReaderTheme } from "@/styles/reportFrameTheme";
 
 interface AssetLink {
   id: string;
@@ -10,6 +11,10 @@ interface AssetLink {
   assetName: string;
   assetMarket: string;
   relation: string;
+}
+
+function resolvedReaderTheme(): ReportReaderTheme {
+  return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
 }
 
 export function ReportReaderPage() {
@@ -29,7 +34,20 @@ export function ReportReaderPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [frameHeight, setFrameHeight] = useState(900);
-  const themedHtml = useMemo(() => (html === null ? null : applyReportReaderTheme(html)), [html]);
+  const [readerTheme, setReaderTheme] = useState<ReportReaderTheme>(resolvedReaderTheme);
+  const themedHtml = useMemo(
+    () => (html === null ? null : applyReportReaderTheme(html, readerTheme)),
+    [html, readerTheme],
+  );
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const syncTheme = () => setReaderTheme(resolvedReaderTheme());
+    syncTheme();
+    const observer = new MutationObserver(syncTheme);
+    observer.observe(root, { attributes: true, attributeFilter: ["data-theme"] });
+    return () => observer.disconnect();
+  }, []);
 
   const refreshAssets = () => {
     setAssetError(null);
@@ -126,7 +144,7 @@ export function ReportReaderPage() {
       {actionError && <div className="login-error" role="alert">{actionError}</div>}
 
       {(assets.length > 0 || editingAssets) && (
-        <section className="panel reader-asset-panel">
+        <GlassPanel as="section" tone="control" className="reader-asset-panel">
           <div className="reader-assets">
             <span className="muted">关联标的</span>
             {assets.map((asset) => (
@@ -156,7 +174,7 @@ export function ReportReaderPage() {
             </form>
           )}
           {assetError && <div className="login-error" role="alert">{assetError}</div>}
-        </section>
+        </GlassPanel>
       )}
 
       {(error || metadata.isError) && (

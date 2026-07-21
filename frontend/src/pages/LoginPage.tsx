@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { ApiError } from "@/api/client";
+import { GlassPanel } from "@/components/LiquidGlass";
 import { useLogin, useSession } from "@/hooks/useAuth";
 
 /** 登录页（方案 §8.2）。延续原 Preact 版视觉：居中卡片 + 品牌标。 */
@@ -26,7 +27,7 @@ export function LoginPage() {
 
   return (
     <div className="login-page">
-      <div className="login-panel panel">
+      <GlassPanel className="login-panel">
         <div className="login-brand">
           投研工作台
           <span>Financial Knowledge · 多角色辩论决策</span>
@@ -59,7 +60,7 @@ export function LoginPage() {
         <p className="login-foot">
           没有账号？<Link to="/register">使用管理员邀请码注册</Link>
         </p>
-      </div>
+      </GlassPanel>
     </div>
   );
 }

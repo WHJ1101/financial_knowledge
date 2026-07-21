@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { ApiError } from "@/api/client";
+import { GlassPanel } from "@/components/LiquidGlass";
 import { useRegister, useSession } from "@/hooks/useAuth";
 
 /** 注册页（方案 §8.2/§9.2）：邀请码 + 用户名 + 密码，仅凭有效邀请码可注册。 */
@@ -27,7 +28,7 @@ export function RegisterPage() {
 
   return (
     <div className="login-page">
-      <div className="login-panel panel">
+      <GlassPanel className="login-panel">
         <div className="login-brand">
           投研工作台
           <span>Financial Knowledge · 邀请注册</span>
@@ -65,7 +66,7 @@ export function RegisterPage() {
         <p className="login-foot">
           已有账号？<Link to="/login">返回登录</Link>
         </p>
-      </div>
+      </GlassPanel>
     </div>
   );
 }

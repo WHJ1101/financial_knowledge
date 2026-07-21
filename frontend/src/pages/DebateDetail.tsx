@@ -1,4 +1,5 @@
 import type { DebateReport, DebateView } from "@/hooks/useDebates";
+import { GlassPanel } from "@/components/LiquidGlass";
 
 const STAGE_LABEL: Record<string, string> = {
   queued: "排队中",
@@ -49,7 +50,7 @@ export function DebateDetail({
   const stalled = running && Number.isFinite(updatedAt) && Date.now() - updatedAt > 5 * 60_000;
 
   return (
-    <div className="panel debate-detail">
+    <GlassPanel className="debate-detail">
       <div className="debate-detail-head">
         <div>
           <span className={`status-dot status-${debate.status}`} />
@@ -96,7 +97,7 @@ export function DebateDetail({
       )}
 
       {debate.report && <ReportBody report={debate.report} />}
-    </div>
+    </GlassPanel>
   );
 }
 

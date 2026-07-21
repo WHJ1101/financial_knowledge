@@ -17,6 +17,38 @@ interface GlassSurfaceProps extends HTMLAttributes<HTMLDivElement> {
   pointerHighlight?: boolean;
 }
 
+type GlassPanelElement = "div" | "section" | "article" | "aside" | "form";
+
+interface GlassPanelProps extends HTMLAttributes<HTMLElement> {
+  as?: GlassPanelElement;
+  tone?: "panel" | "data" | "control";
+  interactive?: boolean;
+}
+
+/**
+ * 全站语义化玻璃面板。保留原有 panel 类作为稳定的样式与测试契约。
+ */
+export function GlassPanel({
+  as: Element = "div",
+  className,
+  tone = "panel",
+  interactive = false,
+  ...props
+}: GlassPanelProps) {
+  return (
+    <Element
+      {...props}
+      className={classes(
+        "panel",
+        "glass-panel",
+        `glass-panel-${tone}`,
+        interactive && "glass-panel-interactive",
+        className,
+      )}
+    />
+  );
+}
+
 /**
  * 轻量玻璃表面。指针高光只写 CSS 变量，不触发 React 重渲染。
  */

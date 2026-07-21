@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { ApiError } from "@/api/client";
+import { GlassPanel } from "@/components/LiquidGlass";
 import { useCreateInvite, useInvites, useRevokeInvite, useSession } from "@/hooks/useAuth";
 import {
   type LlmRoute,
@@ -130,7 +131,7 @@ export function SettingsPage() {
 
       <div className="settings-grid settings-grid-wide">
         <div className="settings-main">
-          <section className="panel settings-card">
+          <GlassPanel as="section" className="settings-card">
             <div className="section-heading">
               <div>
                 <h2>模型 Profile</h2>
@@ -248,9 +249,9 @@ export function SettingsPage() {
                 {create.isPending ? "保存中…" : "添加 Profile"}
               </button>
             </form>
-          </section>
+          </GlassPanel>
 
-          <section className="panel settings-card">
+          <GlassPanel as="section" className="settings-card">
             <div className="section-heading">
               <div>
                 <h2>辩论 Agent 路由</h2>
@@ -299,17 +300,17 @@ export function SettingsPage() {
             <button className="btn" onClick={onSaveRoutes} disabled={saveRoutes.isPending || enabledProfiles.length === 0}>
               {saveRoutes.isPending ? "保存中…" : "保存 Agent 路由"}
             </button>
-          </section>
+          </GlassPanel>
 
           {isSuperadmin && <InviteSettings />}
         </div>
 
-        <aside className="panel settings-note">
+        <GlassPanel as="aside" tone="data" className="settings-note">
           <h3>多模型调度</h3>
           <p>四名分析师并行工作，多空辩手进行开篇与交叉反驳，随后由裁判和风险审查员完成结论。</p>
           <p>每场辩论保存模型分配快照，后续切换配置不会改变历史报告的审计信息。</p>
           <p>停用正在使用的 Profile 前需先调整角色路由；删除 Profile 后，关联角色回到默认 Profile。</p>
-        </aside>
+        </GlassPanel>
       </div>
     </div>
   );
@@ -345,7 +346,7 @@ function InviteSettings() {
   };
 
   return (
-    <section className="panel settings-card">
+    <GlassPanel as="section" className="settings-card">
       <div className="section-heading"><div><h2>成员邀请码</h2><p className="muted">明文只在创建后显示一次</p></div></div>
       {newCode && (
         <div className="invite-code-result" role="status">
@@ -381,6 +382,6 @@ function InviteSettings() {
         {invites.data?.length === 0 && <p className="empty-copy">暂无邀请码</p>}
       </div>
       {revoke.error && <div className="login-error" role="alert">{errorText(revoke.error, "邀请码撤销失败")}</div>}
-    </section>
+    </GlassPanel>
   );
 }

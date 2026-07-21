@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ApiError } from "@/api/client";
+import { GlassPanel } from "@/components/LiquidGlass";
 import { useSession } from "@/hooks/useAuth";
 import {
   useCancelDebate,
@@ -120,7 +121,7 @@ export function DecisionsPage() {
       ) : (
         <div className="decision-layout">
           <aside className="decision-sidebar">
-            <form className="panel decision-launcher" onSubmit={onCreate}>
+            <GlassPanel as="form" tone="control" className="decision-launcher" onSubmit={onCreate}>
               <h2>发起辩论</h2>
               <label>
                 标的
@@ -164,9 +165,9 @@ export function DecisionsPage() {
                 {createDebate.isPending ? "创建中…" : "发起辩论"}
               </button>
               {createError && <div className="login-error" role="alert">{createError}</div>}
-            </form>
+            </GlassPanel>
 
-            <section className="panel debate-history">
+            <GlassPanel as="section" tone="data" className="debate-history">
               <div className="section-heading compact">
                 <h2>历史辩论</h2>
                 <span className="muted">{debates.data?.length ?? 0}</span>
@@ -194,7 +195,7 @@ export function DecisionsPage() {
                 ))}
               </ul>
               {debates.data?.length === 0 && !debates.isError && <p className="empty-copy">还没有辩论记录</p>}
-            </section>
+            </GlassPanel>
           </aside>
 
           <section className="decision-detail" aria-live="polite">
@@ -231,12 +232,12 @@ function LegacyArchive({ query }: { query: ReturnType<typeof useLegacyDecisions>
   return (
     <div className="legacy-decision-list">
       {query.data?.decisions.map((item) => (
-        <article className="panel legacy-decision-card" key={item.id}>
+        <GlassPanel as="article" tone="data" interactive className="legacy-decision-card" key={item.id}>
           <div className="section-heading compact"><h2>{item.title}</h2><time>{item.date}</time></div>
           {item.summary && <p>{item.summary}</p>}
           {item.action && <div className="legacy-action"><strong>行动建议</strong><p>{item.action}</p></div>}
           {item.market && <p className="muted">{item.market}</p>}
-        </article>
+        </GlassPanel>
       ))}
       {query.data?.decisions.length === 0 && <div className="panel empty-state">没有旧决策归档</div>}
     </div>

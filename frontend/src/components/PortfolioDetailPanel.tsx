@@ -5,6 +5,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ApiError } from "@/api/client";
+import { GlassPanel } from "@/components/LiquidGlass";
 import { useSession } from "@/hooks/useAuth";
 import type { AnalysisHolding } from "@/hooks/useMarket";
 import {
@@ -139,7 +140,7 @@ export function PositionDetail({
   const isManual = holding.quoteSource === "手动行情";
 
   return (
-    <aside className="detail-panel panel">
+    <GlassPanel as="aside" tone="data" className="detail-panel">
       <div className="detail-title">
         <h2>{holding.name}</h2>
         <p className="muted">
@@ -296,7 +297,7 @@ export function PositionDetail({
           {deleting ? "删除中…" : "删除持仓"}
         </button>
       </div>
-    </aside>
+    </GlassPanel>
   );
 }
 
@@ -314,7 +315,7 @@ export function WatchlistDetail({
   deleting?: boolean;
 }) {
   return (
-    <aside className="detail-panel panel">
+    <GlassPanel as="aside" tone="data" className="detail-panel">
       <div className="detail-title">
         <h2>{item.name || item.code}</h2>
         <p className="muted">
@@ -365,6 +366,6 @@ export function WatchlistDetail({
           {deleting ? "删除中…" : "删除自选"}
         </button>
       </div>
-    </aside>
+    </GlassPanel>
   );
 }

@@ -4,6 +4,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMarketSessions, useMarketSnapshot, type IndexLive } from "@/hooks/useMarket";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 function inferRegion(item: IndexLive): string {
   const code = (item.code || "").toUpperCase();
@@ -145,6 +146,7 @@ export function MarketTicker() {
             placeholder="搜索知识库"
           />
         </form>
+        <ThemeToggle />
         <div className="market-status">
           {sessionQuery.isError ? (
             <button className="market-status-retry text-button" onClick={() => sessionQuery.refetch()}>

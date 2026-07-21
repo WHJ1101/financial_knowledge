@@ -1,21 +1,40 @@
 /* ============================================================
-   设计令牌 · Warm Editorial Research
-   明亮纸张 / 暖金强调 / 深褐正文 / 克制的编辑层次
+   Design Tokens · Warm Champagne Research
+   页面采用 16px 面板、12px 内容卡、8px 控件的固定圆角层级。
    ============================================================ */
 :root {
-  --bg: #faf4e8;
-  --panel: #fffdfa;
-  --panel-soft: #f6ecda;
-  --ink: #211a10;
-  --ink-soft: #493f30;
-  --muted: #756752;
-  --line: #eadfc9;
-  --line-strong: #cfbd9b;
+  --page-bg: #eee7dc;
+  --page-bg-deep: #d8cdbd;
+  --surface-primary: rgba(249, 246, 240, 0.82);
+  --surface-secondary: rgba(237, 229, 218, 0.76);
+  --surface-solid: #f6f0e7;
 
-  --accent: #9b6817;
-  --accent-strong: #71450b;
-  --accent-wash: #f2dfb5;
-  --on-accent: #fffaf0;
+  --gold-primary: #ad7d37;
+  --gold-secondary: #c8a25f;
+  --gold-muted: #987d56;
+  --gold-highlight: #ead09c;
+  --gold-deep: #7d5625;
+  --text-primary: #241f18;
+  --text-secondary: #5f564a;
+  --text-tertiary: #887d70;
+  --border-subtle: rgba(125, 87, 40, 0.18);
+  --border-highlight: rgba(255, 241, 216, 0.76);
+  --shadow-warm: rgba(91, 66, 35, 0.14);
+
+  --bg: var(--page-bg);
+  --panel: var(--surface-solid);
+  --panel-soft: #e9dfd1;
+  --ink: var(--text-primary);
+  --ink-soft: var(--text-secondary);
+  --muted: var(--text-tertiary);
+  --line: #dcd0bf;
+  --line-strong: #bda783;
+
+  --accent: var(--gold-primary);
+  --accent-strong: var(--gold-deep);
+  --accent-hover: #906529;
+  --accent-wash: #ead8b6;
+  --on-accent: #fff9ed;
 
   /* A 股口径：红涨绿跌。语义色只表达行情与状态。 */
   --up: #b43c32;
@@ -28,27 +47,30 @@
   --amber-line: #e7d3a7;
   --amber-ink: #6f4a0b;
 
-  --radius: 10px;
-  --radius-sm: 6px;
-  --shadow-soft: 0 1px 2px rgba(87, 61, 27, 0.04), 0 12px 32px rgba(87, 61, 27, 0.045);
-  --shadow-hover: 0 3px 8px rgba(87, 61, 27, 0.065), 0 18px 44px rgba(87, 61, 27, 0.085);
-  --shadow-float: 0 22px 60px rgba(67, 43, 14, 0.14);
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow-soft: 0 2px 3px rgba(87, 61, 27, 0.035), 0 14px 34px rgba(87, 61, 27, 0.06);
+  --shadow-hover: 0 4px 8px rgba(87, 61, 27, 0.055), 0 20px 46px rgba(87, 61, 27, 0.09);
+  --shadow-float: 0 24px 64px var(--shadow-warm);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 
   /* Liquid Glass Web 近似：统一材质、模糊、圆角和反馈节奏。 */
-  --glass-bg-subtle: rgba(255, 250, 240, 0.56);
-  --glass-bg-control: rgba(255, 252, 246, 0.74);
-  --glass-bg-overlay: rgba(255, 253, 249, 0.92);
-  --glass-bg-data: rgba(255, 253, 249, 0.96);
-  --glass-border: rgba(255, 255, 255, 0.76);
-  --glass-border-strong: rgba(198, 164, 108, 0.48);
-  --glass-highlight: rgba(255, 255, 255, 0.6);
-  --glass-inner-stroke: rgba(198, 164, 108, 0.28);
-  --glass-shadow: 0 1px 1px rgba(109, 72, 20, 0.035), 0 18px 52px rgba(109, 72, 20, 0.085);
-  --glass-shadow-raised: 0 2px 4px rgba(109, 72, 20, 0.045), 0 24px 62px rgba(109, 72, 20, 0.115);
+  --glass-bg-subtle: rgba(244, 238, 229, 0.72);
+  --glass-bg-control: rgba(248, 244, 237, 0.84);
+  --glass-bg-overlay: rgba(248, 244, 237, 0.96);
+  --glass-bg-data: rgba(247, 243, 236, 0.94);
+  --glass-border: var(--border-subtle);
+  --glass-border-strong: rgba(143, 100, 42, 0.34);
+  --glass-highlight: var(--border-highlight);
+  --glass-highlight-side: rgba(255, 249, 237, 0.38);
+  --glass-inner-stroke: rgba(143, 100, 42, 0.13);
+  --glass-edge-falloff: rgba(105, 73, 30, 0.08);
+  --glass-shadow: 0 -1px 0 rgba(255, 250, 239, 0.42), 0 2px 4px rgba(91, 66, 35, 0.03), 0 16px 38px rgba(91, 66, 35, 0.08);
+  --glass-shadow-raised: 0 -1px 0 rgba(255, 250, 239, 0.52), 0 4px 7px rgba(91, 66, 35, 0.04), 0 22px 48px rgba(91, 66, 35, 0.11);
   --glass-blur-sm: 12px;
-  --glass-blur-md: 20px;
-  --glass-blur-lg: 28px;
+  --glass-blur-data: 10px;
+  --glass-blur-md: 22px;
+  --glass-blur-lg: 30px;
   --glass-radius-sm: 8px;
   --glass-radius-md: 12px;
   --glass-radius-lg: 16px;
@@ -57,28 +79,235 @@
   --motion-panel: 320ms;
   --motion-spring: cubic-bezier(0.16, 1, 0.3, 1);
 
+  /* 同一组空间坐标驱动亮色与暗色光场，只调整能量和表面着色。 */
+  --ambient-top-left: rgba(255, 252, 245, 0.72);
+  --ambient-top-right: rgba(255, 250, 239, 0.48);
+  --ambient-lower-left: rgba(170, 119, 47, 0.065);
+  --ambient-center: rgba(255, 251, 243, 0.24);
+  --ambient-line-primary: rgba(155, 107, 40, 0.055);
+  --ambient-line-secondary: rgba(188, 145, 74, 0.035);
+  --page-gradient-start: #f3eee6;
+  --page-gradient-middle: #e8dfd3;
+  --page-gradient-end: #d9cdbd;
+  --surface-sheen: rgba(255, 252, 244, 0.46);
+  --surface-sheen-soft: rgba(255, 252, 244, 0.2);
+  --surface-gold-wash: rgba(196, 151, 80, 0.08);
+  --surface-control-fill: rgba(249, 246, 240, 0.88);
+  --surface-row-fill: rgba(249, 246, 240, 0.72);
+  --focus-ring: rgba(173, 125, 55, 0.13);
+  --pointer-highlight: rgba(255, 250, 238, 0.42);
+  --sidebar-shadow: inset 0 1px 0 var(--glass-highlight), inset -1px 0 0 var(--glass-inner-stroke), 12px 0 44px rgba(105, 70, 19, 0.06);
+  --nav-shimmer: rgba(255, 255, 255, 0.5);
+  --nav-hover-fill: rgba(255, 253, 248, 0.42);
+  --nav-pill-start: rgba(255, 255, 255, 0.5);
+  --nav-pill-end: rgba(242, 223, 181, 0.34);
+  --nav-pill-fill: rgba(242, 223, 181, 0.42);
+  --nav-pill-shadow: inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 var(--glass-inner-stroke), 0 9px 22px rgba(111, 70, 11, 0.075);
+  --nav-rail-top: #c69234;
+  --nav-rail-bottom: var(--gold-primary);
+  --nav-rail-shadow: 0 0 8px rgba(155, 104, 23, 0.16);
+  --topbar-fill: rgba(238, 231, 220, 0.74);
+  --topbar-fill-scrolled: rgba(238, 231, 220, 0.92);
+  --topbar-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.38);
+  --topbar-shadow-scrolled: inset 0 -1px 0 var(--glass-inner-stroke), 0 14px 38px rgba(100, 65, 17, 0.075);
+  --toggle-track-shadow: inset 0 1px 3px rgba(67, 43, 14, 0.12);
+  --control-shadow: inset 0 1px 0 var(--glass-highlight), 0 5px 14px rgba(99, 62, 13, 0.055);
+  --control-shadow-hover: inset 0 1px 0 var(--glass-highlight), 0 9px 22px rgba(99, 62, 13, 0.09);
+  --control-shadow-focus: 0 0 0 4px var(--focus-ring), inset 0 1px 0 var(--glass-highlight), 0 8px 20px rgba(99, 62, 13, 0.075);
+  --control-shadow-disabled: inset 0 1px 0 rgba(255, 255, 255, 0.54);
+  --button-flow-highlight: rgba(255, 248, 226, 0.48);
+  --stat-mark-shadow: inset 0 1px 0 var(--glass-highlight), 0 7px 18px rgba(91, 66, 35, 0.08);
+  --skeleton-fill: rgba(205, 175, 122, 0.16);
+  --skeleton-shimmer: rgba(255, 249, 235, 0.66);
+  --local-ambient-one: rgba(117, 82, 32, 0.075);
+  --local-ambient-two: rgba(205, 151, 57, 0.065);
+  --local-ambient-three: rgba(255, 253, 247, 0.48);
+  --local-ambient-four: rgba(255, 255, 255, 0.22);
+  --composer-glint: rgba(255, 255, 255, 0.48);
+  --input-shadow: inset 0 1px 0 var(--glass-highlight), 0 4px 14px rgba(99, 62, 13, 0.04);
+  --panel-focus-border: rgba(184, 139, 65, 0.52);
+  --panel-focus-shadow: inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 var(--glass-inner-stroke), 0 22px 58px rgba(109, 72, 20, 0.115), 0 0 0 5px rgba(155, 104, 23, 0.055);
+  --data-inner-stroke: rgba(198, 164, 108, 0.22);
+  --data-divider: rgba(198, 164, 108, 0.34);
+  --metric-hover-fill: rgba(244, 230, 201, 0.42);
+  --metric-hover-highlight: rgba(255, 255, 255, 0.64);
+  --refresh-indicator: rgba(155, 104, 23, 0.58);
+  --card-hover-border: rgba(198, 164, 108, 0.58);
+  --card-hover-highlight: rgba(255, 255, 255, 0.72);
+  --report-hover-start: rgba(255, 255, 255, 0.5);
+  --report-hover-end: rgba(242, 223, 181, 0.18);
+  --report-hover-shadow: inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 rgba(198, 164, 108, 0.4), 0 9px 22px rgba(109, 72, 20, 0.08);
+  --shell-texture-mask: linear-gradient(to bottom, transparent 5%, rgba(0, 0, 0, 0.2) 28%, #000 56%, rgba(0, 0, 0, 0.58) 88%, transparent 100%);
+  --page-texture-mask: linear-gradient(to bottom, transparent 0, rgba(0, 0, 0, 0.72) 14%, #000 44%, rgba(0, 0, 0, 0.28) 78%, transparent 100%);
+  --boot-flow-edge: rgba(205, 175, 122, 0.16);
+  --boot-flow-center: rgba(255, 249, 235, 0.72);
+  --login-ambient: rgba(155, 104, 23, 0.1);
+  --ghost-shadow: 0 1px 2px rgba(87, 61, 27, 0.035);
+  --ghost-shadow-hover: 0 6px 16px rgba(87, 61, 27, 0.07);
+  --button-hover-border: rgba(155, 104, 23, 0.62);
+  --success-wave: rgba(106, 181, 139, 0.32);
+  --skeleton-border-strong: rgba(205, 175, 122, 0.22);
+  --skeleton-border-soft: rgba(205, 175, 122, 0.18);
+  --segment-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+
   --display: "Iowan Old Style", "Songti SC", "Noto Serif SC", Georgia, serif;
   --sans: "SF Pro Text", -apple-system, "PingFang SC", "Helvetica Neue", system-ui, sans-serif;
   --mono: "SF Mono", "JetBrains Mono", "Menlo", monospace;
 }
 
+:root[data-theme="dark"] {
+  --page-bg: #171511;
+  --page-bg-deep: #100f0d;
+  --surface-primary: rgba(39, 35, 29, 0.82);
+  --surface-secondary: rgba(49, 43, 34, 0.76);
+  --surface-solid: #211e19;
+
+  --gold-primary: #bd914f;
+  --gold-secondary: #a77b39;
+  --gold-muted: #967b55;
+  --gold-highlight: #d9ba82;
+  --gold-deep: #835c29;
+  --text-primary: #eee7da;
+  --text-secondary: #beb2a2;
+  --text-tertiary: #918575;
+  --border-subtle: rgba(219, 183, 122, 0.18);
+  --border-highlight: rgba(255, 232, 192, 0.1);
+  --shadow-warm: rgba(0, 0, 0, 0.38);
+
+  --bg: var(--page-bg);
+  --panel: var(--surface-solid);
+  --panel-soft: #2a251e;
+  --ink: var(--text-primary);
+  --ink-soft: var(--text-secondary);
+  --muted: var(--text-tertiary);
+  --line: #372e22;
+  --line-strong: #5b472c;
+
+  --accent: var(--gold-primary);
+  --accent-strong: var(--gold-highlight);
+  --accent-hover: #c9a060;
+  --accent-wash: rgba(133, 97, 38, 0.2);
+  --on-accent: #fff7e8;
+
+  --up: #dc6a61;
+  --down: #58a97d;
+  --up-wash: rgba(145, 52, 45, 0.2);
+  --up-line: rgba(220, 106, 97, 0.34);
+  --down-wash: rgba(52, 126, 86, 0.2);
+  --amber: #b28540;
+  --amber-wash: rgba(133, 97, 38, 0.2);
+  --amber-line: rgba(178, 133, 64, 0.34);
+  --amber-ink: #d6b276;
+
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.22), 0 16px 38px rgba(0, 0, 0, 0.2);
+  --shadow-hover: 0 3px 8px rgba(0, 0, 0, 0.28), 0 22px 50px rgba(0, 0, 0, 0.3);
+  --shadow-float: 0 24px 68px rgba(0, 0, 0, 0.46);
+
+  --glass-bg-subtle: rgba(35, 31, 26, 0.76);
+  --glass-bg-control: rgba(42, 37, 30, 0.84);
+  --glass-bg-overlay: rgba(35, 31, 26, 0.96);
+  --glass-bg-data: rgba(32, 29, 24, 0.96);
+  --glass-border: var(--border-subtle);
+  --glass-border-strong: rgba(196, 151, 80, 0.3);
+  --glass-highlight: var(--border-highlight);
+  --glass-highlight-side: rgba(255, 226, 177, 0.025);
+  --glass-inner-stroke: rgba(149, 105, 42, 0.16);
+  --glass-edge-falloff: rgba(0, 0, 0, 0.08);
+  --glass-shadow: 0 -1px 0 rgba(221, 180, 112, 0.035), 0 2px 3px rgba(0, 0, 0, 0.14), 0 14px 34px rgba(0, 0, 0, 0.2);
+  --glass-shadow-raised: 0 -1px 0 rgba(221, 180, 112, 0.05), 0 3px 5px rgba(0, 0, 0, 0.18), 0 18px 42px rgba(0, 0, 0, 0.26);
+
+  --ambient-top-left: rgba(220, 183, 119, 0.045);
+  --ambient-top-right: rgba(158, 116, 52, 0.055);
+  --ambient-lower-left: rgba(118, 82, 31, 0.045);
+  --ambient-center: rgba(255, 224, 170, 0.018);
+  --ambient-line-primary: rgba(151, 108, 47, 0.034);
+  --ambient-line-secondary: rgba(117, 82, 34, 0.022);
+  --page-gradient-start: #1c1914;
+  --page-gradient-middle: #15130f;
+  --page-gradient-end: #100f0d;
+  --surface-sheen: rgba(232, 195, 132, 0.055);
+  --surface-sheen-soft: rgba(232, 195, 132, 0.025);
+  --surface-gold-wash: rgba(165, 119, 54, 0.055);
+  --surface-control-fill: rgba(31, 28, 23, 0.9);
+  --surface-row-fill: rgba(34, 30, 25, 0.8);
+  --focus-ring: rgba(189, 145, 79, 0.16);
+  --pointer-highlight: rgba(221, 180, 112, 0.1);
+  --sidebar-shadow: inset 0 1px 0 var(--glass-highlight), inset -1px 0 0 var(--glass-inner-stroke), 14px 0 48px rgba(0, 0, 0, 0.24);
+  --nav-shimmer: rgba(214, 176, 111, 0.14);
+  --nav-hover-fill: rgba(137, 99, 40, 0.1);
+  --nav-pill-start: rgba(207, 166, 98, 0.1);
+  --nav-pill-end: rgba(86, 60, 25, 0.18);
+  --nav-pill-fill: rgba(71, 51, 24, 0.28);
+  --nav-pill-shadow: inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 var(--glass-inner-stroke), 0 11px 28px rgba(0, 0, 0, 0.24);
+  --nav-rail-top: #a77d3e;
+  --nav-rail-bottom: #71501f;
+  --nav-rail-shadow: 0 0 8px rgba(145, 103, 42, 0.12);
+  --topbar-fill: rgba(18, 16, 13, 0.82);
+  --topbar-fill-scrolled: rgba(18, 16, 13, 0.94);
+  --topbar-shadow: inset 0 -1px 0 rgba(203, 158, 88, 0.1);
+  --topbar-shadow-scrolled: inset 0 -1px 0 var(--glass-inner-stroke), 0 16px 42px rgba(0, 0, 0, 0.3);
+  --toggle-track-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.42);
+  --control-shadow: inset 0 1px 0 var(--glass-highlight), 0 6px 18px rgba(0, 0, 0, 0.22);
+  --control-shadow-hover: inset 0 1px 0 var(--glass-highlight), 0 10px 26px rgba(0, 0, 0, 0.3);
+  --control-shadow-focus: 0 0 0 4px var(--focus-ring), inset 0 1px 0 var(--glass-highlight), 0 8px 20px rgba(0, 0, 0, 0.28);
+  --control-shadow-disabled: inset 0 1px 0 rgba(255, 226, 177, 0.06);
+  --button-flow-highlight: rgba(194, 147, 75, 0.14);
+  --stat-mark-shadow: inset 0 1px 0 var(--glass-highlight), 0 7px 18px rgba(0, 0, 0, 0.22);
+  --skeleton-fill: rgba(126, 94, 48, 0.2);
+  --skeleton-shimmer: rgba(209, 166, 98, 0.16);
+  --local-ambient-one: rgba(0, 0, 0, 0.1);
+  --local-ambient-two: rgba(145, 103, 42, 0.035);
+  --local-ambient-three: rgba(194, 151, 82, 0.028);
+  --local-ambient-four: rgba(255, 226, 177, 0.012);
+  --composer-glint: rgba(206, 160, 88, 0.13);
+  --input-shadow: inset 0 1px 0 var(--glass-highlight), 0 5px 16px rgba(0, 0, 0, 0.18);
+  --panel-focus-border: rgba(176, 132, 66, 0.42);
+  --panel-focus-shadow: inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 var(--glass-inner-stroke), 0 24px 62px rgba(0, 0, 0, 0.34), 0 0 0 5px rgba(133, 97, 38, 0.08);
+  --data-inner-stroke: var(--glass-inner-stroke);
+  --data-divider: rgba(176, 132, 66, 0.22);
+  --metric-hover-fill: rgba(133, 97, 38, 0.14);
+  --metric-hover-highlight: rgba(255, 226, 177, 0.06);
+  --refresh-indicator: rgba(194, 147, 75, 0.42);
+  --card-hover-border: rgba(176, 132, 66, 0.34);
+  --card-hover-highlight: rgba(255, 226, 177, 0.08);
+  --report-hover-start: rgba(209, 165, 96, 0.055);
+  --report-hover-end: rgba(89, 62, 25, 0.03);
+  --report-hover-shadow: inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 var(--glass-inner-stroke), 0 11px 28px rgba(0, 0, 0, 0.24);
+  --boot-flow-edge: rgba(126, 94, 48, 0.2);
+  --boot-flow-center: rgba(209, 166, 98, 0.16);
+  --login-ambient: rgba(151, 108, 47, 0.08);
+  --ghost-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+  --ghost-shadow-hover: 0 6px 16px rgba(0, 0, 0, 0.24);
+  --button-hover-border: rgba(196, 151, 80, 0.48);
+  --success-wave: rgba(88, 169, 125, 0.28);
+  --skeleton-border-strong: rgba(176, 132, 66, 0.24);
+  --skeleton-border-soft: rgba(176, 132, 66, 0.18);
+  --segment-shadow: 0 1px 2px rgba(0, 0, 0, 0.24);
+}
+
 * { box-sizing: border-box; }
-html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; background: var(--bg); }
 body {
   margin: 0;
   min-width: 320px;
+  overflow-x: hidden;
+  overflow-x: clip;
   background:
-    radial-gradient(circle at 12% -5%, rgba(196, 143, 50, 0.11), transparent 32rem),
-    radial-gradient(circle at 82% 4%, rgba(236, 194, 116, 0.08), transparent 30rem),
-    radial-gradient(circle at 58% 48%, rgba(255, 253, 248, 0.76), transparent 36rem),
-    var(--bg);
+    radial-gradient(ellipse 56% 46% at 4% -8%, var(--ambient-top-left), transparent 74%),
+    radial-gradient(ellipse 78% 54% at 82% -8%, var(--ambient-top-right), transparent 72%),
+    radial-gradient(ellipse 54% 44% at -2% 84%, var(--ambient-lower-left), transparent 74%),
+    radial-gradient(ellipse 46% 34% at 58% 48%, var(--ambient-center), transparent 76%),
+    linear-gradient(155deg, var(--page-gradient-start) 0%, var(--page-gradient-middle) 54%, var(--page-gradient-end) 100%);
   background-attachment: fixed;
   color: var(--ink-soft);
   font-family: var(--sans);
   line-height: 1.6;
+  transition: background-color var(--motion-panel) var(--motion-spring), color var(--motion-normal) ease;
 }
 a { color: inherit; text-decoration: none; }
 button { font-family: inherit; }
+input, select, textarea { color: var(--ink); }
+input::placeholder, textarea::placeholder { color: var(--muted); opacity: 0.78; }
 
 h1, h2, h3, h4 { color: var(--ink); }
 
@@ -94,43 +323,92 @@ h1, h2, h3, h4 { color: var(--ink); }
 .down { color: var(--down); }
 .muted { color: var(--muted); }
 
-/* 卡片依靠轻层次与边线建立信息分组。 */
+/* 全站语义面板共享同一套厚玻璃材质，页面只决定内容密度。 */
 .panel {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-soft);
+  position: relative;
+  isolation: isolate;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--glass-radius-md);
+  background:
+    linear-gradient(145deg, var(--surface-sheen-soft), var(--surface-gold-wash)),
+    var(--glass-bg-data);
+  -webkit-backdrop-filter: blur(var(--glass-blur-data)) saturate(128%) contrast(1.015);
+  backdrop-filter: blur(var(--glass-blur-data)) saturate(128%) contrast(1.015);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    inset 1px 0 0 var(--glass-highlight-side),
+    inset 0 -1px 0 var(--glass-inner-stroke),
+    inset -1px 0 0 var(--glass-edge-falloff),
+    var(--glass-shadow);
 }
 
-/* 主操作使用单一暖金强调色。 */
+.glass-panel-control {
+  border-color: var(--glass-border-strong);
+  background:
+    linear-gradient(140deg, var(--surface-sheen-soft), var(--surface-gold-wash)),
+    var(--glass-bg-control);
+  -webkit-backdrop-filter: blur(var(--glass-blur-md)) saturate(138%) contrast(1.02);
+  backdrop-filter: blur(var(--glass-blur-md)) saturate(138%) contrast(1.02);
+}
+
+.glass-panel-data {
+  background:
+    linear-gradient(150deg, var(--surface-sheen-soft), var(--surface-gold-wash)),
+    var(--glass-bg-data);
+}
+
+.glass-panel-interactive {
+  transition:
+    border-color var(--motion-normal) ease,
+    box-shadow var(--motion-panel) var(--motion-spring),
+    transform var(--motion-normal) var(--motion-spring);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .glass-panel-interactive:hover {
+    border-color: var(--card-hover-border);
+    box-shadow:
+      inset 0 1px 0 var(--card-hover-highlight),
+      inset 0 -1px 0 var(--glass-inner-stroke),
+      var(--glass-shadow-raised);
+    transform: translateY(-2px);
+  }
+}
+
+/* 主操作与侧栏选中态共享同一层香槟金玻璃，依靠边框与字重区分动作层级。 */
 .btn {
   height: 40px;
   padding: 0 18px;
-  border: 1px solid var(--accent);
+  border: 1px solid var(--glass-border-strong);
   border-radius: var(--radius-sm);
-  background: var(--accent);
-  color: var(--on-accent);
+  background:
+    linear-gradient(135deg, var(--nav-pill-start), var(--nav-pill-end)),
+    var(--nav-pill-fill);
+  color: var(--accent-strong);
   font-weight: 600;
   font-size: 14px;
   cursor: pointer;
-  box-shadow: 0 7px 18px rgba(155, 104, 23, 0.16);
+  text-shadow: none;
+  box-shadow: var(--control-shadow);
   transition: background 0.22s var(--ease-out), border-color 0.22s var(--ease-out), box-shadow 0.22s var(--ease-out), transform 0.16s var(--ease-out);
 }
 .btn:hover {
-  background: var(--accent-strong);
-  border-color: var(--accent-strong);
-  box-shadow: 0 9px 24px rgba(155, 104, 23, 0.2);
+  border-color: var(--button-hover-border);
+  box-shadow: var(--control-shadow-hover);
   transform: translateY(-1px);
 }
-.btn:active { transform: translateY(1px) scale(0.98); box-shadow: 0 3px 10px rgba(155, 104, 23, 0.14); }
-.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn:active { transform: translateY(1px) scale(0.98); box-shadow: var(--ghost-shadow); }
+.btn:disabled { opacity: 0.46; cursor: not-allowed; transform: none; box-shadow: var(--control-shadow-disabled); }
 .btn-ghost {
-  background: var(--panel);
+  background:
+    linear-gradient(145deg, var(--surface-sheen-soft), transparent),
+    var(--glass-bg-control);
   color: var(--ink);
-  border-color: var(--line-strong);
-  box-shadow: none;
+  border-color: var(--glass-border-strong);
+  text-shadow: none;
+  box-shadow: var(--control-shadow);
 }
-.btn-ghost:hover { background: var(--panel-soft); border-color: var(--accent); box-shadow: none; }
+.btn-ghost:hover { background: var(--glass-bg-overlay); border-color: var(--accent); box-shadow: var(--control-shadow-hover); }
 
 .badge {
   display: inline-flex;

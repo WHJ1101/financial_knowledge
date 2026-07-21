@@ -13,6 +13,7 @@ import {
   YAxis,
 } from "recharts";
 import { usePortfolioHistory, type PortfolioPoint } from "@/hooks/useMarket";
+import { GlassPanel } from "@/components/LiquidGlass";
 
 type Metric = "marketValue" | "pnl" | "pnlPct";
 type Range = "6m" | "all";
@@ -51,7 +52,7 @@ export function PortfolioTrendChart() {
   const accent = metric === "marketValue" ? "var(--accent)" : "var(--up)";
 
   return (
-    <section className="trend-card">
+    <GlassPanel as="section" tone="data" className="trend-card">
       <header className="trend-head">
         <div>
           <h2>组合走势</h2>
@@ -117,7 +118,7 @@ export function PortfolioTrendChart() {
           <TrendFooter series={series} metric={metric} fmt={fmt} coverage={coverage} />
         </>
       )}
-    </section>
+    </GlassPanel>
   );
 }
 
