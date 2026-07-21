@@ -2,13 +2,57 @@
    Design Tokens · Warm Champagne Research
    页面采用 16px 面板、12px 内容卡、8px 控件的固定圆角层级。
    ============================================================ */
+
+/* ============================================================
+   调参地图
+
+   1. rgba() 最后一个数字是“不透明度”：
+      - 数值越小，背景越容易透过，玻璃越通透。
+      - 数值越大，卡片越接近实体表面，正文越稳定。
+
+   2. 最常调整的卡片参数：
+      - --glass-bg-control：操作卡和控件层。
+        影响发起调研、发起辩论、首页统计卡、输入框、搜索框。
+      - --glass-bg-data：内容卡和数据层。
+        影响知识库报告、任务卡、信号卡、组合分析、辩论详情、
+        首页压力卡和最近报告容器。
+      - --glass-bg-subtle：弱层级大表面。
+        主要影响侧边栏和首页弱强调统计卡。
+      - --glass-bg-overlay：浮层和聚焦层。
+        影响搜索下拉、Tooltip、Popover、聚焦输入框；建议保持较高不透明度。
+      - --surface-row-fill：卡片内部的列表行和二级小块。
+
+   3. 玻璃质感参数：
+      - --glass-blur-*：背景模糊强度，越大越磨砂，也越消耗 GPU。
+      - --glass-highlight / --glass-highlight-side：顶部、左侧折射高光。
+      - --glass-inner-stroke / --glass-edge-falloff：底部、右侧内边缘。
+      - --glass-shadow / --glass-shadow-raised：静止与 hover 阴影。
+
+   4. 页面区域入口：
+      - 整页背景：--page-background-image 是主背景图；
+        --page-gradient-* 是图片失败时的降级底色；--ambient-* 是图片上方的柔光。
+      - 侧边栏：--glass-bg-subtle、--sidebar-shadow、--nav-*。
+      - 顶部栏：--topbar-fill、--topbar-fill-scrolled、--topbar-shadow-*。
+      - 首页专用：--local-ambient-*、--composer-glint、--data-*、--report-*。
+      - 按钮与输入框：--glass-bg-control、--control-shadow-*、--focus-ring。
+
+   5. 亮色变量写在 :root；暗色同名覆盖写在 [data-theme="dark"]。
+      调整主题时建议同步修改两处同名变量，再分别切换亮色和暗色检查。
+   ============================================================ */
+
 :root {
+  /* ---------- 主题基底 ---------- */
+  /* page-bg 是 html 和不支持复杂背景时的底色；页面主体视觉主要由 page-gradient-* 控制。 */
   --page-bg: #eee7dc;
+  /* 深层备用底色，当前页面未直接引用，保留给降级或后续层级。 */
   --page-bg-deep: #d8cdbd;
+  /* 语义表面预留值，当前玻璃卡主要使用 glass-bg-*。 */
   --surface-primary: rgba(249, 246, 240, 0.82);
   --surface-secondary: rgba(237, 229, 218, 0.76);
+  /* 无 backdrop-filter、减少透明度模式及旧组件的实体表面。 */
   --surface-solid: #f6f0e7;
 
+  /* ---------- 品牌金色、正文和基础边线 ---------- */
   --gold-primary: #ad7d37;
   --gold-secondary: #c8a25f;
   --gold-muted: #987d56;
@@ -21,6 +65,8 @@
   --border-highlight: rgba(255, 241, 216, 0.76);
   --shadow-warm: rgba(91, 66, 35, 0.14);
 
+  /* ---------- 兼容旧样式的语义别名 ---------- */
+  /* panel / panel-soft 仍被少量旧控件和透明度降级样式使用。 */
   --bg: var(--page-bg);
   --panel: var(--surface-solid);
   --panel-soft: #e9dfd1;
@@ -30,9 +76,12 @@
   --line: #dcd0bf;
   --line-strong: #bda783;
 
+  /* ---------- 全局强调色 ---------- */
+  /* accent 用于普通金色强调；accent-strong 用于选中态和按钮文字。 */
   --accent: var(--gold-primary);
   --accent-strong: var(--gold-deep);
   --accent-hover: #906529;
+  /* 选中项、提示块、低强度金色底。 */
   --accent-wash: #ead8b6;
   --on-accent: #fff9ed;
 
@@ -47,6 +96,7 @@
   --amber-line: #e7d3a7;
   --amber-ink: #6f4a0b;
 
+  /* ---------- 通用圆角、阴影和缓动 ---------- */
   --radius: 12px;
   --radius-sm: 8px;
   --shadow-soft: 0 2px 3px rgba(87, 61, 27, 0.035), 0 14px 34px rgba(87, 61, 27, 0.06);
@@ -54,23 +104,29 @@
   --shadow-float: 0 24px 64px var(--shadow-warm);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 
-  /* Liquid Glass Web 近似：统一材质、模糊、圆角和反馈节奏。 */
-  --glass-bg-subtle: rgba(244, 238, 229, 0.72);
-  --glass-bg-control: rgba(248, 244, 237, 0.84);
-  --glass-bg-overlay: rgba(248, 244, 237, 0.96);
-  --glass-bg-data: rgba(247, 243, 236, 0.94);
+  /* ---------- Liquid Glass Web 近似：表面透明度 ---------- */
+  --glass-bg-subtle: rgba(244, 238, 229, 0.64); /* 侧边栏、弱层级统计卡。 */
+  --glass-bg-control: rgba(248, 244, 237, 0.42); /* 操作卡、统计卡、按钮、输入框。 */
+  --glass-bg-overlay: rgba(248, 244, 237, 0.91); /* 搜索下拉、Tooltip、聚焦控件。 */
+  --glass-bg-data: rgba(247, 243, 236, 0.42); /* 全站普通内容卡和数据卡。 */
+
+  /* ---------- Liquid Glass Web 近似：边缘折射 ---------- */
   --glass-border: var(--border-subtle);
   --glass-border-strong: rgba(143, 100, 42, 0.34);
-  --glass-highlight: var(--border-highlight);
-  --glass-highlight-side: rgba(255, 249, 237, 0.38);
-  --glass-inner-stroke: rgba(143, 100, 42, 0.13);
-  --glass-edge-falloff: rgba(105, 73, 30, 0.08);
+  --glass-highlight: var(--border-highlight); /* 顶边镜面高光。 */
+  --glass-highlight-side: rgba(255, 249, 237, 0.5); /* 左边折射高光。 */
+  --glass-inner-stroke: rgba(143, 100, 42, 0.13); /* 底部内描边。 */
+  --glass-edge-falloff: rgba(105, 73, 30, 0.08); /* 右边缘压暗。 */
+
+  /* ---------- Liquid Glass Web 近似：阴影和模糊 ---------- */
   --glass-shadow: 0 -1px 0 rgba(255, 250, 239, 0.42), 0 2px 4px rgba(91, 66, 35, 0.03), 0 16px 38px rgba(91, 66, 35, 0.08);
   --glass-shadow-raised: 0 -1px 0 rgba(255, 250, 239, 0.52), 0 4px 7px rgba(91, 66, 35, 0.04), 0 22px 48px rgba(91, 66, 35, 0.11);
-  --glass-blur-sm: 12px;
-  --glass-blur-data: 10px;
-  --glass-blur-md: 22px;
-  --glass-blur-lg: 30px;
+  --glass-blur-sm: 12px; /* 小按钮和输入框。 */
+  --glass-blur-data: 14px; /* 报告卡、任务卡、压力卡等数据表面。 */
+  --glass-blur-md: 22px; /* 操作面板、首页统计卡、顶部栏。 */
+  --glass-blur-lg: 30px; /* 侧边栏和浮层。 */
+
+  /* ---------- 统一尺寸和交互速度 ---------- */
   --glass-radius-sm: 8px;
   --glass-radius-md: 12px;
   --glass-radius-lg: 16px;
@@ -79,66 +135,93 @@
   --motion-panel: 320ms;
   --motion-spring: cubic-bezier(0.16, 1, 0.3, 1);
 
-  /* 同一组空间坐标驱动亮色与暗色光场，只调整能量和表面着色。 */
+  /* ---------- 全站背景光场 ---------- */
+  /* 亮色主背景图，只在 body 一层渲染；卡片内部不重复加载。 */
+  --page-background-image: url("/images/research-bg-light.jpg");
+  /* ambient-* 控制页面四个方向的柔光；alpha 越大，背景光越明显。 */
   --ambient-top-left: rgba(255, 252, 245, 0.72);
   --ambient-top-right: rgba(255, 250, 239, 0.48);
   --ambient-lower-left: rgba(170, 119, 47, 0.065);
   --ambient-center: rgba(255, 251, 243, 0.24);
+  /* 页面和侧栏后方的低对比金色流线。 */
   --ambient-line-primary: rgba(155, 107, 40, 0.055);
   --ambient-line-secondary: rgba(188, 145, 74, 0.035);
+  /* body 的主线性渐变，依次对应左上、中部和右下。 */
   --page-gradient-start: #f3eee6;
   --page-gradient-middle: #e8dfd3;
   --page-gradient-end: #d9cdbd;
-  --surface-sheen: rgba(255, 252, 244, 0.46);
-  --surface-sheen-soft: rgba(255, 252, 244, 0.2);
-  --surface-gold-wash: rgba(196, 151, 80, 0.08);
-  --surface-control-fill: rgba(249, 246, 240, 0.88);
-  --surface-row-fill: rgba(249, 246, 240, 0.72);
+
+  /* ---------- 卡片内部着色 ---------- */
+  --surface-sheen: rgba(255, 252, 244, 0.54); /* 卡片左上角局部高光。 */
+  --surface-sheen-soft: rgba(255, 252, 244, 0.1); /* 卡片整面的弱镜面渐变。 */
+  --surface-gold-wash: rgba(196, 151, 80, 0.065); /* 面板内的香槟金着色量。 */
+  --surface-control-fill: rgba(249, 246, 240, 0.76); /* 首页发起调研输入控件。 */
+  --surface-row-fill: rgba(249, 246, 240, 0.6); /* 列表行、内部数据块、最近报告行。 */
+
+  /* ---------- Focus 和指针反馈 ---------- */
   --focus-ring: rgba(173, 125, 55, 0.13);
   --pointer-highlight: rgba(255, 250, 238, 0.42);
+
+  /* ---------- 侧边栏和导航 ---------- */
   --sidebar-shadow: inset 0 1px 0 var(--glass-highlight), inset -1px 0 0 var(--glass-inner-stroke), 12px 0 44px rgba(105, 70, 19, 0.06);
-  --nav-shimmer: rgba(255, 255, 255, 0.5);
-  --nav-hover-fill: rgba(255, 253, 248, 0.42);
-  --nav-pill-start: rgba(255, 255, 255, 0.5);
-  --nav-pill-end: rgba(242, 223, 181, 0.34);
-  --nav-pill-fill: rgba(242, 223, 181, 0.42);
+  --nav-shimmer: rgba(255, 255, 255, 0.5); /* 导航 hover 时掠过的高光。 */
+  --nav-hover-fill: rgba(255, 253, 248, 0.42); /* 未选中导航 hover 底色。 */
+  --nav-pill-start: rgba(255, 255, 255, 0.5); /* 选中导航和主按钮渐变起点。 */
+  --nav-pill-end: rgba(242, 223, 181, 0.34); /* 选中导航和主按钮渐变终点。 */
+  --nav-pill-fill: rgba(242, 223, 181, 0.42); /* 选中导航和主按钮基础填充。 */
   --nav-pill-shadow: inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 var(--glass-inner-stroke), 0 9px 22px rgba(111, 70, 11, 0.075);
+  /* 选中导航左侧的 3px 金色竖线。 */
   --nav-rail-top: #c69234;
   --nav-rail-bottom: var(--gold-primary);
   --nav-rail-shadow: 0 0 8px rgba(155, 104, 23, 0.16);
-  --topbar-fill: rgba(238, 231, 220, 0.74);
-  --topbar-fill-scrolled: rgba(238, 231, 220, 0.92);
+
+  /* ---------- 顶部行情栏 ---------- */
+  --topbar-fill: rgba(238, 231, 220, 0.64);
+  --topbar-fill-scrolled: rgba(238, 231, 220, 0.84);
   --topbar-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.38);
   --topbar-shadow-scrolled: inset 0 -1px 0 var(--glass-inner-stroke), 0 14px 38px rgba(100, 65, 17, 0.075);
+
+  /* ---------- 按钮、输入框和切换控件 ---------- */
   --toggle-track-shadow: inset 0 1px 3px rgba(67, 43, 14, 0.12);
-  --control-shadow: inset 0 1px 0 var(--glass-highlight), 0 5px 14px rgba(99, 62, 13, 0.055);
-  --control-shadow-hover: inset 0 1px 0 var(--glass-highlight), 0 9px 22px rgba(99, 62, 13, 0.09);
-  --control-shadow-focus: 0 0 0 4px var(--focus-ring), inset 0 1px 0 var(--glass-highlight), 0 8px 20px rgba(99, 62, 13, 0.075);
+  --control-shadow: inset 0 1px 0 var(--glass-highlight), 0 5px 14px rgba(99, 62, 13, 0.055); /* 默认。 */
+  --control-shadow-hover: inset 0 1px 0 var(--glass-highlight), 0 9px 22px rgba(99, 62, 13, 0.09); /* hover。 */
+  --control-shadow-focus: 0 0 0 4px var(--focus-ring), inset 0 1px 0 var(--glass-highlight), 0 8px 20px rgba(99, 62, 13, 0.075); /* focus。 */
   --control-shadow-disabled: inset 0 1px 0 rgba(255, 255, 255, 0.54);
-  --button-flow-highlight: rgba(255, 248, 226, 0.48);
-  --stat-mark-shadow: inset 0 1px 0 var(--glass-highlight), 0 7px 18px rgba(91, 66, 35, 0.08);
+  --button-flow-highlight: rgba(255, 248, 226, 0.48); /* loading 按钮流动高光。 */
+  --stat-mark-shadow: inset 0 1px 0 var(--glass-highlight), 0 7px 18px rgba(91, 66, 35, 0.08); /* 首页统计图标底座。 */
+
+  /* ---------- Skeleton 加载状态 ---------- */
   --skeleton-fill: rgba(205, 175, 122, 0.16);
   --skeleton-shimmer: rgba(255, 249, 235, 0.66);
+
+  /* ---------- 首页局部光场和发起调研 ---------- */
+  /* local-ambient-* 只影响 today-page 内容区后方的四层柔光。 */
   --local-ambient-one: rgba(117, 82, 32, 0.075);
   --local-ambient-two: rgba(205, 151, 57, 0.065);
   --local-ambient-three: rgba(255, 253, 247, 0.48);
   --local-ambient-four: rgba(255, 255, 255, 0.22);
-  --composer-glint: rgba(255, 255, 255, 0.48);
+  --composer-glint: rgba(255, 255, 255, 0.48); /* 发起调研卡首次进入时的掠光。 */
   --input-shadow: inset 0 1px 0 var(--glass-highlight), 0 4px 14px rgba(99, 62, 13, 0.04);
-  --panel-focus-border: rgba(184, 139, 65, 0.52);
-  --panel-focus-shadow: inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 var(--glass-inner-stroke), 0 22px 58px rgba(109, 72, 20, 0.115), 0 0 0 5px rgba(155, 104, 23, 0.055);
-  --data-inner-stroke: rgba(198, 164, 108, 0.22);
-  --data-divider: rgba(198, 164, 108, 0.34);
-  --metric-hover-fill: rgba(244, 230, 201, 0.42);
-  --metric-hover-highlight: rgba(255, 255, 255, 0.64);
-  --refresh-indicator: rgba(155, 104, 23, 0.58);
-  --card-hover-border: rgba(198, 164, 108, 0.58);
-  --card-hover-highlight: rgba(255, 255, 255, 0.72);
-  --report-hover-start: rgba(255, 255, 255, 0.5);
-  --report-hover-end: rgba(242, 223, 181, 0.18);
-  --report-hover-shadow: inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 rgba(198, 164, 108, 0.4), 0 9px 22px rgba(109, 72, 20, 0.08);
+  --panel-focus-border: rgba(184, 139, 65, 0.52); /* 发起调研卡 focus-within 边框。 */
+  --panel-focus-shadow: inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 var(--glass-inner-stroke), 0 22px 58px rgba(109, 72, 20, 0.115), 0 0 0 5px rgba(155, 104, 23, 0.055); /* 发起调研卡 focus-within 阴影。 */
+
+  /* ---------- 首页压力卡和最近报告 ---------- */
+  --data-inner-stroke: rgba(198, 164, 108, 0.22); /* 压力卡底部内边缘。 */
+  --data-divider: rgba(198, 164, 108, 0.34); /* 压力指标列表分隔线。 */
+  --metric-hover-fill: rgba(244, 230, 201, 0.42); /* 压力指标和列表行 hover。 */
+  --metric-hover-highlight: rgba(255, 255, 255, 0.64); /* 指标 hover 内高光。 */
+  --refresh-indicator: rgba(155, 104, 23, 0.58); /* 同步压力时顶部进度线。 */
+  --card-hover-border: rgba(198, 164, 108, 0.58); /* 可交互卡片 hover 边框。 */
+  --card-hover-highlight: rgba(255, 255, 255, 0.72); /* 可交互卡片 hover 顶部高光。 */
+  --report-hover-start: rgba(255, 255, 255, 0.5); /* 最近报告行 hover 渐变起点。 */
+  --report-hover-end: rgba(242, 223, 181, 0.18); /* 最近报告行 hover 渐变终点。 */
+  --report-hover-shadow: inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 rgba(198, 164, 108, 0.4), 0 9px 22px rgba(109, 72, 20, 0.08); /* 最近报告行 hover 阴影。 */
+
+  /* ---------- 背景纹理遮罩 ---------- */
   --shell-texture-mask: linear-gradient(to bottom, transparent 5%, rgba(0, 0, 0, 0.2) 28%, #000 56%, rgba(0, 0, 0, 0.58) 88%, transparent 100%);
   --page-texture-mask: linear-gradient(to bottom, transparent 0, rgba(0, 0, 0, 0.72) 14%, #000 44%, rgba(0, 0, 0, 0.28) 78%, transparent 100%);
+
+  /* ---------- 启动、登录和次级交互 ---------- */
   --boot-flow-edge: rgba(205, 175, 122, 0.16);
   --boot-flow-center: rgba(255, 249, 235, 0.72);
   --login-ambient: rgba(155, 104, 23, 0.1);
@@ -150,18 +233,27 @@
   --skeleton-border-soft: rgba(205, 175, 122, 0.18);
   --segment-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 
+  /* ---------- 字体 ---------- */
   --display: "Iowan Old Style", "Songti SC", "Noto Serif SC", Georgia, serif;
   --sans: "SF Pro Text", -apple-system, "PingFang SC", "Helvetica Neue", system-ui, sans-serif;
   --mono: "SF Mono", "JetBrains Mono", "Menlo", monospace;
 }
 
 :root[data-theme="dark"] {
+  /* ==========================================================
+     暗色主题覆盖
+     变量用途与上方亮色同名变量完全一致；未在这里重写的尺寸、
+     模糊、圆角、动效和字体会继续继承 :root。
+     ========================================================== */
+
+  /* ---------- 暗色主题基底 ---------- */
   --page-bg: #171511;
   --page-bg-deep: #100f0d;
   --surface-primary: rgba(39, 35, 29, 0.82);
   --surface-secondary: rgba(49, 43, 34, 0.76);
   --surface-solid: #211e19;
 
+  /* ---------- 暗色品牌金、正文和边线 ---------- */
   --gold-primary: #bd914f;
   --gold-secondary: #a77b39;
   --gold-muted: #967b55;
@@ -171,9 +263,10 @@
   --text-secondary: #beb2a2;
   --text-tertiary: #918575;
   --border-subtle: rgba(219, 183, 122, 0.18);
-  --border-highlight: rgba(255, 232, 192, 0.1);
+  --border-highlight: rgba(255, 232, 192, 0.14);
   --shadow-warm: rgba(0, 0, 0, 0.38);
 
+  /* ---------- 暗色兼容别名 ---------- */
   --bg: var(--page-bg);
   --panel: var(--surface-solid);
   --panel-soft: #2a251e;
@@ -183,12 +276,14 @@
   --line: #372e22;
   --line-strong: #5b472c;
 
+  /* ---------- 暗色强调色 ---------- */
   --accent: var(--gold-primary);
   --accent-strong: var(--gold-highlight);
   --accent-hover: #c9a060;
   --accent-wash: rgba(133, 97, 38, 0.2);
   --on-accent: #fff7e8;
 
+  /* ---------- 暗色行情和状态色 ---------- */
   --up: #dc6a61;
   --down: #58a97d;
   --up-wash: rgba(145, 52, 45, 0.2);
@@ -199,23 +294,30 @@
   --amber-line: rgba(178, 133, 64, 0.34);
   --amber-ink: #d6b276;
 
+  /* ---------- 暗色通用阴影 ---------- */
   --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.22), 0 16px 38px rgba(0, 0, 0, 0.2);
   --shadow-hover: 0 3px 8px rgba(0, 0, 0, 0.28), 0 22px 50px rgba(0, 0, 0, 0.3);
   --shadow-float: 0 24px 68px rgba(0, 0, 0, 0.46);
 
-  --glass-bg-subtle: rgba(35, 31, 26, 0.76);
-  --glass-bg-control: rgba(42, 37, 30, 0.84);
-  --glass-bg-overlay: rgba(35, 31, 26, 0.96);
-  --glass-bg-data: rgba(32, 29, 24, 0.96);
+  /* ---------- 暗色玻璃表面透明度 ---------- */
+  --glass-bg-subtle: rgba(35, 31, 26, 0.64); /* 侧边栏、弱层级统计卡。 */
+  --glass-bg-control: rgba(42, 37, 30, 0.7); /* 操作卡、统计卡、按钮、输入框。 */
+  --glass-bg-overlay: rgba(35, 31, 26, 0.9); /* 搜索下拉、Tooltip、聚焦控件。 */
+  --glass-bg-data: rgba(32, 29, 24, 0.82); /* 全站普通内容卡和数据卡。 */
+
+  /* ---------- 暗色玻璃边缘和阴影 ---------- */
   --glass-border: var(--border-subtle);
   --glass-border-strong: rgba(196, 151, 80, 0.3);
   --glass-highlight: var(--border-highlight);
-  --glass-highlight-side: rgba(255, 226, 177, 0.025);
+  --glass-highlight-side: rgba(255, 226, 177, 0.065);
   --glass-inner-stroke: rgba(149, 105, 42, 0.16);
   --glass-edge-falloff: rgba(0, 0, 0, 0.08);
   --glass-shadow: 0 -1px 0 rgba(221, 180, 112, 0.035), 0 2px 3px rgba(0, 0, 0, 0.14), 0 14px 34px rgba(0, 0, 0, 0.2);
   --glass-shadow-raised: 0 -1px 0 rgba(221, 180, 112, 0.05), 0 3px 5px rgba(0, 0, 0, 0.18), 0 18px 42px rgba(0, 0, 0, 0.26);
 
+  /* ---------- 暗色背景光场 ---------- */
+  /* 暗色主背景图，System 模式会在解析为暗色时自动使用该图。 */
+  --page-background-image: url("/images/research-bg-dark.jpg");
   --ambient-top-left: rgba(220, 183, 119, 0.045);
   --ambient-top-right: rgba(158, 116, 52, 0.055);
   --ambient-lower-left: rgba(118, 82, 31, 0.045);
@@ -225,11 +327,15 @@
   --page-gradient-start: #1c1914;
   --page-gradient-middle: #15130f;
   --page-gradient-end: #100f0d;
-  --surface-sheen: rgba(232, 195, 132, 0.055);
-  --surface-sheen-soft: rgba(232, 195, 132, 0.025);
-  --surface-gold-wash: rgba(165, 119, 54, 0.055);
-  --surface-control-fill: rgba(31, 28, 23, 0.9);
-  --surface-row-fill: rgba(34, 30, 25, 0.8);
+
+  /* ---------- 暗色卡片内部着色 ---------- */
+  --surface-sheen: rgba(232, 195, 132, 0.085); /* 局部高光。 */
+  --surface-sheen-soft: rgba(232, 195, 132, 0.05); /* 整面弱镜面。 */
+  --surface-gold-wash: rgba(165, 119, 54, 0.045); /* 香槟金着色量。 */
+  --surface-control-fill: rgba(31, 28, 23, 0.76); /* 首页发起调研输入控件。 */
+  --surface-row-fill: rgba(34, 30, 25, 0.62); /* 列表行和内部数据块。 */
+
+  /* ---------- 暗色 Focus 和侧边栏 ---------- */
   --focus-ring: rgba(189, 145, 79, 0.16);
   --pointer-highlight: rgba(221, 180, 112, 0.1);
   --sidebar-shadow: inset 0 1px 0 var(--glass-highlight), inset -1px 0 0 var(--glass-inner-stroke), 14px 0 48px rgba(0, 0, 0, 0.24);
@@ -242,10 +348,14 @@
   --nav-rail-top: #a77d3e;
   --nav-rail-bottom: #71501f;
   --nav-rail-shadow: 0 0 8px rgba(145, 103, 42, 0.12);
-  --topbar-fill: rgba(18, 16, 13, 0.82);
-  --topbar-fill-scrolled: rgba(18, 16, 13, 0.94);
+
+  /* ---------- 暗色顶部行情栏 ---------- */
+  --topbar-fill: rgba(18, 16, 13, 0.7);
+  --topbar-fill-scrolled: rgba(18, 16, 13, 0.86);
   --topbar-shadow: inset 0 -1px 0 rgba(203, 158, 88, 0.1);
   --topbar-shadow-scrolled: inset 0 -1px 0 var(--glass-inner-stroke), 0 16px 42px rgba(0, 0, 0, 0.3);
+
+  /* ---------- 暗色按钮、输入框和切换控件 ---------- */
   --toggle-track-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.42);
   --control-shadow: inset 0 1px 0 var(--glass-highlight), 0 6px 18px rgba(0, 0, 0, 0.22);
   --control-shadow-hover: inset 0 1px 0 var(--glass-highlight), 0 10px 26px rgba(0, 0, 0, 0.3);
@@ -253,8 +363,12 @@
   --control-shadow-disabled: inset 0 1px 0 rgba(255, 226, 177, 0.06);
   --button-flow-highlight: rgba(194, 147, 75, 0.14);
   --stat-mark-shadow: inset 0 1px 0 var(--glass-highlight), 0 7px 18px rgba(0, 0, 0, 0.22);
+
+  /* ---------- 暗色 Skeleton ---------- */
   --skeleton-fill: rgba(126, 94, 48, 0.2);
   --skeleton-shimmer: rgba(209, 166, 98, 0.16);
+
+  /* ---------- 暗色首页局部光场和发起调研 ---------- */
   --local-ambient-one: rgba(0, 0, 0, 0.1);
   --local-ambient-two: rgba(145, 103, 42, 0.035);
   --local-ambient-three: rgba(194, 151, 82, 0.028);
@@ -263,6 +377,8 @@
   --input-shadow: inset 0 1px 0 var(--glass-highlight), 0 5px 16px rgba(0, 0, 0, 0.18);
   --panel-focus-border: rgba(176, 132, 66, 0.42);
   --panel-focus-shadow: inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 var(--glass-inner-stroke), 0 24px 62px rgba(0, 0, 0, 0.34), 0 0 0 5px rgba(133, 97, 38, 0.08);
+
+  /* ---------- 暗色压力卡、最近报告和卡片 hover ---------- */
   --data-inner-stroke: var(--glass-inner-stroke);
   --data-divider: rgba(176, 132, 66, 0.22);
   --metric-hover-fill: rgba(133, 97, 38, 0.14);
@@ -273,6 +389,8 @@
   --report-hover-start: rgba(209, 165, 96, 0.055);
   --report-hover-end: rgba(89, 62, 25, 0.03);
   --report-hover-shadow: inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 var(--glass-inner-stroke), 0 11px 28px rgba(0, 0, 0, 0.24);
+
+  /* ---------- 暗色启动、登录和次级交互 ---------- */
   --boot-flow-edge: rgba(126, 94, 48, 0.2);
   --boot-flow-center: rgba(209, 166, 98, 0.16);
   --login-ambient: rgba(151, 108, 47, 0.08);
@@ -292,12 +410,17 @@ body {
   min-width: 320px;
   overflow-x: hidden;
   overflow-x: clip;
-  background:
+  background-color: var(--page-bg);
+  background-image:
     radial-gradient(ellipse 56% 46% at 4% -8%, var(--ambient-top-left), transparent 74%),
     radial-gradient(ellipse 78% 54% at 82% -8%, var(--ambient-top-right), transparent 72%),
     radial-gradient(ellipse 54% 44% at -2% 84%, var(--ambient-lower-left), transparent 74%),
     radial-gradient(ellipse 46% 34% at 58% 48%, var(--ambient-center), transparent 76%),
+    var(--page-background-image),
     linear-gradient(155deg, var(--page-gradient-start) 0%, var(--page-gradient-middle) 54%, var(--page-gradient-end) 100%);
+  background-position: center, center, center, center, center top, center;
+  background-size: auto, auto, auto, auto, cover, auto;
+  background-repeat: no-repeat;
   background-attachment: fixed;
   color: var(--ink-soft);
   font-family: var(--sans);
