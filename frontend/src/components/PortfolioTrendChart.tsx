@@ -13,6 +13,7 @@ import {
   YAxis,
 } from "recharts";
 import { usePortfolioHistory, type PortfolioPoint } from "@/hooks/useMarket";
+import { GlassButton, GlassPanel } from "@/components/LiquidGlass";
 
 type Metric = "marketValue" | "pnl" | "pnlPct";
 type Range = "6m" | "all";
@@ -51,7 +52,7 @@ export function PortfolioTrendChart() {
   const accent = metric === "marketValue" ? "var(--accent)" : "var(--up)";
 
   return (
-    <section className="trend-card">
+    <GlassPanel as="section" tone="data" className="trend-card">
       <header className="trend-head">
         <div>
           <h2>组合走势</h2>
@@ -78,7 +79,7 @@ export function PortfolioTrendChart() {
       </header>
 
       {q.isLoading && <p className="muted pad">加载中…</p>}
-      {q.isError && <div className="error-state" role="alert">组合走势加载失败 <button onClick={() => q.refetch()}>重试</button></div>}
+      {q.isError && <div className="error-state" role="alert">组合走势加载失败 <GlassButton tone="text" size="sm" onClick={() => q.refetch()}>重试</GlassButton></div>}
       {!q.isLoading && !q.isError && series.length === 0 && (
         <p className="empty-inline">
           暂无历史数据。{coverage && coverage.covered === 0 ? "持仓未覆盖可回溯标的，先在设置里同步组合历史。" : ""}
@@ -117,7 +118,7 @@ export function PortfolioTrendChart() {
           <TrendFooter series={series} metric={metric} fmt={fmt} coverage={coverage} />
         </>
       )}
-    </section>
+    </GlassPanel>
   );
 }
 

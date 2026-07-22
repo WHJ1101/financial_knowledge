@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { ApiError } from "@/api/client";
+import { GlassButton, GlassPanel } from "@/components/LiquidGlass";
 import { useCreateInvite, useInvites, useRevokeInvite, useSession } from "@/hooks/useAuth";
 import {
   type LlmRoute,
@@ -124,13 +125,13 @@ export function SettingsPage() {
 
       {settings.isError && (
         <div className="panel error-state" role="alert">
-          模型配置加载失败。<button className="text-button" onClick={() => settings.refetch()}>重试</button>
+          模型配置加载失败。<GlassButton tone="text" size="sm" onClick={() => settings.refetch()}>重试</GlassButton>
         </div>
       )}
 
       <div className="settings-grid settings-grid-wide">
         <div className="settings-main">
-          <section className="panel settings-card">
+          <GlassPanel as="section" className="settings-card" id="llm-profiles">
             <div className="section-heading">
               <div>
                 <h2>模型 Profile</h2>
@@ -167,25 +168,26 @@ export function SettingsPage() {
                         <input placeholder={`当前服务：${profile.provider_host ?? "未知"}`} value={editProfile.api_url} onChange={(event) => setEditProfile({ ...editProfile, api_url: event.target.value })} />
                       </label>
                       <div className="button-row">
-                        <button className="btn" disabled={update.isPending || !editProfile.name.trim() || !editProfile.model.trim()}>保存修改</button>
-                        <button className="btn btn-ghost" type="button" onClick={() => setEditingProfileId(null)}>取消</button>
+                        <GlassButton tone="primary" refraction type="submit" disabled={update.isPending || !editProfile.name.trim() || !editProfile.model.trim()}>保存修改</GlassButton>
+                        <GlassButton tone="utility" type="button" onClick={() => setEditingProfileId(null)}>取消</GlassButton>
                       </div>
                     </form>
                   )}
                   <div className="button-row">
-                    <button className="btn btn-ghost" onClick={() => beginEditProfile(profile)} disabled={update.isPending}>
+                    <GlassButton tone="utility" size="sm" onClick={() => beginEditProfile(profile)} disabled={update.isPending}>
                       编辑 / 换 Key
-                    </button>
+                    </GlassButton>
                     {!profile.is_default && profile.enabled && (
-                      <button className="btn btn-ghost" onClick={() => update.mutate(
+                      <GlassButton tone="utility" size="sm" onClick={() => update.mutate(
                         { id: profile.id, is_default: true },
                         { onSuccess: () => setProfileNote(`${profile.name} 已设为默认 Profile`) },
                       )}>
                         设为默认
-                      </button>
+                      </GlassButton>
                     )}
-                    <button
-                      className="btn btn-ghost"
+                    <GlassButton
+                      tone="utility"
+                      size="sm"
                       onClick={() => update.mutate(
                         { id: profile.id, enabled: !profile.enabled },
                         { onSuccess: () => setProfileNote(`${profile.name}${profile.enabled ? "已停用" : "已启用"}`) },
@@ -193,9 +195,10 @@ export function SettingsPage() {
                       disabled={profile.is_default || update.isPending}
                     >
                       {profile.enabled ? "停用" : "启用"}
-                    </button>
-                    <button
-                      className="btn btn-danger-ghost"
+                    </GlassButton>
+                    <GlassButton
+                      tone="danger"
+                      size="sm"
                       onClick={() => window.confirm(`删除模型配置“${profile.name}”？`) && remove.mutate(
                         profile.id,
                         { onSuccess: () => setProfileNote(`${profile.name} 已删除；相关角色已回到默认 Profile`) },
@@ -203,7 +206,7 @@ export function SettingsPage() {
                       disabled={remove.isPending}
                     >
                       删除
-                    </button>
+                    </GlassButton>
                   </div>
                 </article>
               ))}
@@ -244,13 +247,13 @@ export function SettingsPage() {
                 设为默认 Profile
               </label>
               {createError && <div className="login-error" role="alert">{createError}</div>}
-              <button className="btn" type="submit" disabled={create.isPending || !name.trim() || !apiKey.trim() || !apiUrl.trim() || !model.trim()}>
+              <GlassButton tone="primary" refraction type="submit" disabled={create.isPending || !name.trim() || !apiKey.trim() || !apiUrl.trim() || !model.trim()}>
                 {create.isPending ? "保存中…" : "添加 Profile"}
-              </button>
+              </GlassButton>
             </form>
-          </section>
+          </GlassPanel>
 
-          <section className="panel settings-card">
+          <GlassPanel as="section" className="settings-card">
             <div className="section-heading">
               <div>
                 <h2>辩论 Agent 路由</h2>
@@ -296,20 +299,20 @@ export function SettingsPage() {
             </div>
             {routeError && <div className="login-error" role="alert">{routeError}</div>}
             {saveRoutes.isSuccess && <p className="success-copy" role="status">Agent 路由已保存</p>}
-            <button className="btn" onClick={onSaveRoutes} disabled={saveRoutes.isPending || enabledProfiles.length === 0}>
+            <GlassButton tone="primary" refraction onClick={onSaveRoutes} disabled={saveRoutes.isPending || enabledProfiles.length === 0}>
               {saveRoutes.isPending ? "保存中…" : "保存 Agent 路由"}
-            </button>
-          </section>
+            </GlassButton>
+          </GlassPanel>
 
           {isSuperadmin && <InviteSettings />}
         </div>
 
-        <aside className="panel settings-note">
+        <GlassPanel as="aside" tone="data" className="settings-note">
           <h3>多模型调度</h3>
           <p>四名分析师并行工作，多空辩手进行开篇与交叉反驳，随后由裁判和风险审查员完成结论。</p>
           <p>每场辩论保存模型分配快照，后续切换配置不会改变历史报告的审计信息。</p>
           <p>停用正在使用的 Profile 前需先调整角色路由；删除 Profile 后，关联角色回到默认 Profile。</p>
-        </aside>
+        </GlassPanel>
       </div>
     </div>
   );
@@ -345,42 +348,43 @@ function InviteSettings() {
   };
 
   return (
-    <section className="panel settings-card">
+    <GlassPanel as="section" className="settings-card">
       <div className="section-heading"><div><h2>成员邀请码</h2><p className="muted">明文只在创建后显示一次</p></div></div>
       {newCode && (
         <div className="invite-code-result" role="status">
           <span>新邀请码</span><code>{newCode}</code>
-          <button className="btn btn-ghost" onClick={copyCode}>复制</button>
+          <GlassButton tone="utility" size="sm" onClick={copyCode}>复制</GlassButton>
           {copyState && <span aria-live="polite">{copyState}</span>}
         </div>
       )}
       <form className="invite-form" onSubmit={submit}>
         <label>备注<input value={hint} maxLength={32} onChange={(event) => setHint(event.target.value)} placeholder="例如：家人账号" /></label>
         <label>有效小时<input type="number" min="1" max="720" value={ttl} onChange={(event) => setTtl(Number(event.target.value))} /></label>
-        <button className="btn" type="submit" disabled={create.isPending}>{create.isPending ? "生成中…" : "生成邀请码"}</button>
+        <GlassButton tone="primary" refraction type="submit" disabled={create.isPending}>{create.isPending ? "生成中…" : "生成邀请码"}</GlassButton>
       </form>
       {create.error && <div className="login-error" role="alert">{errorText(create.error, "邀请码生成失败")}</div>}
       {invites.isLoading && <p className="muted">加载邀请码…</p>}
-      {invites.isError && <div className="login-error" role="alert">邀请码列表加载失败 <button onClick={() => invites.refetch()}>重试</button></div>}
+      {invites.isError && <div className="login-error" role="alert">邀请码列表加载失败 <GlassButton tone="text" size="sm" onClick={() => invites.refetch()}>重试</GlassButton></div>}
       <div className="invite-list">
         {invites.data?.map((invite) => (
           <div key={invite.id}>
             <code>{invite.code_hint}</code>
             <span>{invite.used_at ? "已使用" : invite.revoked_at ? "已撤销" : `有效至 ${new Date(invite.expires_at).toLocaleString("zh-CN")}`}</span>
             {!invite.used_at && !invite.revoked_at && new Date(invite.expires_at).getTime() > Date.now() && (
-              <button
-                className="link-action"
+              <GlassButton
+                tone="danger"
+                size="sm"
                 disabled={revoke.isPending}
                 onClick={() => window.confirm(`撤销邀请码“${invite.code_hint}”？`) && revoke.mutate(invite.id)}
               >
                 撤销
-              </button>
+              </GlassButton>
             )}
           </div>
         ))}
         {invites.data?.length === 0 && <p className="empty-copy">暂无邀请码</p>}
       </div>
       {revoke.error && <div className="login-error" role="alert">{errorText(revoke.error, "邀请码撤销失败")}</div>}
-    </section>
+    </GlassPanel>
   );
 }

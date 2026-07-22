@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { ApiError } from "@/api/client";
+import { GlassButton, GlassPanel } from "@/components/LiquidGlass";
 import { useSession } from "@/hooks/useAuth";
 import { useSetSignalState, useSignals, useSyncSignals, type SignalView } from "@/hooks/useSignals";
 
@@ -61,9 +62,9 @@ export function SignalsPage() {
           <p className="muted">沉淀飞书社群、私域反馈与一线线索，确认与忽略状态仅对你生效</p>
         </div>
         {isSuperadmin && (
-          <button className="ghost-btn" onClick={onSync} disabled={sync.isPending}>
+          <GlassButton tone="primary" refraction onClick={onSync} disabled={sync.isPending}>
             {sync.isPending ? "同步中…" : "同步飞书"}
-          </button>
+          </GlassButton>
         )}
       </header>
 
@@ -104,7 +105,7 @@ export function SignalsPage() {
       </div>
 
       {signals.isLoading && <p className="muted pad">加载中…</p>}
-      {signals.isError && <div className="panel error-state" role="alert">信号加载失败 <button onClick={() => signals.refetch()}>重试</button></div>}
+      {signals.isError && <div className="panel error-state" role="alert">信号加载失败 <GlassButton tone="text" size="sm" onClick={() => signals.refetch()}>重试</GlassButton></div>}
       {list.length === 0 && !signals.isLoading && !signals.isError && (
         <div className="panel empty-state">暂无社群信号。{isSuperadmin ? "点击“同步飞书”读取授权文档抽取信号。" : ""}</div>
       )}
@@ -129,9 +130,9 @@ export function SignalsPage() {
       </div>
       {pageCount > 1 && (
         <nav className="pagination" aria-label="信号分页">
-          <button className="ghost-btn" disabled={page <= 1} onClick={() => setPage((value) => value - 1)}>上一页</button>
+          <GlassButton tone="utility" disabled={page <= 1} onClick={() => setPage((value) => value - 1)}>上一页</GlassButton>
           <span>{Math.min(page, pageCount)} / {pageCount}</span>
-          <button className="ghost-btn" disabled={page >= pageCount} onClick={() => setPage((value) => value + 1)}>下一页</button>
+          <GlassButton tone="utility" disabled={page >= pageCount} onClick={() => setPage((value) => value + 1)}>下一页</GlassButton>
         </nav>
       )}
     </div>
@@ -148,7 +149,7 @@ function SignalRow({
   onSet: (s: SignalView["state"]) => void;
 }) {
   return (
-    <article className="panel signal-card">
+    <GlassPanel as="article" tone="data" interactive className="signal-card">
       <div className="signal-score">
         <strong>{signal.importance}</strong>
         <span>/5</span>
@@ -183,13 +184,13 @@ function SignalRow({
         </div>
       </div>
       <div className="signal-actions">
-        <button className="ghost-btn sm" onClick={() => onSet("confirmed")} disabled={pending || signal.state === "confirmed"}>
+        <GlassButton tone="utility" size="sm" onClick={() => onSet("confirmed")} disabled={pending || signal.state === "confirmed"}>
           确认
-        </button>
-        <button className="link-action" onClick={() => onSet("ignored")} disabled={pending}>
+        </GlassButton>
+        <GlassButton tone="text" size="sm" onClick={() => onSet("ignored")} disabled={pending}>
           忽略
-        </button>
+        </GlassButton>
       </div>
-    </article>
+    </GlassPanel>
   );
 }

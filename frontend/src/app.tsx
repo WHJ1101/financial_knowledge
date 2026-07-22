@@ -4,6 +4,7 @@ import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-route
 import { useLogout, useSession } from "@/hooks/useAuth";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { MarketTicker } from "@/components/MarketTicker";
+import { GlassButton, LiquidGlassFilterDefs } from "@/components/LiquidGlass";
 import { SidebarNavigation, type SidebarNavItem } from "@/components/SidebarNavigation";
 import "@/styles/tokens.css";
 import "@/styles/app.css";
@@ -29,7 +30,7 @@ function Protected({ children }: { children: React.ReactNode }) {
   if (session.isError) {
     return (
       <div className="boot-screen" role="alert">
-        会话状态加载失败 <button className="text-button" onClick={() => session.refetch()}>重试</button>
+        会话状态加载失败 <GlassButton tone="text" size="sm" onClick={() => session.refetch()}>重试</GlassButton>
       </div>
     );
   }
@@ -111,6 +112,7 @@ export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        <LiquidGlassFilterDefs />
         <PageTitle />
         <Suspense fallback={<div className="boot-screen">加载应用…</div>}>
           <Routes>

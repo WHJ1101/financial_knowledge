@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { api, ApiError } from "@/api/client";
 import { useDeleteReport, useMarkRead, useReport } from "@/hooks/useReports";
-import { applyReportReaderTheme } from "@/styles/reportFrameTheme";
+import { GlassButton, GlassPanel } from "@/components/LiquidGlass";
+import { applyReportReaderTheme, type ReportReaderTheme } from "@/styles/reportFrameTheme";
 
 interface AssetLink {
   id: string;
@@ -10,6 +11,10 @@ interface AssetLink {
   assetName: string;
   assetMarket: string;
   relation: string;
+}
+
+function resolvedReaderTheme(): ReportReaderTheme {
+  return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
 }
 
 export function ReportReaderPage() {
@@ -29,7 +34,20 @@ export function ReportReaderPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [frameHeight, setFrameHeight] = useState(900);
-  const themedHtml = useMemo(() => (html === null ? null : applyReportReaderTheme(html)), [html]);
+  const [readerTheme, setReaderTheme] = useState<ReportReaderTheme>(resolvedReaderTheme);
+  const themedHtml = useMemo(
+    () => (html === null ? null : applyReportReaderTheme(html, readerTheme)),
+    [html, readerTheme],
+  );
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const syncTheme = () => setReaderTheme(resolvedReaderTheme());
+    syncTheme();
+    const observer = new MutationObserver(syncTheme);
+    observer.observe(root, { attributes: true, attributeFilter: ["data-theme"] });
+    return () => observer.disconnect();
+  }, []);
 
   const refreshAssets = () => {
     setAssetError(null);
@@ -99,9 +117,9 @@ export function ReportReaderPage() {
         <div className="reader-actions">
           {metadata.data?.is_owner && (
             <>
-              <button className="ghost-btn" onClick={() => setEditingAssets((value) => !value)}>编辑关联标的</button>
-              <button
-                className="ghost-btn danger"
+              <GlassButton tone="utility" onClick={() => setEditingAssets((value) => !value)}>编辑关联标的</GlassButton>
+              <GlassButton
+                tone="danger"
                 disabled={removeReport.isPending}
                 onClick={() => window.confirm(`确认删除「${metadata.data?.title}」？`) && removeReport.mutate(reportId, {
                   onSuccess: () => navigate("/knowledge", { replace: true }),
@@ -109,7 +127,7 @@ export function ReportReaderPage() {
                 })}
               >
                 {removeReport.isPending ? "删除中…" : "删除报告"}
-              </button>
+              </GlassButton>
             </>
           )}
         </div>
@@ -126,7 +144,7 @@ export function ReportReaderPage() {
       {actionError && <div className="login-error" role="alert">{actionError}</div>}
 
       {(assets.length > 0 || editingAssets) && (
-        <section className="panel reader-asset-panel">
+        <GlassPanel as="section" tone="control" className="reader-asset-panel">
           <div className="reader-assets">
             <span className="muted">关联标的</span>
             {assets.map((asset) => (
@@ -152,20 +170,20 @@ export function ReportReaderPage() {
               <select aria-label="关联关系" value={assetForm.relation} onChange={(event) => setAssetForm({ ...assetForm, relation: event.target.value })}>
                 <option value="related">相关</option><option value="subject">研究主体</option><option value="competitor">竞品</option>
               </select>
-              <button className="btn" disabled={!assetForm.assetCode || assetPending}>{assetPending ? "保存中…" : "添加"}</button>
+              <GlassButton tone="primary" refraction type="submit" disabled={!assetForm.assetCode || assetPending}>{assetPending ? "保存中…" : "添加"}</GlassButton>
             </form>
           )}
           {assetError && <div className="login-error" role="alert">{assetError}</div>}
-        </section>
+        </GlassPanel>
       )}
 
       {(error || metadata.isError) && (
         <div className="panel error-state" role="alert">
           {error || "报告元数据加载失败"}
-          <button onClick={() => {
+          <GlassButton tone="text" size="sm" onClick={() => {
             metadata.refetch();
             setLoadAttempt((value) => value + 1);
-          }}>重试</button>
+          }}>重试</GlassButton>
         </div>
       )}
       {!error && html === null && !metadata.isError && <p className="muted pad">加载报告正文…</p>}

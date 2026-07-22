@@ -5,6 +5,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ApiError } from "@/api/client";
+import { GlassButton, GlassPanel } from "@/components/LiquidGlass";
 import { useSession } from "@/hooks/useAuth";
 import type { AnalysisHolding } from "@/hooks/useMarket";
 import {
@@ -89,7 +90,7 @@ function RelatedReports({ code }: { code: string }) {
   if (q.isError) {
     return (
       <div className="error-state" role="alert">
-        关联报告加载失败 <button onClick={() => q.refetch()}>重试</button>
+        关联报告加载失败 <GlassButton tone="text" size="sm" onClick={() => q.refetch()}>重试</GlassButton>
       </div>
     );
   }
@@ -139,7 +140,7 @@ export function PositionDetail({
   const isManual = holding.quoteSource === "手动行情";
 
   return (
-    <aside className="detail-panel panel">
+    <GlassPanel as="aside" tone="data" className="detail-panel">
       <div className="detail-title">
         <h2>{holding.name}</h2>
         <p className="muted">
@@ -198,12 +199,12 @@ export function PositionDetail({
             <input type="number" step="0.001" value={form.cost} onChange={(e) => setForm({ ...form, cost: e.target.value })} />
           </label>
           <div className="detail-edit-actions">
-            <button className="btn sm" type="submit" disabled={update.isPending}>
+            <GlassButton tone="primary" size="sm" refraction type="submit" disabled={update.isPending}>
               {update.isPending ? "保存中…" : "保存"}
-            </button>
-            <button className="ghost-btn sm" type="button" onClick={() => setEditing(false)}>
+            </GlassButton>
+            <GlassButton tone="utility" size="sm" type="button" onClick={() => setEditing(false)}>
               取消
-            </button>
+            </GlassButton>
           </div>
         </form>
       ) : canManageQuotes ? (
@@ -238,12 +239,13 @@ export function PositionDetail({
             <input type="number" step="0.0001" value={quote.price} onChange={(e) => setQuote({ ...quote, price: e.target.value })} />
           </label>
           <div className="detail-edit-actions">
-            <button className="btn sm" type="submit" disabled={upsertQuote.isPending || !quote.price}>
+            <GlassButton tone="primary" size="sm" refraction type="submit" disabled={upsertQuote.isPending || !quote.price}>
               {upsertQuote.isPending ? "保存中…" : "保存行情"}
-            </button>
+            </GlassButton>
             {isManual && (
-              <button
-                className="ghost-btn sm"
+              <GlassButton
+                tone="utility"
+                size="sm"
                 type="button"
                 onClick={() =>
                   deleteQuote.mutate(holding.code, {
@@ -258,7 +260,7 @@ export function PositionDetail({
                 disabled={deleteQuote.isPending}
               >
                 {deleteQuote.isPending ? "清除中…" : "清除"}
-              </button>
+              </GlassButton>
             )}
           </div>
         </form>
@@ -285,18 +287,18 @@ export function PositionDetail({
 
       <div className="detail-actions">
         {!editing && (
-          <button className="ghost-btn sm" onClick={() => setEditing(true)}>
+          <GlassButton tone="utility" size="sm" onClick={() => setEditing(true)}>
             编辑持仓
-          </button>
+          </GlassButton>
         )}
-        <button className="ghost-btn sm" onClick={onAnalyze} disabled={analyzing || holding.analysisStatus === "analyzing"}>
+        <GlassButton tone="utility" size="sm" onClick={onAnalyze} disabled={analyzing || holding.analysisStatus === "analyzing"}>
           {analyzing ? "入队中…" : "重新分析"}
-        </button>
-        <button className="ghost-btn sm danger" onClick={onDelete} disabled={deleting}>
+        </GlassButton>
+        <GlassButton tone="danger" size="sm" onClick={onDelete} disabled={deleting}>
           {deleting ? "删除中…" : "删除持仓"}
-        </button>
+        </GlassButton>
       </div>
-    </aside>
+    </GlassPanel>
   );
 }
 
@@ -314,7 +316,7 @@ export function WatchlistDetail({
   deleting?: boolean;
 }) {
   return (
-    <aside className="detail-panel panel">
+    <GlassPanel as="aside" tone="data" className="detail-panel">
       <div className="detail-title">
         <h2>{item.name || item.code}</h2>
         <p className="muted">
@@ -358,13 +360,13 @@ export function WatchlistDetail({
       <RelatedReports code={item.code} />
 
       <div className="detail-actions">
-        <button className="ghost-btn sm" onClick={onAnalyze} disabled={analyzing || item.analysis_status === "analyzing"}>
+        <GlassButton tone="utility" size="sm" onClick={onAnalyze} disabled={analyzing || item.analysis_status === "analyzing"}>
           {analyzing ? "入队中…" : "重新分析"}
-        </button>
-        <button className="ghost-btn sm danger" onClick={onDelete} disabled={deleting}>
+        </GlassButton>
+        <GlassButton tone="danger" size="sm" onClick={onDelete} disabled={deleting}>
           {deleting ? "删除中…" : "删除自选"}
-        </button>
+        </GlassButton>
       </div>
-    </aside>
+    </GlassPanel>
   );
 }

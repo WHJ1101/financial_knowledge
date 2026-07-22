@@ -4,6 +4,8 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMarketSessions, useMarketSnapshot, type IndexLive } from "@/hooks/useMarket";
+import { GlassButton } from "@/components/LiquidGlass";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 function inferRegion(item: IndexLive): string {
   const code = (item.code || "").toUpperCase();
@@ -106,9 +108,9 @@ export function MarketTicker() {
         >
           {shown.length === 0 && (
             snap.isError ? (
-              <button className="ticker-empty text-button" onClick={() => snap.refetch()} title="点击重试">
+              <GlassButton tone="text" size="sm" className="ticker-empty" onClick={() => snap.refetch()} title="点击重试">
                 行情加载失败
-              </button>
+              </GlassButton>
             ) : (
               <span className="ticker-empty" aria-live="polite">{emptyState}</span>
             )
@@ -145,11 +147,12 @@ export function MarketTicker() {
             placeholder="搜索知识库"
           />
         </form>
+        <ThemeToggle />
         <div className="market-status">
           {sessionQuery.isError ? (
-            <button className="market-status-retry text-button" onClick={() => sessionQuery.refetch()}>
+            <GlassButton tone="text" size="sm" className="market-status-retry" onClick={() => sessionQuery.refetch()}>
               交易时段不可用
-            </button>
+            </GlassButton>
           ) : (
             statuses.map((s) => (
               <span key={s.key} className={`market-dot ${s.open ? "open" : ""}`}>

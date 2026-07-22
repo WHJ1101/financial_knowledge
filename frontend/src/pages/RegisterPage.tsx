@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { ApiError } from "@/api/client";
+import { GlassButton, GlassPanel } from "@/components/LiquidGlass";
 import { useRegister, useSession } from "@/hooks/useAuth";
 
 /** 注册页（方案 §8.2/§9.2）：邀请码 + 用户名 + 密码，仅凭有效邀请码可注册。 */
@@ -27,7 +28,7 @@ export function RegisterPage() {
 
   return (
     <div className="login-page">
-      <div className="login-panel panel">
+      <GlassPanel className="login-panel">
         <div className="login-brand">
           投研工作台
           <span>Financial Knowledge · 邀请注册</span>
@@ -35,7 +36,7 @@ export function RegisterPage() {
         <p>输入管理员发放的邀请码创建账号</p>
         {session.isError && (
           <div className="login-error" role="alert">
-            会话状态加载失败 <button className="text-button" onClick={() => session.refetch()}>重试</button>
+            会话状态加载失败 <GlassButton tone="text" size="sm" onClick={() => session.refetch()}>重试</GlassButton>
           </div>
         )}
         <form className="login-form" onSubmit={onSubmit}>
@@ -58,14 +59,14 @@ export function RegisterPage() {
             <span className="field-hint">至少 8 位</span>
           </label>
           {error && <div className="login-error" role="alert">{error}</div>}
-          <button className="btn" type="submit" disabled={register.isPending || !canSubmit}>
+          <GlassButton tone="primary" size="lg" refraction type="submit" disabled={register.isPending || !canSubmit}>
             {register.isPending ? "注册中…" : "注册"}
-          </button>
+          </GlassButton>
         </form>
         <p className="login-foot">
           已有账号？<Link to="/login">返回登录</Link>
         </p>
-      </div>
+      </GlassPanel>
     </div>
   );
 }
