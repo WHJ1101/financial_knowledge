@@ -42,7 +42,12 @@ export function useRegister() {
       await ensureCsrf();
       return api.post<SessionView>("/auth/register", body);
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["session"] }),
+    // 注册接口会直接建立会话。先同步缓存，再触发后台校验，避免跳转到
+    // 受保护页面时仍读到注册前的匿名状态而被送回登录页。
+    onSuccess: (data) => {
+      qc.setQueryData(["session"], data);
+      qc.invalidateQueries({ queryKey: ["session"] });
+    },
   });
 }
 

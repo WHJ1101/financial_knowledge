@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { ApiError } from "@/api/client";
-import { GlassButton, GlassPanel } from "@/components/LiquidGlass";
+import { GlassActionLink, GlassButton, GlassPanel } from "@/components/LiquidGlass";
 import { useLogin, useSession } from "@/hooks/useAuth";
 
 /** 登录页（方案 §8.2）。延续原 Preact 版视觉：居中卡片 + 品牌标。 */
@@ -57,9 +57,12 @@ export function LoginPage() {
             {login.isPending ? "登录中…" : "登录"}
           </GlassButton>
         </form>
-        <p className="login-foot">
-          没有账号？<Link to="/register">使用管理员邀请码注册</Link>
-        </p>
+        <div className="login-alternate">
+          <span>没有账号？请先向管理员获取邀请码</span>
+          <GlassActionLink to="/register" tone="secondary" size="lg">
+            使用管理员邀请码注册
+          </GlassActionLink>
+        </div>
       </GlassPanel>
     </div>
   );

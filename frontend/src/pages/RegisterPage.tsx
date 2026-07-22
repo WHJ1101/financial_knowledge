@@ -18,13 +18,13 @@ export function RegisterPage() {
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     register.mutate(
-      { invite_code: inviteCode, username, password },
+      { invite_code: inviteCode.trim(), username: username.trim(), password },
       { onSuccess: () => navigate("/decisions", { replace: true }) },
     );
   };
 
   const error = register.error instanceof ApiError ? register.error.detail : register.error ? "注册失败" : null;
-  const canSubmit = inviteCode && username.length >= 3 && password.length >= 8;
+  const canSubmit = inviteCode.trim().length > 0 && username.trim().length >= 3 && password.length >= 8;
 
   return (
     <div className="login-page">
@@ -40,24 +40,50 @@ export function RegisterPage() {
           </div>
         )}
         <form className="login-form" onSubmit={onSubmit}>
-          <label>
-            邀请码
-            <input value={inviteCode} onChange={(e) => setInviteCode(e.target.value)} autoComplete="off" />
-          </label>
-          <label>
-            用户名
-            <input value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" />
-          </label>
-          <label>
-            密码
+          <div className="login-field">
+            <label htmlFor="register-invite">邀请码</label>
             <input
+              id="register-invite"
+              value={inviteCode}
+              onChange={(e) => setInviteCode(e.target.value)}
+              autoComplete="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              aria-describedby="register-invite-hint"
+              required
+            />
+            <span id="register-invite-hint" className="field-hint">邀请码由管理员生成，使用一次后失效</span>
+          </div>
+          <div className="login-field">
+            <label htmlFor="register-username">用户名</label>
+            <input
+              id="register-username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              autoComplete="username"
+              autoCapitalize="none"
+              minLength={3}
+              maxLength={64}
+              aria-describedby="register-username-hint"
+              required
+            />
+            <span id="register-username-hint" className="field-hint">3–64 位</span>
+          </div>
+          <div className="login-field">
+            <label htmlFor="register-password">密码</label>
+            <input
+              id="register-password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="new-password"
+              minLength={8}
+              maxLength={256}
+              aria-describedby="register-password-hint"
+              required
             />
-            <span className="field-hint">至少 8 位</span>
-          </label>
+            <span id="register-password-hint" className="field-hint">至少 8 位</span>
+          </div>
           {error && <div className="login-error" role="alert">{error}</div>}
           <GlassButton tone="primary" size="lg" refraction type="submit" disabled={register.isPending || !canSubmit}>
             {register.isPending ? "注册中…" : "注册"}
