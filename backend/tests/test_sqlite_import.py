@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import sqlite3
 import uuid
 from datetime import UTC, datetime
 
@@ -17,8 +18,33 @@ from scripts.import_sqlite import (
     SRC_DB,
     _cleanup_orphan_legacy_instruments,
     _reconcile_report_files,
+    load_legacy_secid_rows,
     run_import,
 )
+
+
+def test_missing_secid_map_falls_back_to_position_quote_secid() -> None:
+    conn = sqlite3.connect(":memory:")
+    conn.execute("CREATE TABLE positions (code TEXT, market TEXT, quote_secid TEXT)")
+    conn.executemany(
+        "INSERT INTO positions VALUES (?, ?, ?)",
+        [
+            ("014662", "基金", "150.014662"),
+            ("025208", "基金", ""),
+            ("588170", "ETF", "1.588170"),
+            ("00700", "港股", "116.00700"),
+        ],
+    )
+
+    rows = load_legacy_secid_rows(conn)
+
+    assert rows == {
+        "014662": {"code": "014662", "secid": "OF.014662", "kind": "fund"},
+        "025208": {"code": "025208", "secid": "OF.025208", "kind": "fund"},
+        "588170": {"code": "588170", "secid": "1.588170", "kind": "exchange"},
+        "00700": {"code": "00700", "secid": "116.00700", "kind": "exchange"},
+    }
+    conn.close()
 
 
 def test_real_sqlite_dry_run_maps_all_private_data_and_rolls_back() -> None:

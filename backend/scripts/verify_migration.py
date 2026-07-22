@@ -32,6 +32,7 @@ from app.models import (
     WatchlistItem,
 )
 from app.services.instrument_identity import normalize
+from scripts.import_sqlite import load_legacy_secid_rows
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = REPO_ROOT / "data"
@@ -126,7 +127,7 @@ def main() -> int:
         )
 
         print("=== 私人数据归属与证券映射 ===")
-        secid_map = {str(row["code"]): str(row["secid"]) for row in _rows(conn, "secid_map")}
+        secid_map = {code: str(row["secid"]) for code, row in load_legacy_secid_rows(conn).items()}
         source_positions = _rows(conn, "positions")
         all_admin_positions = list(
             session.execute(

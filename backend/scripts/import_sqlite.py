@@ -70,6 +70,40 @@ def _rows(conn: sqlite3.Connection, table: str) -> list[dict[str, Any]]:
     return [dict(row) for row in conn.execute(f'SELECT * FROM "{table}"')]
 
 
+def load_legacy_secid_rows(conn: sqlite3.Connection) -> dict[str, dict[str, Any]]:
+    """读取旧行情身份映射；早期库缺 ``secid_map`` 时从持仓字段恢复。
+
+    ``positions.quote_secid`` 是 ``secid_map`` 落表前的同源数据。场外基金统一转换为
+    ``OF.<code>``，保持与 ``daily_bars.secid`` 和新 ``provider_ids`` 的命名空间一致。
+    """
+    has_secid_map = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='secid_map'"
+    ).fetchone()
+    if has_secid_map:
+        return {str(row["code"]): row for row in _rows(conn, "secid_map")}
+
+    recovered: dict[str, dict[str, Any]] = {}
+    for row in _rows(conn, "positions"):
+        code = str(row.get("code") or "").strip()
+        market = str(row.get("market") or "").strip()
+        quote_secid = str(row.get("quote_secid") or "").strip()
+        if not code:
+            continue
+        is_fund = quote_secid.startswith(("150.", "OF.")) or "基金" in market
+        if is_fund:
+            symbol = quote_secid.split(".", 1)[1] if "." in quote_secid else code
+            candidate = {"code": code, "secid": f"OF.{symbol}", "kind": "fund"}
+        elif quote_secid:
+            candidate = {"code": code, "secid": quote_secid, "kind": "exchange"}
+        else:
+            continue
+
+        current = recovered.get(code)
+        if current is None or candidate["kind"] == "fund":
+            recovered[code] = candidate
+    return recovered
+
+
 def _jload(value: Any, default: Any) -> Any:
     if value in (None, ""):
         return default
@@ -148,7 +182,7 @@ def run_import(snapshot: Path, source_sha256: str, *, apply: bool) -> dict[str, 
             admin = _ensure_admin(session, now)
             stocks = _rows(conn, "stocks")
             positions = _rows(conn, "positions")
-            secid_rows = {str(row["code"]): row for row in _rows(conn, "secid_map")}
+            secid_rows = load_legacy_secid_rows(conn)
             instruments = _upsert_instruments(session, stocks, positions, secid_rows, ledger, now)
             _upsert_public_data(conn, session)
             _upsert_reports_and_private_data(
