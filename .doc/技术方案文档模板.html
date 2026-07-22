@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<!--
+  ============================================================================
+  技术方案文档 · HTML 模板 / 组件样例库
+  ----------------------------------------------------------------------------
+  用途：让 Agent 生成技术方案 HTML 时有统一的视觉规范与组件参考。
+  用法：把本文件作为 style reference 交给 Agent，要求「沿用此模板的
+        设计系统（CSS 变量 + 组件 class）和排版结构」生成新文档。
+  风格：暖米色纸张底 + 墨绿/陶土/赭金配色，衬线标题，柔和圆角轻阴影。
+        —— 优雅简洁，非冷硬科技风。
+  结构：<head> 内 <style> 是可复用设计系统，请整体保留、勿改配色变量。
+        <body> 内每个 .card 演示一类组件，并附「何时使用」说明。
+  ============================================================================
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>技术方案文档 · HTML 模板与组件样例</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+--bg:#FAF7F1;--paper:#FFFFFF;--ink:#322E28;--ink-soft:#6E665A;--ink-faint:#A69C8C;
+--line:#EBE4D8;--line-soft:#F2ECE1;
+--teal:#1E6E67;--teal-d:#175551;--teal-soft:#E4EEEB;
+--clay:#BE6E47;--clay-soft:#F7E7DC;--gold:#B0863E;--gold-soft:#F5EBD6;
+--sage:#6E8464;--sage-soft:#E7EDE2;
+--radius:16px;--radius-sm:10px;
+--shadow:0 1px 2px rgba(50,46,40,.04),0 10px 30px rgba(50,46,40,.07);
+--shadow-sm:0 1px 2px rgba(50,46,40,.05),0 4px 12px rgba(50,46,40,.05);
+--mono:"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+--serif:"Songti SC","Noto Serif SC",Georgia,serif;
+--sans:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1.8;font-size:15.5px;-webkit-font-smoothing:antialiased;letter-spacing:.01em}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+background:radial-gradient(1200px 600px at 82% -12%,rgba(30,110,103,.06),transparent 60%),radial-gradient(900px 500px at -12% 112%,rgba(190,110,71,.05),transparent 55%)}
+.progress{position:fixed;top:0;left:0;height:3px;width:0;z-index:100;background:linear-gradient(90deg,var(--teal),var(--clay))}
+.wrap{position:relative;z-index:1;max-width:1000px;margin:0 auto;padding:0 28px 120px}
+/* ---- Hero ---- */
+.hero{padding:78px 0 46px;text-align:center}
+.hero .kicker{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--teal);background:var(--teal-soft);padding:7px 16px;border-radius:100px;font-weight:600;margin-bottom:26px}
+.hero .kicker::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--teal)}
+.hero h1{font-family:var(--serif);font-size:clamp(30px,4.6vw,46px);line-height:1.28;font-weight:700;letter-spacing:.01em;margin-bottom:20px}
+.hero h1 em{font-style:normal;color:var(--clay)}
+.hero .lead{max-width:640px;margin:0 auto;color:var(--ink-soft);font-size:16.5px}
+.hero .meta{margin-top:30px;display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
+.hero .meta span{font-size:13px;color:var(--ink-soft);background:var(--paper);border:1px solid var(--line);padding:7px 15px;border-radius:100px;box-shadow:var(--shadow-sm)}
+.hero .meta span b{color:var(--ink);font-weight:600}
+/* ---- Section ---- */
+section{margin-top:56px;scroll-margin-top:24px}
+.sec-head{display:flex;align-items:center;gap:14px;margin-bottom:24px}
+.sec-head .num{flex:none;width:42px;height:42px;border-radius:12px;background:linear-gradient(150deg,var(--teal),var(--teal-d));color:#fff;font-family:var(--serif);font-size:19px;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(30,110,103,.28)}
+.sec-head h2{font-family:var(--serif);font-size:25px;font-weight:700;letter-spacing:.01em}
+.sec-head .sub{color:var(--ink-faint);font-size:13.5px;margin-top:2px;letter-spacing:.02em}
+/* ---- Card ---- */
+.card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:28px 30px;box-shadow:var(--shadow);margin-bottom:22px}
+.card h3{font-size:17px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:9px;color:var(--ink)}
+.card h3::before{content:"";width:4px;height:17px;border-radius:2px;background:var(--clay)}
+.card h4{font-size:15px;font-weight:700;margin:18px 0 10px;color:var(--teal-d)}
+.card p{margin-bottom:12px;color:var(--ink-soft)}
+.card p:last-child{margin-bottom:0}
+.card ul,.card ol{margin:0 0 12px;padding-left:4px;list-style:none}
+.card li{position:relative;padding-left:24px;margin-bottom:9px;color:var(--ink-soft)}
+.card ul li::before{content:"";position:absolute;left:6px;top:11px;width:6px;height:6px;border-radius:50%;background:var(--sage)}
+.card ol{counter-reset:li}
+.card ol li{counter-increment:li}
+.card ol li::before{content:counter(li);position:absolute;left:0;top:2px;width:19px;height:19px;font-size:11px;font-weight:700;color:var(--teal);background:var(--teal-soft);border-radius:50%;display:flex;align-items:center;justify-content:center;line-height:1}
+b,strong{color:var(--ink);font-weight:600}
+code{font-family:var(--mono);font-size:12.5px;background:var(--line-soft);color:var(--clay);padding:2px 7px;border-radius:6px;border:1px solid var(--line);white-space:nowrap}
+a{color:var(--teal);text-decoration:none;border-bottom:1px solid var(--teal-soft);transition:border-color .2s}
+a:hover{border-color:var(--teal)}
+.lede{font-size:16px;color:var(--ink-soft);border-left:3px solid var(--clay);background:linear-gradient(90deg,var(--clay-soft),transparent);padding:14px 20px;border-radius:0 var(--radius-sm) var(--radius-sm) 0;margin-bottom:22px}
+/* ---- TOC ---- */
+.toc{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:24px 28px;box-shadow:var(--shadow);margin-top:34px}
+.toc .toc-t{font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;margin-bottom:16px}
+.toc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:4px 22px}
+.toc a{display:flex;gap:11px;align-items:baseline;padding:7px 8px;border-radius:8px;color:var(--ink-soft);border:none;font-size:14px;transition:background .18s,color .18s}
+.toc a:hover{background:var(--teal-soft);color:var(--teal-d)}
+.toc a .n{font-family:var(--mono);font-size:12px;color:var(--teal);font-weight:600;flex:none;width:20px}
+/* ---- Table ---- */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius-sm);margin-bottom:14px;background:var(--paper)}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:520px}
+th{background:var(--teal-soft);color:var(--teal-d);font-weight:700;text-align:left;padding:12px 15px;font-size:13px;letter-spacing:.02em;border-bottom:1px solid var(--line)}
+td{padding:11px 15px;border-bottom:1px solid var(--line-soft);color:var(--ink-soft);vertical-align:top}
+tr:last-child td{border-bottom:none}
+tbody tr{transition:background .15s}
+tbody tr:hover{background:var(--line-soft)}
+td b,th{white-space:normal}
+td code{white-space:normal}
+/* ---- Badges ---- */
+.tag{display:inline-block;font-size:12px;font-weight:600;padding:2px 10px;border-radius:100px;letter-spacing:.02em;line-height:1.7;white-space:nowrap}
+.t-teal{background:var(--teal-soft);color:var(--teal-d)}
+.t-clay{background:var(--clay-soft);color:var(--clay)}
+.t-gold{background:var(--gold-soft);color:var(--gold)}
+.t-sage{background:var(--sage-soft);color:var(--sage)}
+.t-gray{background:var(--line-soft);color:var(--ink-soft)}
+/* ---- Info callouts ---- */
+.note{border-radius:var(--radius-sm);padding:14px 18px 14px 44px;position:relative;margin-bottom:16px;font-size:14.5px;line-height:1.7}
+.note::before{position:absolute;left:15px;top:14px;font-size:16px;line-height:1.4}
+.note-info{background:var(--teal-soft);color:var(--teal-d)}
+.note-info::before{content:"◆"}
+.note-warn{background:var(--gold-soft);color:#8a6420}
+.note-warn::before{content:"▲"}
+.note-key{background:var(--clay-soft);color:#9a4f2c}
+.note-key::before{content:"●"}
+.note b{color:inherit}
+.note:last-child{margin-bottom:0}
+/* ---- Chips row ---- */
+.chips{display:flex;flex-wrap:wrap;gap:9px}
+.chip{font-size:13.5px;padding:8px 14px;border-radius:10px;background:var(--line-soft);color:var(--ink-soft);border:1px solid var(--line)}
+.chip.no{background:#fbeeea;border-color:#f3d9cf;color:#a8543a}
+.chip.no::before{content:"✕ ";font-weight:700}
+.chip.yes::before{content:"✓ ";color:var(--sage);font-weight:700}
+/* ---- Code / SQL block ---- */
+.code{background:#2b2823;border-radius:var(--radius-sm);padding:0;margin-bottom:16px;overflow:hidden;box-shadow:var(--shadow-sm)}
+.code .bar{display:flex;align-items:center;gap:7px;padding:10px 15px;background:#332f29;border-bottom:1px solid #423d35}
+.code .bar i{width:11px;height:11px;border-radius:50%;display:block}
+.code .bar i:nth-child(1){background:#d67a5c}.code .bar i:nth-child(2){background:#cfa14a}.code .bar i:nth-child(3){background:#7d9b6f}
+.code .bar span{margin-left:8px;font-family:var(--mono);font-size:11.5px;color:#a99f8f;letter-spacing:.04em}
+.code pre{margin:0;padding:18px 20px;overflow-x:auto}
+.code code{font-family:var(--mono);font-size:12.8px;line-height:1.7;color:#e8e0d3;background:none;border:none;padding:0;white-space:pre;display:block}
+.code .k{color:#e0a06a}.code .s{color:#a9c48f}.code .c{color:#7f7869;font-style:italic}.code .t{color:#7cb7ad}.code .n{color:#d99b7a}
+/* ---- Layer diagram ---- */
+.layers{display:flex;flex-direction:column;gap:12px}
+.layer{display:flex;align-items:stretch;border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--line);background:var(--paper);box-shadow:var(--shadow-sm)}
+.layer .side{flex:none;width:118px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px 10px;color:#fff;text-align:center}
+.layer .side .nm{font-weight:700;font-size:15px}
+.layer .side .en{font-size:11px;opacity:.82;letter-spacing:.05em;margin-top:2px}
+.layer .body{flex:1;padding:15px 20px;display:flex;flex-direction:column;justify-content:center}
+.layer .body .r{font-size:14px;color:var(--ink-soft);margin-bottom:5px}
+.layer .body .r:last-child{margin-bottom:0}
+.layer .body .r b{color:var(--ink)}
+.ly-c .side{background:linear-gradient(150deg,#3f7b9e,#2f6285)}
+.ly-s .side{background:linear-gradient(150deg,var(--teal),var(--teal-d))}
+.ly-r .side{background:linear-gradient(150deg,var(--clay),#a5542f)}
+.ly-d .side{background:linear-gradient(150deg,var(--gold),#8f6a2c)}
+.ly-arrow{text-align:center;color:var(--ink-faint);font-size:15px;line-height:.5;height:6px}
+/* ---- Flow (architecture) ---- */
+.flow{display:flex;flex-direction:column;gap:0;align-items:center}
+.fnode{background:var(--paper);border:1.5px solid var(--line);border-radius:12px;padding:12px 20px;font-weight:600;font-size:14px;text-align:center;box-shadow:var(--shadow-sm);min-width:190px}
+.fnode small{display:block;font-weight:400;color:var(--ink-faint);font-size:11.5px;margin-top:2px;letter-spacing:.02em}
+.fnode.fe{background:var(--teal-soft);border-color:#c9e0da;color:var(--teal-d)}
+.fnode.mw{background:var(--gold-soft);border-color:#ecdcbb;color:#8a6420}
+.fnode.svc{background:var(--clay-soft);border-color:#f0d5c7;color:#9a4f2c}
+.fnode.db{background:#efe9de;border-color:#e0d7c5;color:#7a6a45;font-family:var(--mono);font-size:13px}
+.farrow{width:2px;height:26px;background:linear-gradient(var(--line-soft),var(--ink-faint));position:relative}
+.farrow::after{content:"";position:absolute;bottom:0;left:50%;transform:translateX(-50%);border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid var(--ink-faint)}
+.frow{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+/* ---- Two-phase / paired cards ---- */
+.phases{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.phase{border:1px solid var(--line);border-radius:var(--radius);padding:22px;background:var(--paper);box-shadow:var(--shadow-sm);position:relative}
+.phase .ph-t{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15.5px;margin-bottom:14px}
+.phase .ph-t .ico{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;color:#fff}
+.phase.p1 .ico{background:var(--teal)}.phase.p2 .ico{background:var(--clay)}
+.phase .step{position:relative;padding-left:20px;margin-bottom:10px;font-size:13.8px;color:var(--ink-soft)}
+.phase .step::before{content:"";position:absolute;left:3px;top:9px;width:7px;height:7px;border-radius:50%;background:var(--sage)}
+.phase .step b{color:var(--ink)}
+.ph-link{grid-column:1/-1;text-align:center;margin:-4px 0 2px}
+.ph-link span{display:inline-block;font-size:12.5px;color:var(--ink-faint);background:var(--line-soft);padding:5px 16px;border-radius:100px}
+.ph-link code{background:var(--paper)}
+/* ---- State transition ---- */
+.states{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;padding:10px 0}
+.st{display:flex;flex-direction:column;align-items:center;gap:6px}
+.st .dot{width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#fff;box-shadow:var(--shadow-sm);text-align:center;line-height:1.2}
+.st .lb{font-size:12.5px;color:var(--ink-soft);font-weight:600}
+.st.like .dot{background:linear-gradient(150deg,var(--sage),#57704d)}
+.st.dislike .dot{background:linear-gradient(150deg,var(--clay),#a5542f)}
+.st.neutral .dot{background:linear-gradient(150deg,var(--teal),var(--teal-d))}
+.st-arr{color:var(--ink-faint);font-size:20px;padding:0 4px;margin-bottom:22px}
+/* ---- KPI / stat tiles ---- */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:8px}
+.kpi{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius-sm);padding:18px 20px;box-shadow:var(--shadow-sm)}
+.kpi .v{font-family:var(--serif);font-size:30px;font-weight:700;color:var(--teal);line-height:1}
+.kpi .v small{font-size:15px;color:var(--ink-faint);font-weight:400}
+.kpi .l{font-size:13px;color:var(--ink-soft);margin-top:7px}
+/* ---- Gantt / effort bars ---- */
+.gantt{display:flex;flex-direction:column;gap:11px}
+.gr{display:grid;grid-template-columns:210px 1fr 62px;align-items:center;gap:14px}
+.gr .nm{font-size:13.8px;color:var(--ink);font-weight:600}
+.gr .track{height:26px;background:var(--line-soft);border-radius:7px;position:relative;overflow:hidden}
+.gr .bar{position:absolute;left:0;top:0;height:100%;border-radius:7px;background:linear-gradient(90deg,var(--teal),#2f8880);display:flex;align-items:center;padding-left:12px;color:#fff;font-size:11.5px;font-weight:600}
+.gr.par .bar{background:linear-gradient(90deg,var(--sage),#7f9873)}
+.gr.seq .bar{background:linear-gradient(90deg,var(--clay),#c9805c)}
+.gr .d{font-size:13px;color:var(--ink-soft);text-align:right;font-family:var(--mono)}
+.gr .bar.zero{background:repeating-linear-gradient(45deg,var(--gold-soft),var(--gold-soft) 6px,#f0e2c4 6px,#f0e2c4 12px);color:var(--gold);padding-left:0;justify-content:center}
+.gantt-legend{display:flex;gap:18px;margin-top:14px;font-size:12.5px;color:var(--ink-soft);flex-wrap:wrap}
+.gantt-legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+/* phase group header inside gantt */
+.pg{display:flex;align-items:center;gap:10px;margin:20px 0 12px}
+.pg:first-child{margin-top:4px}
+.pg .pgn{font-size:13.5px;font-weight:700;color:#fff;padding:3px 12px;border-radius:7px;letter-spacing:.03em}
+.pg .pgd{font-family:var(--mono);font-size:12.5px;color:var(--ink-soft);background:var(--line-soft);padding:3px 10px;border-radius:6px;border:1px solid var(--line)}
+.pg .pgt{font-size:12px;color:var(--ink-faint)}
+.pg.dev .pgn{background:var(--teal)}.pg.test .pgn{background:var(--sage)}
+.pg.joint .pgn{background:var(--clay)}.pg.ship .pgn{background:var(--gold)}
+/* ---- Milestone timeline ---- */
+.timeline{display:flex;align-items:stretch;gap:0;margin:6px 0 26px;flex-wrap:nowrap}
+.ms{flex:1;display:flex;flex-direction:column;align-items:center;text-align:center;position:relative;min-width:0}
+.ms .date{font-family:var(--mono);font-size:17px;font-weight:700;color:var(--teal-d);letter-spacing:.01em;white-space:nowrap}
+.ms .date .yr{font-size:11px;color:var(--ink-faint);font-weight:600}
+.ms .railwrap{position:relative;width:100%;height:34px;display:flex;align-items:center;justify-content:center;margin:8px 0}
+.ms .rail{position:absolute;top:50%;height:4px;background:linear-gradient(90deg,var(--teal),#3f9088);transform:translateY(-50%);z-index:0}
+.ms .rail.l{left:0;right:50%}.ms .rail.r{left:50%;right:0}
+.ms:first-child .rail.l{display:none}.ms:last-child .rail.r{display:none}
+.ms .node{position:relative;z-index:1;width:20px;height:20px;border-radius:50%;background:#fff;border:4px solid var(--teal);box-shadow:0 0 0 5px var(--paper),var(--shadow-sm)}
+.ms .lb{font-size:13.5px;font-weight:700;color:var(--ink)}
+.ms .node-m{display:none}
+.ms .sub{font-size:11.5px;color:var(--ink-faint);margin-top:3px;line-height:1.5;padding:0 4px}
+.ms.done .node{background:var(--teal)}
+.ms.goal .date{color:var(--clay)}
+.ms.goal .rail{background:linear-gradient(90deg,#3f9088,var(--clay))}
+.ms.goal .node{width:30px;height:30px;border-color:var(--clay);background:var(--clay);color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 0 0 5px var(--paper),0 6px 16px rgba(190,110,71,.4)}
+.ms.goal .node::after{content:"★"}
+.ms.goal .lb{color:var(--clay)}
+.goal-banner{margin-top:20px;display:flex;align-items:center;gap:14px;background:linear-gradient(100deg,var(--clay-soft),#fbeee6);border:1px solid #f0d5c7;border-radius:var(--radius-sm);padding:16px 20px}
+.goal-banner .gi{flex:none;width:44px;height:44px;border-radius:11px;background:var(--clay);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 6px 14px rgba(190,110,71,.3)}
+.goal-banner .gt{font-size:15px;color:#9a4f2c}
+.goal-banner .gt b{font-size:19px;color:var(--clay);font-family:var(--mono)}
+/* ---- Checklist ---- */
+.checks{list-style:none;padding:0}
+.checks li{position:relative;padding:11px 14px 11px 42px;border:1px solid var(--line);border-radius:10px;margin-bottom:9px;background:var(--paper);font-size:14px;color:var(--ink-soft)}
+.checks li::before{content:"";position:absolute;left:14px;top:50%;transform:translateY(-50%);width:18px;height:18px;border:2px solid var(--sage);border-radius:5px;background:var(--sage-soft)}
+.checks li::after{content:"✓";position:absolute;left:18px;top:50%;transform:translateY(-50%);color:var(--sage);font-size:12px;font-weight:700}
+/* ---- Endpoint header ---- */
+.ep{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.ep .verb{font-family:var(--mono);font-size:12px;font-weight:700;color:#fff;background:var(--sage);padding:5px 12px;border-radius:7px;letter-spacing:.04em}
+.ep .path{font-family:var(--mono);font-size:15px;color:var(--ink);font-weight:600}
+.ep .desc{color:var(--ink-faint);font-size:13px}
+/* ---- Trace matrix chips ---- */
+.tracelink{display:flex;flex-wrap:wrap;gap:4px}
+.tracelink .tag{cursor:default}
+/* ---- Risk cards ---- */
+.risks{display:flex;flex-direction:column;gap:12px}
+.risk{display:flex;gap:15px;border:1px solid var(--line);border-radius:var(--radius-sm);padding:16px 18px;background:var(--paper);box-shadow:var(--shadow-sm)}
+.risk .rn{flex:none;width:30px;height:30px;border-radius:8px;background:var(--gold-soft);color:var(--gold);font-weight:700;display:flex;align-items:center;justify-content:center;font-size:14px}
+.risk .rc h4{margin:0 0 5px;font-size:14.5px;color:var(--ink)}
+.risk .rc p{margin:0;font-size:13.8px}
+/* ---- Template usage note (模板专用，正式文档可删) ---- */
+.usage{background:linear-gradient(100deg,var(--sage-soft),#eef2ea);border:1px dashed #b9c7ae;border-radius:var(--radius-sm);padding:12px 16px 12px 40px;position:relative;font-size:13px;color:#4d6042;margin-bottom:18px;line-height:1.65}
+.usage::before{content:"❖";position:absolute;left:15px;top:12px;color:var(--sage)}
+.usage b{color:#3c5233}
+.usage code{background:#fff;color:var(--sage);border-color:#cbd8c0}
+/* ---- Footer ---- */
+.foot{margin-top:70px;padding-top:30px;border-top:1px solid var(--line);text-align:center;color:var(--ink-faint);font-size:13px}
+.foot .refs{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:18px}
+.foot .refs code{font-size:11.5px;background:var(--paper);border:1px solid var(--line);color:var(--ink-soft)}
+/* ---- To-top ---- */
+.totop{position:fixed;right:26px;bottom:26px;width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--paper);color:var(--teal);font-size:19px;cursor:pointer;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:opacity .3s,transform .2s;z-index:90}
+.totop.show{opacity:1;pointer-events:auto}
+.totop:hover{transform:translateY(-3px)}
+/* ---- Reveal ---- */
+.reveal{opacity:0;transform:translateY(16px);transition:opacity .6s ease,transform .6s ease}
+.reveal.in{opacity:1;transform:none}
+/* ---- Responsive ---- */
+@media(max-width:720px){
+.wrap{padding:0 18px 80px}
+.phases{grid-template-columns:1fr}
+.gr{grid-template-columns:1fr;gap:5px}
+.gr .track{order:2}.gr .d{text-align:left}
+.layer{flex-direction:column}.layer .side{width:100%;flex-direction:row;gap:8px;justify-content:flex-start}
+.sec-head h2{font-size:21px}
+.hero{padding:56px 0 34px}
+.timeline{flex-direction:column;gap:14px}
+.ms{flex-direction:row;align-items:center;gap:14px;text-align:left;width:100%}
+.ms .date{width:96px;flex:none}
+.ms .railwrap{display:none}
+.ms .node-m{flex:none;width:14px;height:14px;border-radius:50%;background:var(--teal)}
+.ms.goal .node-m{background:var(--clay);width:18px;height:18px}
+.ms .txt{flex:1}
+.ms .sub{padding:0;margin-top:1px}
+}
+@media print{
+body{background:#fff}body::before{display:none}
+.totop,.progress{display:none}.card,.toc{box-shadow:none;break-inside:avoid}
+section{break-inside:avoid}
+}
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<div class="wrap">
+
+<header class="hero">
+  <div class="kicker">Design System · 技术方案 HTML 模板</div>
+  <h1>技术方案文档 <em>组件样例库</em></h1>
+  <p class="lead">这是一份「样例模板」而非真实方案。每个章节演示一类可复用组件与其适用场景，供 Agent 生成技术方案 HTML 时作为视觉规范与结构参考。</p>
+  <div class="meta">
+    <span>🎨 暖米色 + 墨绿/陶土/赭金</span>
+    <span>🔤 衬线标题 · 无衬线正文</span>
+    <span>📐 卡片式分区 · 柔和圆角</span>
+    <span>📱 响应式 · 可打印</span>
+  </div>
+</header>
+
+<div class="usage" style="margin-top:30px">
+  <b>如何使用本模板：</b>把本文件连同其 <code>&lt;style&gt;</code> 一起作为 style reference 交给 Agent，要求「沿用此模板的设计系统（<code>:root</code> CSS 变量 + 组件 class）与卡片式排版结构」生成新文档。<b>请勿修改配色变量</b>；正式文档中删除所有 <code>.usage</code> 虚线说明块即可。
+</div>
+
+<nav class="toc">
+  <div class="toc-t">组件目录 · Component Index</div>
+  <div class="toc-grid">
+    <a href="#c1"><span class="n">01</span>页头 Hero + 目录</a>
+    <a href="#c2"><span class="n">02</span>正文 / 列表 / 引言</a>
+    <a href="#c3"><span class="n">03</span>标签 / 提示 / 标签组</a>
+    <a href="#c4"><span class="n">04</span>表格</a>
+    <a href="#c5"><span class="n">05</span>代码 / SQL 块</a>
+    <a href="#c6"><span class="n">06</span>分层职责图</a>
+    <a href="#c7"><span class="n">07</span>链路流程图</a>
+    <a href="#c8"><span class="n">08</span>双栏对照卡</a>
+    <a href="#c9"><span class="n">09</span>状态转换图</a>
+    <a href="#c10"><span class="n">10</span>接口协议卡</a>
+    <a href="#c11"><span class="n">11</span>KPI + 甘特图</a>
+    <a href="#c12"><span class="n">12</span>时间节点轴</a>
+    <a href="#c13"><span class="n">13</span>清单 / 风险卡</a>
+    <a href="#c14"><span class="n">14</span>页脚</a>
+  </div>
+</nav>
+
+<section id="c1">
+  <div class="sec-head">
+    <div class="num">01</div>
+    <div><h2>页头 Hero + 目录</h2><div class="sub">Hero &amp; Table of Contents</div></div>
+  </div>
+  <div class="card">
+    <div class="usage"><b>适用：</b>文档开篇。<code>.hero</code> 放标题、一句话摘要与元信息徽章（日期/分支/技术栈/工时）；<code>.toc</code> 放章节导航，滚动时自动高亮当前章节。参见本文件顶部实例。</div>
+    <p>Hero 用衬线大标题（可用 <code>&lt;em&gt;</code> 给关键词上陶土色），下方 <code>.meta</code> 徽章横排。目录 <code>.toc-grid</code> 自适应多列，每项 <code>.n</code> 为章节序号。</p>
+    <div class="code">
+      <div class="bar"><i></i><i></i><i></i><span>结构示意</span></div>
+<pre><code><span class="k">&lt;header</span> class=<span class="s">"hero"</span><span class="k">&gt;</span>
+  <span class="k">&lt;div</span> class=<span class="s">"kicker"</span><span class="k">&gt;</span>眉标<span class="k">&lt;/div&gt;</span>
+  <span class="k">&lt;h1&gt;</span>主标题 <span class="k">&lt;em&gt;</span>关键词<span class="k">&lt;/em&gt;&lt;/h1&gt;</span>
+  <span class="k">&lt;p</span> class=<span class="s">"lead"</span><span class="k">&gt;</span>一句话摘要<span class="k">&lt;/p&gt;</span>
+  <span class="k">&lt;div</span> class=<span class="s">"meta"</span><span class="k">&gt;&lt;span&gt;</span>徽章<span class="k">&lt;/span&gt;&lt;/div&gt;</span>
+<span class="k">&lt;/header&gt;</span></code></pre>
+    </div>
+  </div>
+</section>
+
+<section id="c2">
+  <div class="sec-head">
+    <div class="num">02</div>
+    <div><h2>正文 / 列表 / 引言</h2><div class="sub">Prose, Lists &amp; Lede</div></div>
+  </div>
+  <div class="card">
+    <div class="usage"><b>适用：</b>所有正文内容都装进 <code>.card</code>。卡内可用 <code>h3</code>（陶土竖条标题）、<code>h4</code>（墨绿小标题）、有序/无序列表、行内 <code>code</code>。</div>
+    <div class="lede">这是 <code>.lede</code> 引言块，用于章节开头的核心结论或一句话定调，左侧陶土竖条 + 渐隐底色。</div>
+    <h4>无序列表（圆点）</h4>
+    <ul>
+      <li>要点一：列表项自动带鼠尾草色圆点。</li>
+      <li>要点二：可内嵌 <code>code</code> 与 <b>强调</b>。</li>
+    </ul>
+    <h4>有序列表（序号圆圈）</h4>
+    <ol>
+      <li>第一步：序号自动生成为墨绿圆圈。</li>
+      <li>第二步：适合流程、决策依据。</li>
+    </ol>
+  </div>
+</section>
+
+<section id="c3">
+  <div class="sec-head">
+    <div class="num">03</div>
+    <div><h2>标签 / 提示 / 标签组</h2><div class="sub">Tags, Callouts &amp; Chips</div></div>
+  </div>
+  <div class="card">
+    <h3>行内标签 <code>.tag</code></h3>
+    <div class="usage"><b>适用：</b>表格单元格、状态标注、枚举值。五种色：teal / clay / gold / sage / gray。</div>
+    <p style="margin-bottom:16px">
+      <span class="tag t-teal">t-teal 主色</span>
+      <span class="tag t-clay">t-clay 强调</span>
+      <span class="tag t-gold">t-gold 警示</span>
+      <span class="tag t-sage">t-sage 通过</span>
+      <span class="tag t-gray">t-gray 中性</span>
+    </p>
+    <h3>提示块 <code>.note</code></h3>
+    <div class="usage"><b>适用：</b>三种语义。info（信息/说明）、warn（注意/风险）、key（关键约束/红线）。</div>
+    <div class="note note-info">note-info：一般说明、补充信息、设计取舍。</div>
+    <div class="note note-warn">note-warn：需要注意的前置条件或潜在风险。</div>
+    <div class="note note-key">note-key：不可违反的关键约束、安全红线。</div>
+    <h3>标签组 <code>.chips</code></h3>
+    <div class="usage"><b>适用：</b>范围枚举、白名单、包含/排除项。<code>.yes</code> 带对勾、<code>.no</code> 带叉。</div>
+    <div class="chips">
+      <span class="chip">普通枚举项</span>
+      <span class="chip yes">包含项</span>
+      <span class="chip no">排除项</span>
+    </div>
+  </div>
+</section>
+
+<section id="c4">
+  <div class="sec-head">
+    <div class="num">04</div>
+    <div><h2>表格</h2><div class="sub">Tables</div></div>
+  </div>
+  <div class="card">
+    <div class="usage"><b>适用：</b>需求拆解、字段说明、错误码、对比矩阵。用 <code>.tbl-wrap</code> 包裹 <code>table</code> 以支持窄屏横向滚动；表头墨绿、行 hover 变色。</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>字段</th><th>类型</th><th>必填</th><th>规则</th></tr></thead>
+        <tbody>
+          <tr><td><code>session_id</code></td><td>int64</td><td><span class="tag t-clay">是</span></td><td>正数，标识会话</td></tr>
+          <tr><td><code>status</code></td><td>int</td><td><span class="tag t-clay">是</span></td><td>枚举 <span class="tag t-teal">1</span> <span class="tag t-gold">2</span></td></tr>
+          <tr><td><code>remark</code></td><td>string</td><td><span class="tag t-gray">否</span></td><td>最长 200 字符</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="c5">
+  <div class="sec-head">
+    <div class="num">05</div>
+    <div><h2>代码 / SQL 块</h2><div class="sub">Code &amp; SQL Blocks</div></div>
+  </div>
+  <div class="card">
+    <div class="usage"><b>适用：</b>DDL、接口 JSON、代码片段、伪代码。深色底 + 顶部窗口条（可写文件名/说明）。高亮 span 类：<code>.k</code> 关键字 · <code>.s</code> 字符串 · <code>.t</code> 类型/字段 · <code>.n</code> 数字 · <code>.c</code> 注释。</div>
+    <div class="code">
+      <div class="bar"><i></i><i></i><i></i><span>example.sql</span></div>
+<pre><code><span class="k">CREATE TABLE</span> demo (
+    id <span class="t">BIGINT</span> <span class="k">NOT NULL AUTO_INCREMENT</span>,
+    name <span class="t">VARCHAR</span>(64) <span class="k">NOT NULL DEFAULT</span> <span class="s">''</span>,
+    status <span class="t">TINYINT</span> <span class="k">NOT NULL DEFAULT</span> <span class="n">0</span> <span class="k">COMMENT</span> <span class="s">'0 none'</span>,
+    <span class="k">PRIMARY KEY</span> (id) <span class="c">-- 主键</span>
+);</code></pre>
+    </div>
+    <div class="code">
+      <div class="bar"><i></i><i></i><i></i><span>response.json</span></div>
+<pre><code>{
+  <span class="t">"error_code"</span>: <span class="n">0</span>,
+  <span class="t">"error_msg"</span>: <span class="s">"success"</span>,
+  <span class="t">"result"</span>: { <span class="t">"record_id"</span>: <span class="n">123</span> }
+}</code></pre>
+    </div>
+  </div>
+</section>
+
+<section id="c6">
+  <div class="sec-head">
+    <div class="num">06</div>
+    <div><h2>分层职责图</h2><div class="sub">Layered Responsibility</div></div>
+  </div>
+  <div class="card">
+    <div class="usage"><b>适用：</b>展示 Controller/Service/Repo/Data 等分层架构及各层职责。四种配色：<code>.ly-c</code> / <code>.ly-s</code> / <code>.ly-r</code> / <code>.ly-d</code>，中间用 <code>.ly-arrow</code> 连接。</div>
+    <div class="layers">
+      <div class="layer ly-c">
+        <div class="side"><div class="nm">Controller</div><div class="en">解析 / 返回</div></div>
+        <div class="body"><div class="r">解析请求、参数校验、调用 Service</div><div class="r"><b>不含</b>业务逻辑</div></div>
+      </div>
+      <div class="ly-arrow">▾</div>
+      <div class="layer ly-s">
+        <div class="side"><div class="nm">Service</div><div class="en">业务编排</div></div>
+        <div class="body"><div class="r">业务逻辑、事务协调、幂等控制</div></div>
+      </div>
+      <div class="ly-arrow">▾</div>
+      <div class="layer ly-r">
+        <div class="side"><div class="nm">Repo</div><div class="en">数据访问</div></div>
+        <div class="body"><div class="r">CRUD、行锁、条件查询</div></div>
+      </div>
+      <div class="ly-arrow">▾</div>
+      <div class="layer ly-d">
+        <div class="side"><div class="nm">Data</div><div class="en">MySQL</div></div>
+        <div class="body"><div class="r"><b>table_a</b>：主数据 · <b>table_b</b>：明细</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="c7">
+  <div class="sec-head">
+    <div class="num">07</div>
+    <div><h2>链路流程图</h2><div class="sub">Request Flow</div></div>
+  </div>
+  <div class="card">
+    <div class="usage"><b>适用：</b>请求链路、数据流、调用顺序。纵向节点用 <code>.farrow</code> 箭头连接，同层并列用 <code>.frow</code> 包裹。节点配色：<code>.fe</code> 前端 · <code>.mw</code> 中间件 · <code>.svc</code> 服务 · <code>.db</code> 数据表。</div>
+    <div class="flow">
+      <div class="frow">
+        <div class="fnode fe">POST /api/foo</div>
+        <div class="fnode fe">POST /api/bar</div>
+      </div>
+      <div class="farrow"></div>
+      <div class="fnode mw">公共中间件 <small>鉴权 / 限流 / 日志</small></div>
+      <div class="farrow"></div>
+      <div class="fnode svc">Controller → Service</div>
+      <div class="farrow"></div>
+      <div class="frow">
+        <div class="fnode db">table_a</div>
+        <div class="fnode db">table_b</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="c8">
+  <div class="sec-head">
+    <div class="num">08</div>
+    <div><h2>双栏对照卡</h2><div class="sub">Paired Cards</div></div>
+  </div>
+  <div class="card">
+    <div class="usage"><b>适用：</b>两阶段流程、方案 A/B 对比、前后对照。<code>.phases</code> 网格内放两个 <code>.phase</code>（<code>.p1</code> 墨绿 / <code>.p2</code> 陶土），每条要点用 <code>.step</code>。可选 <code>.ph-link</code> 做底部关联说明。</div>
+    <div class="phases">
+      <div class="phase p1">
+        <div class="ph-t"><span class="ico">①</span>阶段一 / 方案 A</div>
+        <div class="step">要点：<b>关键动作</b>描述。</div>
+        <div class="step">要点：约束或返回值。</div>
+      </div>
+      <div class="phase p2">
+        <div class="ph-t"><span class="ico">②</span>阶段二 / 方案 B</div>
+        <div class="step">要点：<b>关键动作</b>描述。</div>
+        <div class="step">要点：约束或返回值。</div>
+      </div>
+      <div class="ph-link"><span>两者通过 <code>record_id</code> 关联</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="c9">
+  <div class="sec-head">
+    <div class="num">09</div>
+    <div><h2>状态转换图</h2><div class="sub">State Transition</div></div>
+  </div>
+  <div class="card">
+    <div class="usage"><b>适用：</b>状态机、身份迁移、值的演变过程。<code>.states</code> 内放 <code>.st</code> 圆点（<code>.neutral</code>/<code>.like</code>/<code>.dislike</code> 三色），用 <code>.st-arr</code> 箭头连接。圆点内可放图标或短文本。</div>
+    <div class="states">
+      <div class="st neutral"><div class="dot">0</div><div class="lb">初始</div></div>
+      <div class="st-arr">→</div>
+      <div class="st like"><div class="dot">1</div><div class="lb">通过</div></div>
+      <div class="st-arr">→</div>
+      <div class="st dislike"><div class="dot">2</div><div class="lb">驳回</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="c10">
+  <div class="sec-head">
+    <div class="num">10</div>
+    <div><h2>接口协议卡</h2><div class="sub">API Contract</div></div>
+  </div>
+  <div class="card">
+    <div class="usage"><b>适用：</b>REST 接口说明。<code>.ep</code> 头部放请求方法徽章 <code>.verb</code> + 路径 <code>.path</code> + 说明，下接请求/响应代码块与字段表。</div>
+    <div class="ep"><span class="verb">POST</span><span class="path">/api/example</span><span class="desc">接口用途一句话说明</span></div>
+    <h4>请求体</h4>
+    <div class="code">
+      <div class="bar"><i></i><i></i><i></i><span>request</span></div>
+<pre><code>{ <span class="t">"session_id"</span>: <span class="n">12345</span>, <span class="t">"status"</span>: <span class="n">2</span> }</code></pre>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>字段</th><th>类型</th><th>必填</th><th>规则</th></tr></thead>
+        <tbody>
+          <tr><td><code>session_id</code></td><td>int64</td><td><span class="tag t-clay">是</span></td><td>正数</td></tr>
+          <tr><td><code>status</code></td><td>int</td><td><span class="tag t-clay">是</span></td><td>1 或 2</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="c11">
+  <div class="sec-head">
+    <div class="num">11</div>
+    <div><h2>KPI + 甘特图</h2><div class="sub">Stat Tiles &amp; Gantt</div></div>
+  </div>
+  <div class="card">
+    <div class="usage"><b>适用：</b>工作量分解、指标概览。<code>.kpis</code> 数字卡自适应排列；<code>.gantt</code> 内每行 <code>.gr</code> 用 <code>.bar</code> 宽度表示占比（<code>.par</code> 并行绿 / <code>.seq</code> 串行陶土 / <code>.zero</code> 斜纹里程碑）。可用 <code>.pg</code> 分组标题分段。</div>
+    <div class="kpis" style="margin-bottom:22px">
+      <div class="kpi"><div class="v">7<small> 人日</small></div><div class="l">总工作量</div></div>
+      <div class="kpi"><div class="v">4<small> 天</small></div><div class="l">开发</div></div>
+      <div class="kpi"><div class="v">3<small> 天</small></div><div class="l">测试联调</div></div>
+    </div>
+    <div class="pg dev"><span class="pgn">开发</span><span class="pgd">07.17 – 07.22</span><span class="pgt">可并行</span></div>
+    <div class="gantt">
+      <div class="gr par"><div class="nm">模块 A</div><div class="track"><div class="bar" style="width:25%">1.0</div></div><div class="d">1.0 pd</div></div>
+      <div class="gr par"><div class="nm">模块 B</div><div class="track"><div class="bar" style="width:12.5%">0.5</div></div><div class="d">0.5 pd</div></div>
+    </div>
+    <div class="pg test"><span class="pgn">测试</span><span class="pgd">07.23</span><span class="pgt">串行</span></div>
+    <div class="gantt">
+      <div class="gr seq"><div class="nm">单测 / 联调</div><div class="track"><div class="bar" style="width:25%">1.0</div></div><div class="d">1.0 pd</div></div>
+      <div class="gr"><div class="nm">提测里程碑</div><div class="track"><div class="bar zero">里程碑</div></div><div class="d">—</div></div>
+    </div>
+    <div class="gantt-legend">
+      <span><i style="background:var(--sage)"></i>可并行</span>
+      <span><i style="background:var(--clay)"></i>串行</span>
+      <span><i style="background:repeating-linear-gradient(45deg,var(--gold-soft),var(--gold-soft) 3px,#f0e2c4 3px,#f0e2c4 6px)"></i>里程碑</span>
+    </div>
+  </div>
+</section>
+
+<section id="c12">
+  <div class="sec-head">
+    <div class="num">12</div>
+    <div><h2>时间节点轴</h2><div class="sub">Milestone Timeline</div></div>
+  </div>
+  <div class="card">
+    <div class="usage"><b>适用：</b>突出关键日期与里程碑。<code>.timeline</code> 内每个 <code>.ms</code> 含日期、连线节点、标签、说明；已完成加 <code>.done</code>，终点目标加 <code>.goal</code>（陶土星标放大）。窄屏自动转纵向。下方可配 <code>.goal-banner</code> 强调最终目标。</div>
+    <div class="timeline">
+      <div class="ms done">
+        <div class="date">07.17<span class="yr"> 周四</span></div>
+        <div class="railwrap"><span class="rail l"></span><span class="node"></span><span class="rail r"></span></div>
+        <span class="node-m"></span>
+        <div class="txt"><div class="lb">启动</div><div class="sub">开发开始</div></div>
+      </div>
+      <div class="ms done">
+        <div class="date">07.23<span class="yr"> 周三</span></div>
+        <div class="railwrap"><span class="rail l"></span><span class="node"></span><span class="rail r"></span></div>
+        <span class="node-m"></span>
+        <div class="txt"><div class="lb">自测</div><div class="sub">单测 / 越权</div></div>
+      </div>
+      <div class="ms done">
+        <div class="date">07.27<span class="yr"> 周日</span></div>
+        <div class="railwrap"><span class="rail l"></span><span class="node"></span><span class="rail r"></span></div>
+        <span class="node-m"></span>
+        <div class="txt"><div class="lb">联调</div><div class="sub">灰度验证</div></div>
+      </div>
+      <div class="ms goal">
+        <div class="date">07.28<span class="yr"> 周一</span></div>
+        <div class="railwrap"><span class="rail l"></span><span class="node"></span></div>
+        <span class="node-m"></span>
+        <div class="txt"><div class="lb">提测</div><div class="sub">上午可提测</div></div>
+      </div>
+    </div>
+    <div class="goal-banner">
+      <div class="gi">★</div>
+      <div class="gt"><b>07.28 上午可提测</b><br>用一句话强调最终目标或关键交付节点</div>
+    </div>
+  </div>
+</section>
+
+<section id="c13">
+  <div class="sec-head">
+    <div class="num">13</div>
+    <div><h2>清单 / 风险卡</h2><div class="sub">Checklist &amp; Risk Cards</div></div>
+  </div>
+  <div class="card">
+    <h3>清单 <code>.checks</code></h3>
+    <div class="usage"><b>适用：</b>验收标准、自测项、上线 checklist。每项自带鼠尾草色对勾方框。</div>
+    <ul class="checks">
+      <li><b>ITEM-01</b> 验收/自测项一句话描述，可内嵌 <code>code</code>。</li>
+      <li><b>ITEM-02</b> 第二项，覆盖某条边界或路径。</li>
+    </ul>
+    <h3 style="margin-top:22px">风险卡 <code>.risks</code></h3>
+    <div class="usage"><b>适用：</b>风险与待确认项、开放问题。左侧金色编号 + 标题 + 说明。</div>
+    <div class="risks">
+      <div class="risk"><div class="rn">1</div><div class="rc"><h4>风险标题</h4><p>风险描述、影响面与待确认方向。</p></div></div>
+      <div class="risk"><div class="rn">2</div><div class="rc"><h4>第二项风险</h4><p>依赖方、时序或容量等需要联调/评审确认的点。</p></div></div>
+    </div>
+  </div>
+</section>
+
+<section id="c14">
+  <div class="sec-head">
+    <div class="num">14</div>
+    <div><h2>页脚</h2><div class="sub">Footer</div></div>
+  </div>
+  <div class="card">
+    <div class="usage"><b>适用：</b>文档末尾。<code>.foot</code> 可列关键参考文件（<code>code</code> 徽章）与文档署名信息。实例见页面最底部。</div>
+    <p>页脚示例：列出核心相关文件路径 + 文档标题、日期、仓库分支。</p>
+  </div>
+</section>
+
+<footer class="foot">
+  <div class="refs">
+    <code>path/to/file_a.go</code>
+    <code>path/to/file_b.go</code>
+    <code>library/types/xxx.go</code>
+  </div>
+  <p>技术方案文档 · HTML 模板与组件样例库 &nbsp;·&nbsp; 沿用此设计系统生成新文档</p>
+</footer>
+
+</div>
+<button class="totop" id="totop" aria-label="回到顶部">↑</button>
+<script>
+(function(){
+  var progress=document.getElementById('progress');
+  var totop=document.getElementById('totop');
+  function onScroll(){
+    var h=document.documentElement;
+    var scrolled=h.scrollTop/(h.scrollHeight-h.clientHeight);
+    progress.style.width=(scrolled*100)+'%';
+    if(h.scrollTop>500){totop.classList.add('show');}else{totop.classList.remove('show');}
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});
+  onScroll();
+  totop.addEventListener('click',function(){window.scrollTo({top:0,behavior:'smooth'});});
+
+  // reveal on scroll
+  var cards=document.querySelectorAll('.card, .toc, .risk');
+  cards.forEach(function(c){c.classList.add('reveal');});
+  if('IntersectionObserver' in window){
+    var io=new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}
+      });
+    },{threshold:0.08,rootMargin:'0px 0px -40px 0px'});
+    cards.forEach(function(c){io.observe(c);});
+  }else{
+    cards.forEach(function(c){c.classList.add('in');});
+  }
+
+  // gantt bar grow-in
+  var bars=document.querySelectorAll('.gr .bar');
+  if('IntersectionObserver' in window){
+    var bo=new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting){
+          var w=e.target.style.width;
+          e.target.style.width='0';
+          e.target.getBoundingClientRect();
+          e.target.style.transition='width .9s cubic-bezier(.2,.7,.2,1)';
+          requestAnimationFrame(function(){e.target.style.width=w;});
+          bo.unobserve(e.target);
+        }
+      });
+    },{threshold:0.3});
+    bars.forEach(function(b){bo.observe(b);});
+  }
+
+  // active TOC highlight
+  var secs=document.querySelectorAll('section[id]');
+  var links={};
+  document.querySelectorAll('.toc a').forEach(function(a){links[a.getAttribute('href').slice(1)]=a;});
+  if('IntersectionObserver' in window){
+    var so=new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        var l=links[e.target.id];
+        if(l&&e.isIntersecting){
+          Object.keys(links).forEach(function(k){links[k].style.background='';links[k].style.color='';});
+          l.style.background='var(--teal-soft)';l.style.color='var(--teal-d)';
+        }
+      });
+    },{rootMargin:'-20% 0px -70% 0px'});
+    secs.forEach(function(s){so.observe(s);});
+  }
+})();
+</script>
+</body>
+</html>

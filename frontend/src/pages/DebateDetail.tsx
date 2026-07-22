@@ -1,5 +1,5 @@
 import type { DebateReport, DebateView } from "@/hooks/useDebates";
-import { GlassPanel } from "@/components/LiquidGlass";
+import { GlassButton, GlassPanel } from "@/components/LiquidGlass";
 
 const STAGE_LABEL: Record<string, string> = {
   queued: "排队中",
@@ -58,9 +58,9 @@ export function DebateDetail({
           {debate.stage && <span className="muted"> · {debate.stage}</span>}
         </div>
         {running && (
-          <button className="btn btn-ghost" onClick={onCancel} disabled={canceling}>
+          <GlassButton tone="danger" size="sm" onClick={onCancel} disabled={canceling}>
             {canceling ? "取消中…" : "取消"}
-          </button>
+          </GlassButton>
         )}
       </div>
 
@@ -74,9 +74,9 @@ export function DebateDetail({
         <div className="stalled-debate" role="status">
           <span>进度超过 5 分钟未更新，请确认 Worker 正常运行。</span>
           {onRefresh && (
-            <button className="ghost-btn" onClick={onRefresh} disabled={refreshing}>
+            <GlassButton tone="utility" onClick={onRefresh} disabled={refreshing}>
               {refreshing ? "刷新中…" : "刷新状态"}
-            </button>
+            </GlassButton>
           )}
         </div>
       )}
@@ -89,9 +89,9 @@ export function DebateDetail({
               : (debate.error_message ?? "辩论失败")}
           </div>
           {onResume && (
-            <button className="btn btn-ghost" onClick={onResume} disabled={resuming}>
+            <GlassButton tone="secondary" onClick={onResume} disabled={resuming}>
               {resuming ? "重新入队中…" : "从检查点重试"}
-            </button>
+            </GlassButton>
           )}
         </div>
       )}

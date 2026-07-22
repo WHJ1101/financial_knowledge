@@ -8,6 +8,7 @@ import { useCreateResearch, useRunDaily, useStatus } from "@/hooks/useStatus";
 import { PressureCard } from "@/components/PressureCard";
 import {
   GlassButton,
+  GlassActionLink,
   GlassSkeleton,
   GlassSurface,
   StatusIndicator,
@@ -152,7 +153,11 @@ export function TodayPage() {
       </header>
 
       <section className="stat-row" aria-label="今日概览" aria-busy={status.isLoading || undefined}>
-        <GlassSurface className="stat-cell" pointerHighlight>
+        <GlassSurface
+          className="stat-cell"
+          pointerHighlight
+          to={s?.today ? `/knowledge?filter=today&date=${encodeURIComponent(s.today)}#reports` : "/knowledge?filter=today#reports"}
+        >
           <span className="stat-mark" aria-hidden="true">更</span>
           <span className="stat-content">
             {status.isLoading
@@ -161,7 +166,7 @@ export function TodayPage() {
             <span className="muted">今日更新</span>
           </span>
         </GlassSurface>
-        <GlassSurface className="stat-cell" pointerHighlight>
+        <GlassSurface className="stat-cell" pointerHighlight to="/knowledge?filter=unread#reports">
           <span className="stat-mark" aria-hidden="true">读</span>
           <span className="stat-content">
             {status.isLoading
@@ -170,7 +175,7 @@ export function TodayPage() {
             <span className="muted">未读报告</span>
           </span>
         </GlassSurface>
-        <GlassSurface className="stat-cell" pointerHighlight>
+        <GlassSurface className="stat-cell" pointerHighlight to="/knowledge#reports">
           <span className="stat-mark" aria-hidden="true">库</span>
           <span className="stat-content">
             {status.isLoading
@@ -179,7 +184,7 @@ export function TodayPage() {
             <span className="muted">知识库总量</span>
           </span>
         </GlassSurface>
-        <GlassSurface className="stat-cell stat-cell-status" pointerHighlight>
+        <GlassSurface className="stat-cell stat-cell-status" pointerHighlight to="/settings#llm-profiles">
           <span className="stat-mark" aria-hidden="true">模</span>
           <span className="stat-content stat-content-status">
             {status.isLoading
@@ -194,7 +199,7 @@ export function TodayPage() {
         </GlassSurface>
       </section>
 
-      {status.isError && <div className="panel error-state" role="alert">状态概览加载失败 <button onClick={() => status.refetch()}>重试</button></div>}
+      {status.isError && <div className="panel error-state" role="alert">状态概览加载失败 <GlassButton tone="text" size="sm" onClick={() => status.refetch()}>重试</GlassButton></div>}
 
       {note && <div className={note.error ? "inline-note login-error" : "inline-note success"} role={note.error ? "alert" : "status"}>{note.text}</div>}
 
@@ -220,6 +225,7 @@ export function TodayPage() {
           <GlassButton
             className="research-submit"
             tone="primary"
+            refraction
             type="submit"
             state={researchButtonState}
             loadingLabel="正在生成"
@@ -267,7 +273,7 @@ export function TodayPage() {
             <GlassSkeleton variant="pressure" />
           </div>
         )}
-        {pressure.isError && <div className="panel error-state" role="alert">压力数据加载失败 <button onClick={() => pressure.refetch()}>重试</button></div>}
+        {pressure.isError && <div className="panel error-state" role="alert">压力数据加载失败 <GlassButton tone="text" size="sm" onClick={() => pressure.refetch()}>重试</GlassButton></div>}
         {pressure.data && pressure.data.length === 0 && (
           <p className="empty-inline">暂无压力数据，待日更采集日线后生成</p>
         )}
@@ -281,9 +287,9 @@ export function TodayPage() {
       <section className="board">
         <div className="board-head">
           <div><h2>最近报告</h2><p className="muted">继续阅读最近写入知识库的研究成果</p></div>
-          <Link className="glass-button glass-button-quiet" to="/knowledge">查看全部</Link>
+          <GlassActionLink tone="secondary" to="/knowledge">查看全部</GlassActionLink>
         </div>
-        {reports.isError && <div className="panel error-state" role="alert">最近报告加载失败 <button onClick={() => reports.refetch()}>重试</button></div>}
+        {reports.isError && <div className="panel error-state" role="alert">最近报告加载失败 <GlassButton tone="text" size="sm" onClick={() => reports.refetch()}>重试</GlassButton></div>}
         <div className="recent-report-list content-ready" aria-busy={reports.isLoading || undefined}>
           {reports.isLoading && !reports.data && Array.from({ length: 4 }, (_, index) => (
             <GlassSkeleton key={index} variant="report" />

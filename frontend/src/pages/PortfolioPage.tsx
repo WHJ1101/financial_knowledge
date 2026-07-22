@@ -20,7 +20,7 @@ import { PortfolioTrendChart } from "@/components/PortfolioTrendChart";
 import { PortfolioAnalysisPanel } from "@/components/PortfolioAnalysisPanel";
 import { PositionDetail, WatchlistDetail } from "@/components/PortfolioDetailPanel";
 import { SearchField } from "@/components/SearchField";
-import { GlassPanel } from "@/components/LiquidGlass";
+import { GlassActionLink, GlassButton, GlassPanel } from "@/components/LiquidGlass";
 
 type Tab = "positions" | "analysis" | "watchlist" | "etfs";
 type SortKey = "default" | "marketValue" | "pnlPct";
@@ -63,8 +63,8 @@ export function PortfolioPage() {
       <header className="page-head knowledge-head">
         <div><h1>投资组合</h1><p className="muted">你的持仓与自选，仅你本人可见</p></div>
         <div className="knowledge-export">
-          <a className="ghost-btn" href="/api/v1/export/positions.csv">导出 CSV</a>
-          <a className="ghost-btn" href="/api/v1/export/positions.json">导出 JSON</a>
+          <GlassActionLink tone="utility" href="/api/v1/export/positions.csv">导出 CSV</GlassActionLink>
+          <GlassActionLink tone="utility" href="/api/v1/export/positions.json">导出 JSON</GlassActionLink>
         </div>
       </header>
 
@@ -96,7 +96,7 @@ export function PortfolioPage() {
 function AnalysisTab() {
   const q = usePortfolioAnalysis();
   if (q.isLoading) return <p className="muted pad">加载中…（正在拉取实时行情）</p>;
-  if (q.isError) return <div className="panel error-state" role="alert">组合分析加载失败 <button onClick={() => q.refetch()}>重试</button></div>;
+  if (q.isError) return <div className="panel error-state" role="alert">组合分析加载失败 <GlassButton tone="text" size="sm" onClick={() => q.refetch()}>重试</GlassButton></div>;
   if (!q.data) return null;
   return <PortfolioAnalysisPanel data={q.data} />;
 }
@@ -162,9 +162,9 @@ function PositionsTab() {
           <input aria-label="持仓名称" placeholder="名称" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           <input aria-label="持仓股数" inputMode="decimal" placeholder="股数" value={form.shares} onChange={(e) => setForm({ ...form, shares: e.target.value })} />
           <input aria-label="持仓成本" inputMode="decimal" placeholder="成本" value={form.cost} onChange={(e) => setForm({ ...form, cost: e.target.value })} />
-          <button className="btn sm" type="submit" disabled={add.isPending || !canAdd}>
+          <GlassButton tone="primary" size="sm" refraction type="submit" disabled={add.isPending || !canAdd}>
             {add.isPending ? "新增中…" : "新增"}
-          </button>
+          </GlassButton>
         </form>
         {operationNote && <div className={operationNote.error ? "inline-note login-error" : "inline-note"} role={operationNote.error ? "alert" : "status"}>{operationNote.text}</div>}
 
@@ -187,7 +187,7 @@ function PositionsTab() {
             <span>状态</span>
           </div>
           {analysis.isLoading && <p className="muted pad">加载中…</p>}
-          {analysis.isError && <div className="error-state" role="alert">持仓加载失败 <button onClick={() => analysis.refetch()}>重试</button></div>}
+          {analysis.isError && <div className="error-state" role="alert">持仓加载失败 <GlassButton tone="text" size="sm" onClick={() => analysis.refetch()}>重试</GlassButton></div>}
           {!analysis.isLoading && !analysis.isError && sorted.length === 0 && <p className="empty-inline">暂无持仓，上方添加第一笔</p>}
           {sorted.map((h) => (
             <button
@@ -284,9 +284,9 @@ function WatchlistTab() {
           />
           <input aria-label="自选名称" placeholder="名称" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           <input aria-label="研究假设" placeholder="研究假设（可选）" value={form.thesis} onChange={(e) => setForm({ ...form, thesis: e.target.value })} />
-          <button className="btn sm" type="submit" disabled={add.isPending || !form.code || !form.name}>
+          <GlassButton tone="primary" size="sm" refraction type="submit" disabled={add.isPending || !form.code || !form.name}>
             {add.isPending ? "新增中…" : "新增"}
-          </button>
+          </GlassButton>
         </form>
         {operationNote && <div className={operationNote.error ? "inline-note login-error" : "inline-note"} role={operationNote.error ? "alert" : "status"}>{operationNote.text}</div>}
 
@@ -298,7 +298,7 @@ function WatchlistTab() {
             <span>分析</span>
           </div>
           {watchlist.isLoading && <p className="muted pad">加载中…</p>}
-          {watchlist.isError && <div className="error-state" role="alert">自选加载失败 <button onClick={() => watchlist.refetch()}>重试</button></div>}
+          {watchlist.isError && <div className="error-state" role="alert">自选加载失败 <GlassButton tone="text" size="sm" onClick={() => watchlist.refetch()}>重试</GlassButton></div>}
           {!watchlist.isLoading && !watchlist.isError && items.length === 0 && <p className="empty-inline">暂无自选，上方添加</p>}
           {items.map((w) => (
             <button
@@ -352,7 +352,7 @@ function EtfsTab() {
   const indices = useMarketIndices();
   const rows = (indices.data ?? []).filter((r) => r.relatedEtfs?.length > 0);
   if (indices.isLoading) return <p className="muted pad">加载中…</p>;
-  if (indices.isError) return <div className="panel error-state" role="alert">指数基金数据加载失败 <button onClick={() => indices.refetch()}>重试</button></div>;
+  if (indices.isError) return <div className="panel error-state" role="alert">指数基金数据加载失败 <GlassButton tone="text" size="sm" onClick={() => indices.refetch()}>重试</GlassButton></div>;
   if (rows.length === 0) return <div className="panel empty-state">暂无指数基金关联数据</div>;
   return (
     <div className="etf-grid">

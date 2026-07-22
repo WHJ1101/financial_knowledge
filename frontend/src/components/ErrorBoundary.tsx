@@ -1,6 +1,6 @@
 /** 错误边界（移植旧 app.jsx ErrorBoundary，方案 §11.F）：捕获渲染异常，避免整页白屏。 */
 import { Component, type ErrorInfo, type ReactNode } from "react";
-import { GlassPanel } from "@/components/LiquidGlass";
+import { GlassButton, GlassPanel } from "@/components/LiquidGlass";
 
 interface Props {
   children: ReactNode;
@@ -26,9 +26,9 @@ export class ErrorBoundary extends Component<Props, State> {
         <GlassPanel className="error-boundary" role="alert">
           <h2>页面出错了</h2>
           <p className="muted">{this.state.error.message}</p>
-          <button className="btn" onClick={() => this.setState({ error: null })}>
+          <GlassButton tone="secondary" onClick={() => this.setState({ error: null })}>
             重试
-          </button>
+          </GlassButton>
         </GlassPanel>
       );
     }

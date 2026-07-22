@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ApiError } from "@/api/client";
-import { GlassPanel } from "@/components/LiquidGlass";
+import { GlassActionLink, GlassButton, GlassPanel } from "@/components/LiquidGlass";
 import {
   useDeleteReport,
   useMarkRead,
@@ -11,7 +11,7 @@ import {
   type ReportView,
 } from "@/hooks/useReports";
 
-type Filter = "all" | "starred" | "shared" | "archived";
+type Filter = "all" | "today" | "unread" | "starred" | "shared" | "archived";
 type ActionNote = { text: string; error: boolean };
 
 const TYPE_LABELS: { value: string; label: string }[] = [
@@ -31,6 +31,7 @@ export function KnowledgePage() {
   const type = params.get("type") || "all";
   const origin = params.get("origin") || "all";
   const q = params.get("q") || "";
+  const filterDate = params.get("date") || new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Shanghai" });
   const page = Math.max(1, Number(params.get("page") || 1));
   const pageSize = 18;
   const markRead = useMarkRead();
@@ -39,6 +40,8 @@ export function KnowledgePage() {
   const del = useDeleteReport();
   const actionPending = markRead.isPending || star.isPending || archive.isPending || del.isPending;
   const [actionNote, setActionNote] = useState<ActionNote | null>(null);
+  const [queryInput, setQueryInput] = useState(q);
+  const composingQuery = useRef(false);
 
   const actionError = (error: unknown, fallback: string) =>
     setActionNote({ text: error instanceof ApiError ? error.detail : fallback, error: true });
@@ -47,14 +50,21 @@ export function KnowledgePage() {
     const next = new URLSearchParams(params);
     if (!value || value === "all") next.delete(key);
     else next.set(key, value);
+    if (key === "filter" && value !== "today") next.delete("date");
     next.delete("page");
     setParams(next, { replace: true });
   };
+
+  useEffect(() => {
+    if (!composingQuery.current) setQueryInput(q);
+  }, [q]);
 
   const list = useMemo(() => {
     let rows = reports.data ?? [];
     if (filter === "archived") rows = rows.filter((r) => r.archived);
     else rows = rows.filter((r) => !r.archived);
+    if (filter === "today") rows = rows.filter((r) => r.local_date === filterDate);
+    if (filter === "unread") rows = rows.filter((r) => !r.read);
     if (filter === "starred") rows = rows.filter((r) => r.starred);
     if (filter === "shared") rows = rows.filter((r) => r.visibility === "shared");
     if (type !== "all") rows = rows.filter((r) => r.type === type);
@@ -69,7 +79,7 @@ export function KnowledgePage() {
       );
     }
     return rows;
-  }, [reports.data, filter, type, origin, q]);
+  }, [reports.data, filter, filterDate, type, origin, q]);
   const pageCount = Math.max(1, Math.ceil(list.length / pageSize));
   const visible = list.slice((Math.min(page, pageCount) - 1) * pageSize, Math.min(page, pageCount) * pageSize);
 
@@ -88,15 +98,31 @@ export function KnowledgePage() {
           <p className="muted">共享研报与你的私有报告，标星、归档与已读状态仅对你生效</p>
         </div>
         <div className="knowledge-export">
-          <a className="ghost-btn" href="/api/v1/export/reports.csv">导出 CSV</a>
-          <a className="ghost-btn" href="/api/v1/export/reports.json">导出 JSON</a>
+          <GlassActionLink tone="utility" href="/api/v1/export/reports.csv">导出 CSV</GlassActionLink>
+          <GlassActionLink tone="utility" href="/api/v1/export/reports.json">导出 JSON</GlassActionLink>
         </div>
       </header>
 
       <div className="knowledge-toolbar">
         <label className="search-label">
           <span className="sr-only">搜索报告</span>
-          <input className="search" autoFocus={params.get("focus") === "search"} placeholder="搜索标题、主题或标签…" value={q} onChange={(e) => setFilterParam("q", e.target.value)} />
+          <input
+            className="search"
+            autoFocus={params.get("focus") === "search"}
+            placeholder="搜索标题、主题或标签…"
+            value={queryInput}
+            onCompositionStart={() => { composingQuery.current = true; }}
+            onCompositionEnd={(event) => {
+              composingQuery.current = false;
+              setQueryInput(event.currentTarget.value);
+              setFilterParam("q", event.currentTarget.value);
+            }}
+            onChange={(event) => {
+              const value = event.currentTarget.value;
+              setQueryInput(value);
+              if (!composingQuery.current && !(event.nativeEvent as InputEvent).isComposing) setFilterParam("q", value);
+            }}
+          />
         </label>
         <div className="knowledge-selects">
           <select aria-label="报告类型" value={type} onChange={(e) => setFilterParam("type", e.target.value)}>
@@ -118,6 +144,8 @@ export function KnowledgePage() {
         {(
           [
             ["all", "全部"],
+            ["today", "今日"],
+            ["unread", "未读"],
             ["starred", "标星"],
             ["shared", "共享"],
             ["archived", "归档"],
@@ -130,11 +158,11 @@ export function KnowledgePage() {
       </div>
 
       {reports.isLoading && <p className="muted">加载中…</p>}
-      {reports.isError && <div className="panel error-state" role="alert">报告加载失败 <button onClick={() => reports.refetch()}>重试</button></div>}
+      {reports.isError && <div className="panel error-state" role="alert">报告加载失败 <GlassButton tone="text" size="sm" onClick={() => reports.refetch()}>重试</GlassButton></div>}
       {actionNote && <div className={actionNote.error ? "inline-note login-error" : "inline-note"} role={actionNote.error ? "alert" : "status"}>{actionNote.text}</div>}
       {list.length === 0 && !reports.isLoading && !reports.isError && <div className="panel empty-state">没有符合条件的报告</div>}
 
-      <div className="report-grid">
+      <div className="report-grid" id="reports">
         {visible.map((r) => (
           <ReportCard
             key={r.id}
@@ -162,9 +190,9 @@ export function KnowledgePage() {
       </div>
       {pageCount > 1 && (
         <nav className="pagination" aria-label="报告分页">
-          <button className="ghost-btn" disabled={page <= 1} onClick={() => setFilterParam("page", String(page - 1))}>上一页</button>
+          <GlassButton tone="utility" disabled={page <= 1} onClick={() => setFilterParam("page", String(page - 1))}>上一页</GlassButton>
           <span>{page} / {pageCount}</span>
-          <button className="ghost-btn" disabled={page >= pageCount} onClick={() => setFilterParam("page", String(page + 1))}>下一页</button>
+          <GlassButton tone="utility" disabled={page >= pageCount} onClick={() => setFilterParam("page", String(page + 1))}>下一页</GlassButton>
         </nav>
       )}
     </div>
@@ -207,21 +235,21 @@ function ReportCard({
       <div className="report-card-foot">
         <span className="muted report-date">{r.local_date ?? r.created_at.slice(0, 10)}</span>
         <div className="report-actions">
-          <button disabled={busy} aria-label={r.starred ? `取消标星 ${r.title}` : `标星 ${r.title}`} className={r.starred ? "icon-btn on" : "icon-btn"} onClick={onStar}>
+          <GlassButton tone="utility" size="sm" active={r.starred} disabled={busy} aria-label={r.starred ? `取消标星 ${r.title}` : `标星 ${r.title}`} onClick={onStar}>
             {r.starred ? "★" : "☆"}
-          </button>
+          </GlassButton>
           {!r.read && (
-            <button disabled={busy} className="icon-btn" onClick={onRead}>
+            <GlassButton tone="utility" size="sm" disabled={busy} onClick={onRead}>
               标记已读
-            </button>
+            </GlassButton>
           )}
-          <button disabled={busy} className="icon-btn" onClick={onArchive}>
+          <GlassButton tone="utility" size="sm" disabled={busy} onClick={onArchive}>
             {r.archived ? "取消归档" : "归档"}
-          </button>
+          </GlassButton>
           {r.is_owner && (
-            <button disabled={busy} className="icon-btn danger" onClick={onDelete}>
+            <GlassButton tone="danger" size="sm" disabled={busy} onClick={onDelete}>
               删除
-            </button>
+            </GlassButton>
           )}
         </div>
       </div>

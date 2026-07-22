@@ -105,7 +105,7 @@
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 
   /* ---------- Liquid Glass Web 近似：表面透明度 ---------- */
-  --glass-bg-subtle: rgba(244, 238, 229, 0.64); /* 侧边栏、弱层级统计卡。 */
+  --glass-bg-subtle: rgba(244, 238, 229, 0.42); /* 侧边栏、弱层级统计卡。 */
   --glass-bg-control: rgba(248, 244, 237, 0.42); /* 操作卡、统计卡、按钮、输入框。 */
   --glass-bg-overlay: rgba(248, 244, 237, 0.91); /* 搜索下拉、Tooltip、聚焦控件。 */
   --glass-bg-data: rgba(247, 243, 236, 0.42); /* 全站普通内容卡和数据卡。 */
@@ -117,14 +117,20 @@
   --glass-highlight-side: rgba(255, 249, 237, 0.5); /* 左边折射高光。 */
   --glass-inner-stroke: rgba(143, 100, 42, 0.13); /* 底部内描边。 */
   --glass-edge-falloff: rgba(105, 73, 30, 0.08); /* 右边缘压暗。 */
+  --glass-refraction-hot: rgba(255, 255, 255, 0.9); /* 指针附近的折射亮边。 */
+  --glass-refraction-warm: rgba(235, 190, 112, 0.52); /* 折射边缘暖色散。 */
+  --glass-refraction-cool: rgba(171, 211, 218, 0.34); /* 折射边缘冷色散。 */
+  --glass-refraction-wash: rgba(255, 255, 255, 0.04); /* 位移层的透明采样底。 */
+  --glass-refraction-opacity: 0.72;
+  --glass-refraction-width: 2px;
 
   /* ---------- Liquid Glass Web 近似：阴影和模糊 ---------- */
   --glass-shadow: 0 -1px 0 rgba(255, 250, 239, 0.42), 0 2px 4px rgba(91, 66, 35, 0.03), 0 16px 38px rgba(91, 66, 35, 0.08);
   --glass-shadow-raised: 0 -1px 0 rgba(255, 250, 239, 0.52), 0 4px 7px rgba(91, 66, 35, 0.04), 0 22px 48px rgba(91, 66, 35, 0.11);
   --glass-blur-sm: 12px; /* 小按钮和输入框。 */
   --glass-blur-data: 14px; /* 报告卡、任务卡、压力卡等数据表面。 */
-  --glass-blur-md: 22px; /* 操作面板、首页统计卡、顶部栏。 */
-  --glass-blur-lg: 30px; /* 侧边栏和浮层。 */
+  --glass-blur-md: 1px; /* 操作面板、首页统计卡、顶部栏。 */
+  --glass-blur-lg: 1px; /* 侧边栏和浮层。 */
 
   /* ---------- 统一尺寸和交互速度 ---------- */
   --glass-radius-sm: 8px;
@@ -312,6 +318,12 @@
   --glass-highlight-side: rgba(255, 226, 177, 0.065);
   --glass-inner-stroke: rgba(149, 105, 42, 0.16);
   --glass-edge-falloff: rgba(0, 0, 0, 0.08);
+  --glass-refraction-hot: rgba(255, 225, 174, 0.32);
+  --glass-refraction-warm: rgba(201, 149, 72, 0.24);
+  --glass-refraction-cool: rgba(112, 164, 177, 0.16);
+  --glass-refraction-wash: rgba(255, 226, 177, 0.018);
+  --glass-refraction-opacity: 0.64;
+  --glass-refraction-width: 2.5px;
   --glass-shadow: 0 -1px 0 rgba(221, 180, 112, 0.035), 0 2px 3px rgba(0, 0, 0, 0.14), 0 14px 34px rgba(0, 0, 0, 0.2);
   --glass-shadow-raised: 0 -1px 0 rgba(221, 180, 112, 0.05), 0 3px 5px rgba(0, 0, 0, 0.18), 0 18px 42px rgba(0, 0, 0, 0.26);
 
@@ -497,41 +509,6 @@ h1, h2, h3, h4 { color: var(--ink); }
     transform: translateY(-2px);
   }
 }
-
-/* 主操作与侧栏选中态共享同一层香槟金玻璃，依靠边框与字重区分动作层级。 */
-.btn {
-  height: 40px;
-  padding: 0 18px;
-  border: 1px solid var(--glass-border-strong);
-  border-radius: var(--radius-sm);
-  background:
-    linear-gradient(135deg, var(--nav-pill-start), var(--nav-pill-end)),
-    var(--nav-pill-fill);
-  color: var(--accent-strong);
-  font-weight: 600;
-  font-size: 14px;
-  cursor: pointer;
-  text-shadow: none;
-  box-shadow: var(--control-shadow);
-  transition: background 0.22s var(--ease-out), border-color 0.22s var(--ease-out), box-shadow 0.22s var(--ease-out), transform 0.16s var(--ease-out);
-}
-.btn:hover {
-  border-color: var(--button-hover-border);
-  box-shadow: var(--control-shadow-hover);
-  transform: translateY(-1px);
-}
-.btn:active { transform: translateY(1px) scale(0.98); box-shadow: var(--ghost-shadow); }
-.btn:disabled { opacity: 0.46; cursor: not-allowed; transform: none; box-shadow: var(--control-shadow-disabled); }
-.btn-ghost {
-  background:
-    linear-gradient(145deg, var(--surface-sheen-soft), transparent),
-    var(--glass-bg-control);
-  color: var(--ink);
-  border-color: var(--glass-border-strong);
-  text-shadow: none;
-  box-shadow: var(--control-shadow);
-}
-.btn-ghost:hover { background: var(--glass-bg-overlay); border-color: var(--accent); box-shadow: var(--control-shadow-hover); }
 
 .badge {
   display: inline-flex;

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ApiError } from "@/api/client";
-import { GlassPanel } from "@/components/LiquidGlass";
+import { GlassButton, GlassPanel } from "@/components/LiquidGlass";
 import { useSession } from "@/hooks/useAuth";
 import {
   useCancelDebate,
@@ -155,15 +155,15 @@ export function DecisionsPage() {
               {(positions.isError || watchlist.isError) && (
                 <div className="inline-error" role="alert">
                   标的加载失败
-                  <button type="button" onClick={() => {
+                  <GlassButton tone="text" size="sm" type="button" onClick={() => {
                     positions.refetch();
                     watchlist.refetch();
-                  }}>重试</button>
+                  }}>重试</GlassButton>
                 </div>
               )}
-              <button className="btn" type="submit" disabled={!instrumentId || createDebate.isPending}>
+              <GlassButton tone="primary" refraction type="submit" disabled={!instrumentId || createDebate.isPending}>
                 {createDebate.isPending ? "创建中…" : "发起辩论"}
-              </button>
+              </GlassButton>
               {createError && <div className="login-error" role="alert">{createError}</div>}
             </GlassPanel>
 
@@ -174,7 +174,7 @@ export function DecisionsPage() {
               </div>
               {debates.isLoading && <p className="muted" aria-live="polite">加载历史…</p>}
               {debates.isError && (
-                <div className="inline-error" role="alert">加载失败 <button onClick={() => debates.refetch()}>重试</button></div>
+                <div className="inline-error" role="alert">加载失败 <GlassButton tone="text" size="sm" onClick={() => debates.refetch()}>重试</GlassButton></div>
               )}
               <ul className="debate-list">
                 {debates.data?.map((item) => (
@@ -202,7 +202,7 @@ export function DecisionsPage() {
             {!selectedId && <div className="panel empty-state">选择历史记录，或发起一场辩论</div>}
             {selectedId && detail.isLoading && <div className="panel loading-state">加载辩论详情…</div>}
             {selectedId && detail.isError && (
-              <div className="panel error-state" role="alert">详情加载失败 <button onClick={() => detail.refetch()}>重试</button></div>
+              <div className="panel error-state" role="alert">详情加载失败 <GlassButton tone="text" size="sm" onClick={() => detail.refetch()}>重试</GlassButton></div>
             )}
             {detail.data && (
               <>
@@ -228,7 +228,7 @@ export function DecisionsPage() {
 
 function LegacyArchive({ query }: { query: ReturnType<typeof useLegacyDecisions> }) {
   if (query.isLoading) return <div className="panel loading-state">加载旧决策归档…</div>;
-  if (query.isError) return <div className="panel error-state" role="alert">归档加载失败 <button onClick={() => query.refetch()}>重试</button></div>;
+  if (query.isError) return <div className="panel error-state" role="alert">归档加载失败 <GlassButton tone="text" size="sm" onClick={() => query.refetch()}>重试</GlassButton></div>;
   return (
     <div className="legacy-decision-list">
       {query.data?.decisions.map((item) => (

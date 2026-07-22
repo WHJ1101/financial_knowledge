@@ -22,6 +22,7 @@ test("导航切换时更新活动项，并保留单一移动胶囊", async () =>
 
   expect(screen.getByRole("link", { name: "今日" })).toHaveClass("active");
   expect(container.querySelectorAll(".nav-active-pill")).toHaveLength(1);
+  expect(container.querySelector(".nav-active-pill .glass-refraction-warp")).toBeInTheDocument();
 
   await userEvent.click(screen.getByRole("link", { name: "决策辩论" }));
 

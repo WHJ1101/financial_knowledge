@@ -1,7 +1,7 @@
 /** 任务自动化页（超管）：全局开关 + 内置任务 + 执行日志。 */
 import { useState } from "react";
 import { ApiError } from "@/api/client";
-import { GlassPanel } from "@/components/LiquidGlass";
+import { GlassButton, GlassPanel } from "@/components/LiquidGlass";
 import { useRunDaily, useStatus } from "@/hooks/useStatus";
 import {
   useLogs,
@@ -52,8 +52,9 @@ export function TasksPage() {
             <h2>自动化调度</h2>
             <p className="muted">{automationStatus}</p>
           </div>
-          <button
-            className={automationEnabled ? "ghost-btn danger" : "btn"}
+          <GlassButton
+            tone={automationEnabled ? "danger" : "primary"}
+            refraction={!automationEnabled}
             onClick={onToggleGlobal}
             disabled={!status.isSuccess || toggleGlobal.isPending}
           >
@@ -66,11 +67,11 @@ export function TasksPage() {
                   : automationEnabled
                     ? "暂停自动化"
                     : "开启自动化"}
-          </button>
+          </GlassButton>
         </div>
         {status.isError && (
           <div className="error-state" role="alert">
-            自动化状态加载失败 <button onClick={() => status.refetch()}>重试</button>
+            自动化状态加载失败 <GlassButton tone="text" size="sm" onClick={() => status.refetch()}>重试</GlassButton>
           </div>
         )}
       </section>
@@ -87,7 +88,7 @@ export function TasksPage() {
       {tab === "tasks" && tasks.isLoading && <p className="muted pad">加载任务…</p>}
       {tab === "tasks" && tasks.isError && (
         <div className="panel error-state" role="alert">
-          任务加载失败 <button onClick={() => tasks.refetch()}>重试</button>
+          任务加载失败 <GlassButton tone="text" size="sm" onClick={() => tasks.refetch()}>重试</GlassButton>
         </div>
       )}
       {tab === "tasks" && tasks.isSuccess && <TaskList tasks={tasks.data} setNote={setNote} />}
@@ -138,17 +139,18 @@ function TaskList({ tasks, setNote }: { tasks: AutomationTask[]; setNote: (note:
           ) : editing === t.id ? (
             <div className="task-schedule-edit">
               <input aria-label={`${t.name} 执行时间`} type="time" value={time} onChange={(e) => setTime(e.target.value)} />
-              <button className="btn sm" onClick={() => onSaveSchedule(t)} disabled={updateSchedule.isPending}>
+              <GlassButton tone="secondary" size="sm" onClick={() => onSaveSchedule(t)} disabled={updateSchedule.isPending}>
                 {updateSchedule.isPending ? "保存中…" : "保存"}
-              </button>
-              <button className="ghost-btn sm" onClick={() => setEditing(null)}>
+              </GlassButton>
+              <GlassButton tone="utility" size="sm" onClick={() => setEditing(null)}>
                 取消
-              </button>
+              </GlassButton>
             </div>
           ) : (
             <div className="task-actions">
-              <button
-                className="ghost-btn sm"
+              <GlassButton
+                tone="utility"
+                size="sm"
                 onClick={() =>
                   toggle.mutate(t.id, {
                     onSuccess: () => setNote({ text: `${t.name}${t.enabled ? "已暂停" : "已开启"}`, error: false }),
@@ -158,10 +160,11 @@ function TaskList({ tasks, setNote }: { tasks: AutomationTask[]; setNote: (note:
                 disabled={toggle.isPending}
               >
                 {toggle.isPending && toggle.variables === t.id ? "保存中…" : t.enabled ? "暂停" : "开启"}
-              </button>
+              </GlassButton>
               {t.executable && (
-                <button
-                  className="btn sm"
+                <GlassButton
+                  tone="secondary"
+                  size="sm"
                   onClick={() =>
                     daily.mutate(undefined, {
                       onSuccess: () => setNote({ text: `${t.name}执行完成`, error: false }),
@@ -171,17 +174,18 @@ function TaskList({ tasks, setNote }: { tasks: AutomationTask[]; setNote: (note:
                   disabled={daily.isPending}
                 >
                   {daily.isPending ? "执行中…" : "立即执行"}
-                </button>
+                </GlassButton>
               )}
-              <button
-                className="ghost-btn sm"
+              <GlassButton
+                tone="utility"
+                size="sm"
                 onClick={() => {
                   setEditing(t.id);
                   setTime(t.scheduleTime);
                 }}
               >
                 改时间
-              </button>
+              </GlassButton>
             </div>
           )}
         </GlassPanel>
@@ -194,7 +198,7 @@ function LogList() {
   const logs = useLogs();
   const [page, setPage] = useState(1);
   if (logs.isLoading) return <p className="muted pad">加载中…</p>;
-  if (logs.isError) return <div className="panel error-state" role="alert">日志加载失败 <button onClick={() => logs.refetch()}>重试</button></div>;
+  if (logs.isError) return <div className="panel error-state" role="alert">日志加载失败 <GlassButton tone="text" size="sm" onClick={() => logs.refetch()}>重试</GlassButton></div>;
   if (!logs.data?.length) return <div className="panel empty-state">暂无日志</div>;
   const pageSize = 30;
   const pageCount = Math.ceil(logs.data.length / pageSize);
@@ -211,9 +215,9 @@ function LogList() {
         ))}
       </GlassPanel>
       <nav className="pagination" aria-label="日志分页">
-        <button className="ghost-btn" disabled={page <= 1} onClick={() => setPage((value) => value - 1)}>上一页</button>
+        <GlassButton tone="utility" disabled={page <= 1} onClick={() => setPage((value) => value - 1)}>上一页</GlassButton>
         <span>{page} / {pageCount}</span>
-        <button className="ghost-btn" disabled={page >= pageCount} onClick={() => setPage((value) => value + 1)}>下一页</button>
+        <GlassButton tone="utility" disabled={page >= pageCount} onClick={() => setPage((value) => value + 1)}>下一页</GlassButton>
       </nav>
     </>
   );
