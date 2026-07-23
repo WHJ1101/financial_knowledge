@@ -1,11 +1,11 @@
-"""认证服务（方案 §9.1/§9.2/§9.3）：登录建 session、邀请码原子注册、撤销。"""
+"""认证服务（方案 §9.1/§9.2/§9.3）：登录建 session、邀请码注册、撤销。"""
 
 from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import select, text
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.security import (
@@ -60,14 +60,23 @@ def logout(session: Session, token: str) -> None:
 
 
 def register_with_invite(session: Session, invite_code: str, username: str, password: str) -> User:
-    """邀请码原子注册（方案 §9.3）：原子标记 used，受影响行数=1 才建用户。"""
+    """使用有效且未撤销的邀请码注册；邀请码在有效期内可重复使用。"""
     now = datetime.now(UTC)
     digest = token_digest(invite_code)
 
     if session.execute(select(User).where(User.username == username)).scalar_one_or_none():
         raise AuthError("username_taken", "用户名已被占用", 409)
 
-    # 先建用户拿 id，再原子占用邀请码；占用失败则回滚
+    invite = session.execute(
+        select(InviteCode).where(
+            InviteCode.code_hash == digest,
+            InviteCode.revoked_at.is_(None),
+            InviteCode.expires_at > now,
+        )
+    ).scalar_one_or_none()
+    if invite is None:
+        raise AuthError("invalid_invite", "邀请码无效或已过期", 400)
+
     user = User(
         id=uuid.uuid4(),
         username=username,
@@ -78,21 +87,6 @@ def register_with_invite(session: Session, invite_code: str, username: str, pass
         updated_at=now,
     )
     session.add(user)
-    session.flush()
-
-    result = session.execute(
-        text(
-            """
-            UPDATE invite_codes
-            SET used_by = :uid, used_at = :now
-            WHERE code_hash = :h AND used_at IS NULL AND revoked_at IS NULL AND expires_at > :now
-            """
-        ),
-        {"uid": user.id, "now": now, "h": digest},
-    )
-    if result.rowcount != 1:  # type: ignore[attr-defined]  # CursorResult 有 rowcount
-        session.rollback()
-        raise AuthError("invalid_invite", "邀请码无效、已使用或已过期", 400)
     session.commit()
     return user
 

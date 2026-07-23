@@ -1,7 +1,7 @@
 """用户体系：users / sessions / invite_codes / llm_profiles / llm_agent_routes。
 
 鉴权用数据库 session（可撤销，Review R6）；密码 argon2（argon2-cffi）；
-邀请码存摘要、单次使用；BYOK key 加密存储（Fernet，方案 §9.6）。
+邀请码存摘要、有效期内可重复使用；BYOK key 加密存储（Fernet，方案 §9.6）。
 """
 
 import uuid
@@ -38,7 +38,7 @@ class UserSession(Base):
 
 
 class InviteCode(Base):
-    """邀请码：仅超管生成，带过期 + 单次使用；存摘要，明文仅生成时展示一次（方案 §4.2/§9.3）。"""
+    """邀请码：仅超管生成，有效期内可重复使用；存摘要，明文仅生成时展示一次（方案 §4.2/§9.3）。"""
 
     __tablename__ = "invite_codes"
 
@@ -47,8 +47,6 @@ class InviteCode(Base):
     code_hint: Mapped[str] = mapped_column(String(32))  # 便于超管辨识
     created_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    used_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
-    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 

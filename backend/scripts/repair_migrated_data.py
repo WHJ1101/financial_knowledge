@@ -101,9 +101,7 @@ def main() -> int:
             session.execute(delete(LlmAgentRoute).where(LlmAgentRoute.user_id.in_(user_ids)))
             session.execute(delete(LlmProfile).where(LlmProfile.user_id.in_(user_ids)))
             session.execute(delete(UserSession).where(UserSession.user_id.in_(user_ids)))
-            session.execute(
-                delete(InviteCode).where(or_(InviteCode.created_by.in_(user_ids), InviteCode.used_by.in_(user_ids)))
-            )
+            session.execute(delete(InviteCode).where(InviteCode.created_by.in_(user_ids)))
             session.execute(delete(AutomationTask).where(AutomationTask.execution_owner_id.in_(user_ids)))
             session.execute(delete(User).where(User.id.in_(user_ids)))
             session.flush()

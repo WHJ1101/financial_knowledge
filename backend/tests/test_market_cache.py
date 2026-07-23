@@ -27,6 +27,39 @@ def test_market_snapshot_starts_loading() -> None:
     assert market.get_market_snapshot()["status"] == "loading"
 
 
+def test_market_refresh_retries_empty_cache_when_all_markets_are_closed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        market,
+        "market_sessions",
+        lambda _now=None: [
+            {"key": "A", "open": False},
+            {"key": "HK", "open": False},
+            {"key": "US", "open": False},
+        ],
+        raising=False,
+    )
+
+    assert market.should_refresh_market_cache() is True
+
+
+def test_market_refresh_tracks_any_open_market(monkeypatch: pytest.MonkeyPatch) -> None:
+    market._cache.data = [
+        {"code": "000001", "name": "上证指数", "level": "3000", "changePct": "1.0", "volume": None}
+    ]
+    sessions = [
+        {"key": "A", "open": False},
+        {"key": "HK", "open": False},
+        {"key": "US", "open": True},
+    ]
+    monkeypatch.setattr(market, "market_sessions", lambda _now=None: sessions, raising=False)
+    assert market.should_refresh_market_cache() is True
+
+    sessions[-1]["open"] = False
+    assert market.should_refresh_market_cache() is False
+
+
 @pytest.mark.asyncio
 async def test_market_snapshot_distinguishes_empty_success_and_failure(monkeypatch: pytest.MonkeyPatch) -> None:
     async def empty_result() -> list[market.IndexLive]:

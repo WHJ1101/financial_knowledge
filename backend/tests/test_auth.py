@@ -1,6 +1,6 @@
 """M2 鉴权集成测试（方案 §14.1）。用真实 PG（JSONB 依赖）。
 
-覆盖：登录成功/错误密码/禁用用户、邀请码注册/过期/复用、session 撤销、CSRF、限流。
+覆盖：登录成功/错误密码/禁用用户、邀请码注册/过期/撤销/有效期内复用、session 撤销、CSRF、限流。
 """
 
 from __future__ import annotations
@@ -144,31 +144,28 @@ def test_invite_register_flow(admin_user):
     code = inv.json()["code"]
     assert code
 
-    # 新用户注册
-    client2, headers2 = _client_with_csrf()
-    new_username = f"member_{uuid.uuid4().hex[:8]}"
-    reg = client2.post(
-        "/api/v1/auth/register",
-        json={"invite_code": code, "username": new_username, "password": "member-pass-123"},
-        headers=headers2,
-    )
-    assert reg.status_code == 200, reg.text
-    assert reg.json()["user"]["role"] == "member"
+    new_usernames = [f"member_{uuid.uuid4().hex[:8]}", f"member_{uuid.uuid4().hex[:8]}"]
+    try:
+        # 同一有效邀请码可供多个不同用户注册。
+        for new_username in new_usernames:
+            anonymous, anonymous_headers = _client_with_csrf()
+            reg = anonymous.post(
+                "/api/v1/auth/register",
+                json={"invite_code": code, "username": new_username, "password": "member-pass-123"},
+                headers=anonymous_headers,
+            )
+            assert reg.status_code == 200, reg.text
+            assert reg.json()["user"]["role"] == "member"
 
-    # 复用同一邀请码 → 拒绝
-    client3, headers3 = _client_with_csrf()
-    reg2 = client3.post(
-        "/api/v1/auth/register",
-        json={"invite_code": code, "username": f"x_{uuid.uuid4().hex[:8]}", "password": "pass-1234"},
-        headers=headers3,
-    )
-    assert reg2.status_code == 400
-
-    # 清理新用户（先删引用它的 invite_codes.used_by）
-    with SessionLocal() as s:
-        s.execute(delete(InviteCode).where(InviteCode.created_by == uid))
-        s.execute(delete(User).where(User.username == new_username))
-        s.commit()
+        listed = client.get("/api/v1/invites")
+        invite_row = next(item for item in listed.json() if item["id"] == inv.json()["id"])
+        assert "used_by" not in invite_row
+        assert "used_at" not in invite_row
+    finally:
+        with SessionLocal() as s:
+            s.execute(delete(InviteCode).where(InviteCode.created_by == uid))
+            s.execute(delete(User).where(User.username.in_(new_usernames)))
+            s.commit()
 
 
 def test_invite_can_be_revoked(admin_user):
@@ -182,24 +179,41 @@ def test_invite_can_be_revoked(admin_user):
     )
     assert created.status_code == 200
     data = created.json()
-    revoked = client.post(f"/api/v1/invites/{data['id']}/revoke", headers=_csrf_headers(client))
-    assert revoked.status_code == 200
-    assert revoked.json()["revoked_at"] is not None
+    registered_username = f"member_{uuid.uuid4().hex[:8]}"
+    try:
+        first_anonymous, first_headers = _client_with_csrf()
+        first_registration = first_anonymous.post(
+            "/api/v1/auth/register",
+            json={
+                "invite_code": data["code"],
+                "username": registered_username,
+                "password": "member-pass-123",
+            },
+            headers=first_headers,
+        )
+        assert first_registration.status_code == 200
 
-    anonymous, anonymous_headers = _client_with_csrf()
-    registration = anonymous.post(
-        "/api/v1/auth/register",
-        json={
-            "invite_code": data["code"],
-            "username": f"member_{uuid.uuid4().hex[:8]}",
-            "password": "member-pass-123",
-        },
-        headers=anonymous_headers,
-    )
-    assert registration.status_code == 400
-    with SessionLocal() as session:
-        session.execute(delete(InviteCode).where(InviteCode.created_by == uid))
-        session.commit()
+        # 已经成功注册过用户的邀请码仍可由管理员撤销。
+        revoked = client.post(f"/api/v1/invites/{data['id']}/revoke", headers=_csrf_headers(client))
+        assert revoked.status_code == 200
+        assert revoked.json()["revoked_at"] is not None
+
+        anonymous, anonymous_headers = _client_with_csrf()
+        registration = anonymous.post(
+            "/api/v1/auth/register",
+            json={
+                "invite_code": data["code"],
+                "username": f"member_{uuid.uuid4().hex[:8]}",
+                "password": "member-pass-123",
+            },
+            headers=anonymous_headers,
+        )
+        assert registration.status_code == 400
+    finally:
+        with SessionLocal() as session:
+            session.execute(delete(InviteCode).where(InviteCode.created_by == uid))
+            session.execute(delete(User).where(User.username == registered_username))
+            session.commit()
 
 
 def test_expired_invite_rejected(admin_user):

@@ -13,7 +13,6 @@ import asyncio
 import logging
 from datetime import UTC, datetime
 from typing import Any
-from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -26,8 +25,8 @@ from app.providers.eastmoney import (
     get_stock_quote,
     search_stocks,
 )
+from app.services.market_calendar import market_sessions
 
-_TZ = ZoneInfo("Asia/Shanghai")
 logger = logging.getLogger(__name__)
 _BATCH_LIMIT = 80  # 旧 getBatchQuotes 上限
 # DB code → live code 映射（处理 code 不一致，移植 routes/market.js CODE_MAP）
@@ -75,10 +74,11 @@ async def refresh_market_cache() -> None:
         logger.warning("行情快照刷新失败，继续使用上一次成功缓存：%s", _cache.last_error)
 
 
-def is_trading_hours(now: datetime | None = None) -> bool:
-    """A股交易时段粗判（周一~周五 9~15 点，Asia/Shanghai），移植 isTradingHours。"""
-    dt = (now or datetime.now(UTC)).astimezone(_TZ)
-    return dt.weekday() < 5 and 9 <= dt.hour <= 15
+def should_refresh_market_cache(now: datetime | None = None) -> bool:
+    """空缓存持续补拉；有缓存时在 A/H/美任一市场开盘期间刷新。"""
+    if not _cache.data:
+        return True
+    return any(item["open"] for item in market_sessions(now))
 
 
 def get_indices(session: Session) -> list[dict[str, Any]]:

@@ -4,7 +4,8 @@
 不打真实接口。HTTP 抓取用 httpx.AsyncClient + 重试。
 PE/PB 需 /100（辩论文档附录 A）。
 
-M11.1 扩展：搜索建议 / 交易所行情(gtimg GBK) / 场外基金(天天+东财) / 指数快照(push2 ulist)，
+M11.1 扩展：搜索建议 / 交易所行情(gtimg GBK) / 场外基金(天天+东财) /
+指数快照（东财 push2 主源 + 腾讯 gtimg 降级），
 统一沿用旧 market-data.js 的响应 shape（MarketQuote：name/price/market/high/low/open/changePct/...）。
 """
 
@@ -263,6 +264,36 @@ def parse_index_list(payload: dict[str, Any]) -> list[IndexLive]:
     return out
 
 
+def parse_tencent_index_list(text: str, symbols: dict[str, str]) -> list[IndexLive]:
+    """腾讯 gtimg 批量指数文本 → 指数快照；symbols 为输出 code → 腾讯 symbol。"""
+    code_by_symbol = {symbol: code for code, symbol in symbols.items()}
+    out: list[IndexLive] = []
+    for line in text.splitlines():
+        match = re.fullmatch(r'\s*v_([A-Za-z0-9]+)="(.*)";\s*', line)
+        if match is None:
+            continue
+        symbol, payload = match.groups()
+        code = code_by_symbol.get(symbol)
+        parts = payload.split("~")
+        if code is None or len(parts) < 7:
+            continue
+        level = _to_number(parts[3])
+        previous = _to_number(parts[4])
+        if level is None:
+            continue
+        change = ((level - previous) / previous * 100) if previous else None
+        out.append(
+            IndexLive(
+                code=code,
+                name=parts[1],
+                level=f"{level:.2f}",
+                changePct=f"{change:.2f}" if change is not None else None,
+                volume=_to_number(parts[6]),
+            )
+        )
+    return out
+
+
 def _fnum_or(parts: list[str], idx: int, default: float) -> float:
     """gtimg 字段解析：空/非数/0 → default（对齐 JS `parseFloat(x) || default`）。"""
     try:
@@ -438,6 +469,15 @@ _INDEX_SECIDS = {
     "IXIC.US": "100.NDX",
     "SPX.US": "100.SPX",
 }
+_TENCENT_SYMBOL_BY_EASTMONEY_SECID = {
+    "1.000001": "sh000001",
+    "0.399001": "sz399001",
+    "0.399006": "sz399006",
+    "1.000688": "sh000688",
+    "100.HSI": "hkHSI",
+    "100.NDX": "usIXIC",
+    "100.SPX": "usINX",
+}
 _INDEX_FIELDS = "f1,f2,f3,f4,f6,f12,f14"
 _FUND_HEADERS = {"referer": "https://fund.eastmoney.com/"}
 
@@ -490,11 +530,32 @@ async def get_stock_quote(secid: str) -> MarketQuote | None:
 
 
 async def fetch_index_list(secids: dict[str, str] | None = None) -> list[IndexLive]:
-    """push2 ulist 批量指数快照（默认全部内置指数）。"""
+    """批量指数快照：东财 push2 主源，失败或空数据时降级腾讯 gtimg。"""
     mapping = secids or _INDEX_SECIDS
     joined = ",".join(mapping.values())
     url = f"https://push2.eastmoney.com/api/qt/ulist.np/get?fields={_INDEX_FIELDS}&secids={joined}"
-    return parse_index_list(await _get_json(url))
+    try:
+        rows = parse_index_list(await _get_json(url))
+        if rows:
+            return rows
+        primary_error: Exception = RuntimeError("东方财富指数行情返回空数据")
+    except (RuntimeError, TypeError, ValueError) as exc:
+        primary_error = exc
+
+    fallback_symbols = {
+        secid.partition(".")[2]: symbol
+        for secid in mapping.values()
+        if (symbol := _TENCENT_SYMBOL_BY_EASTMONEY_SECID.get(secid)) is not None
+    }
+    if fallback_symbols:
+        fallback_url = f"https://qt.gtimg.cn/q={','.join(fallback_symbols.values())}"
+        text = await _get_text(fallback_url, gbk=True)
+        if text:
+            rows = parse_tencent_index_list(text, fallback_symbols)
+            if rows:
+                return rows
+
+    raise RuntimeError("指数行情主备数据源均不可用") from primary_error
 
 
 # ---- 历史日线回补（组合曲线 / 压力监控，移植 kline-store.js）----

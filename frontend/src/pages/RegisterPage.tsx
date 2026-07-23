@@ -52,7 +52,7 @@ export function RegisterPage() {
               aria-describedby="register-invite-hint"
               required
             />
-            <span id="register-invite-hint" className="field-hint">邀请码由管理员生成，使用一次后失效</span>
+            <span id="register-invite-hint" className="field-hint">邀请码在有效期内可重复使用</span>
           </div>
           <div className="login-field">
             <label htmlFor="register-username">用户名</label>

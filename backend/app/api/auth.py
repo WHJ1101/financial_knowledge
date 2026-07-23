@@ -136,8 +136,6 @@ def list_invites(_: User = Depends(require_superadmin), session: Session = Depen
             id=str(i.id),
             code_hint=i.code_hint,
             expires_at=i.expires_at,
-            used_by=str(i.used_by) if i.used_by else None,
-            used_at=i.used_at,
             revoked_at=i.revoked_at,
         )
         for i in invites
@@ -153,8 +151,6 @@ def revoke_invite(
     invite = session.get(InviteCode, invite_id)
     if invite is None:
         raise HTTPException(status_code=404, detail="Not Found")
-    if invite.used_at is not None:
-        raise HTTPException(status_code=409, detail="邀请码已使用，无法撤销")
     if invite.revoked_at is None:
         invite.revoked_at = datetime.now(UTC)
         session.commit()
@@ -162,7 +158,5 @@ def revoke_invite(
         id=str(invite.id),
         code_hint=invite.code_hint,
         expires_at=invite.expires_at,
-        used_by=str(invite.used_by) if invite.used_by else None,
-        used_at=invite.used_at,
         revoked_at=invite.revoked_at,
     )

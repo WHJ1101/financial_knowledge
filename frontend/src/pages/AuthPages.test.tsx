@@ -32,6 +32,7 @@ test("登录页可进入邀请注册页", async () => {
   await userEvent.click(screen.getByRole("link", { name: "使用管理员邀请码注册" }));
   expect(screen.getByText("输入管理员发放的邀请码创建账号")).toBeInTheDocument();
   expect(screen.getByRole("textbox", { name: "邀请码" })).toBeInTheDocument();
+  expect(screen.getByText("邀请码在有效期内可重复使用")).toBeInTheDocument();
 });
 
 test("注册页可返回登录页", async () => {

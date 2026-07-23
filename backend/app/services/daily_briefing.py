@@ -389,18 +389,18 @@ _INDEX_SECIDS = {
 
 
 async def collect_market_indices() -> CollectResult:
-    """东财 ulist 指数行情 → CollectResult（复用 providers.eastmoney.fetch_index_list）。"""
+    """指数行情 → CollectResult（复用带主备数据源的 fetch_index_list）。"""
     from app.providers.eastmoney import fetch_index_list
 
     try:
         rows = await fetch_index_list(_INDEX_SECIDS)
         return CollectResult(
             ok=True,
-            source="东方财富行情",
+            source="指数行情",
             rows=[{"指数简称": r["name"], "涨跌幅": r["changePct"], "现价": r["level"]} for r in rows],
         )
     except Exception as e:  # noqa: BLE001 —— 采集容错
-        return CollectResult(ok=False, source="东方财富行情", error=str(e)[:180])
+        return CollectResult(ok=False, source="指数行情", error=str(e)[:180])
 
 
 async def collect_position_quotes(positions: list[dict[str, Any]]) -> CollectResult:

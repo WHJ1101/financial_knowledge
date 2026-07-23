@@ -5,16 +5,21 @@
 
 from __future__ import annotations
 
+import pytest
+
+from app.providers import eastmoney
 from app.providers.eastmoney import (
     classify_market_from_secid,
     classify_security,
     extract_security_code,
+    fetch_index_list,
     is_exchange_fund_code,
     is_otc_fund_secid,
     parse_eastmoney_fund_page,
     parse_exchange_quote,
     parse_index_list,
     parse_search,
+    parse_tencent_index_list,
     parse_tiantian_fund,
 )
 
@@ -91,6 +96,57 @@ def test_parse_index_list():
 def test_parse_index_list_empty():
     assert parse_index_list({"data": None}) == []
     assert parse_index_list({}) == []
+
+
+_TENCENT_INDEX_FIXTURE = "\n".join(
+    [
+        'v_sh000001="1~上证指数~000001~3876.78~3867.03~3868.09~562122601";',
+        'v_usIXIC="200~纳斯达克~.IXIC~25690.90~25837.21~25693.72~6651314727";',
+    ]
+)
+
+
+def test_parse_tencent_index_list():
+    indices = parse_tencent_index_list(
+        _TENCENT_INDEX_FIXTURE,
+        {"000001": "sh000001", "NDX": "usIXIC"},
+    )
+    assert indices == [
+        {
+            "code": "000001",
+            "name": "上证指数",
+            "level": "3876.78",
+            "changePct": "0.25",
+            "volume": 562122601.0,
+        },
+        {
+            "code": "NDX",
+            "name": "纳斯达克",
+            "level": "25690.90",
+            "changePct": "-0.57",
+            "volume": 6651314727.0,
+        },
+    ]
+
+
+@pytest.mark.asyncio
+async def test_fetch_index_list_falls_back_to_tencent(monkeypatch: pytest.MonkeyPatch):
+    async def failed_eastmoney(_url: str):
+        raise RuntimeError("eastmoney disconnected")
+
+    async def tencent_text(_url: str, **_kwargs: object):
+        return _TENCENT_INDEX_FIXTURE
+
+    monkeypatch.setattr(eastmoney, "_get_json", failed_eastmoney)
+    monkeypatch.setattr(eastmoney, "_get_text", tencent_text)
+
+    indices = await fetch_index_list(
+        {
+            "000001.SH": "1.000001",
+            "IXIC.US": "100.NDX",
+        }
+    )
+    assert [item["code"] for item in indices] == ["000001", "NDX"]
 
 
 # ---- 交易所行情（gtimg GBK ~ 分隔）----

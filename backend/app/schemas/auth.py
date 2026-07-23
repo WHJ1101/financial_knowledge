@@ -39,8 +39,6 @@ class InviteView(BaseModel):
     code: str | None = None  # 仅生成时返回一次明文
     code_hint: str
     expires_at: datetime
-    used_by: str | None = None
-    used_at: datetime | None = None
     revoked_at: datetime | None = None
 
 

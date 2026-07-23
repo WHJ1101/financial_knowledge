@@ -349,7 +349,9 @@ function InviteSettings() {
 
   return (
     <GlassPanel as="section" className="settings-card">
-      <div className="section-heading"><div><h2>成员邀请码</h2><p className="muted">明文只在创建后显示一次</p></div></div>
+      <div className="section-heading">
+        <div><h2>成员邀请码</h2><p className="muted">明文只在创建后显示一次，有效期内可重复使用</p></div>
+      </div>
       {newCode && (
         <div className="invite-code-result" role="status">
           <span>新邀请码</span><code>{newCode}</code>
@@ -366,22 +368,31 @@ function InviteSettings() {
       {invites.isLoading && <p className="muted">加载邀请码…</p>}
       {invites.isError && <div className="login-error" role="alert">邀请码列表加载失败 <GlassButton tone="text" size="sm" onClick={() => invites.refetch()}>重试</GlassButton></div>}
       <div className="invite-list">
-        {invites.data?.map((invite) => (
-          <div key={invite.id}>
-            <code>{invite.code_hint}</code>
-            <span>{invite.used_at ? "已使用" : invite.revoked_at ? "已撤销" : `有效至 ${new Date(invite.expires_at).toLocaleString("zh-CN")}`}</span>
-            {!invite.used_at && !invite.revoked_at && new Date(invite.expires_at).getTime() > Date.now() && (
-              <GlassButton
-                tone="danger"
-                size="sm"
-                disabled={revoke.isPending}
-                onClick={() => window.confirm(`撤销邀请码“${invite.code_hint}”？`) && revoke.mutate(invite.id)}
-              >
-                撤销
-              </GlassButton>
-            )}
-          </div>
-        ))}
+        {invites.data?.map((invite) => {
+          const expired = new Date(invite.expires_at).getTime() <= Date.now();
+          return (
+            <div key={invite.id}>
+              <code>{invite.code_hint}</code>
+              <span>
+                {invite.revoked_at
+                  ? "已撤销"
+                  : expired
+                    ? "已过期"
+                    : `有效至 ${new Date(invite.expires_at).toLocaleString("zh-CN")}`}
+              </span>
+              {!invite.revoked_at && !expired && (
+                <GlassButton
+                  tone="danger"
+                  size="sm"
+                  disabled={revoke.isPending}
+                  onClick={() => window.confirm(`撤销邀请码“${invite.code_hint}”？`) && revoke.mutate(invite.id)}
+                >
+                  撤销
+                </GlassButton>
+              )}
+            </div>
+          );
+        })}
         {invites.data?.length === 0 && <p className="empty-copy">暂无邀请码</p>}
       </div>
       {revoke.error && <div className="login-error" role="alert">{errorText(revoke.error, "邀请码撤销失败")}</div>}

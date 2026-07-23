@@ -271,24 +271,21 @@ invite_codes
 ├── code_hint TEXT NOT NULL
 ├── created_by UUID NOT NULL REFERENCES users(id)
 ├── expires_at TIMESTAMPTZ NOT NULL
-├── used_by UUID REFERENCES users(id)
-├── used_at TIMESTAMPTZ
 ├── revoked_at TIMESTAMPTZ
 └── created_at TIMESTAMPTZ NOT NULL
 ```
 
-邀请码只在生成成功时展示一次。注册使用原子更新：
+邀请码只在生成成功时展示一次，在有效期内可重复使用。注册时校验：
 
 ```sql
-UPDATE invite_codes
-SET used_by = :user_id, used_at = now()
+SELECT id
+FROM invite_codes
 WHERE code_hash = :code_hash
-  AND used_at IS NULL
   AND revoked_at IS NULL
   AND expires_at > now();
 ```
 
-受影响行数必须为 1，随后在同一个事务中创建用户；否则注册失败。
+查到有效记录后创建用户；过期或已撤销的邀请码注册失败。
 
 ### 4.4 报告、共享和个人阅读状态
 
@@ -1255,4 +1252,3 @@ Checkpoint State 可能包含：
 - [LangGraph Persistence](https://docs.langchain.com/oss/python/langgraph/persistence)
 - [Procrastinate 官方文档](https://procrastinate.readthedocs.io/en/stable/index.html)
 - [Procrastinate Schema 迁移](https://procrastinate.readthedocs.io/en/stable/howto/production/migrations.html)
-

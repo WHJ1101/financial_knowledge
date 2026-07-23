@@ -53,6 +53,7 @@ test("展示多个 Profile、八个 Agent 路由和超管邀请码入口", () =>
   expect(screen.getByLabelText("技术分析师")).toBeInTheDocument();
   expect(screen.getByLabelText("风险审查员")).toBeInTheDocument();
   expect(screen.getByRole("heading", { name: "成员邀请码" })).toBeInTheDocument();
+  expect(screen.getByText(/有效期内可重复使用/)).toBeInTheDocument();
 });
 
 test("保存角色到独立模型的路由", async () => {
