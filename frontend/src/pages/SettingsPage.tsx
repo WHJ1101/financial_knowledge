@@ -153,6 +153,11 @@ export function SettingsPage() {
                     <div><dt>服务商</dt><dd>{profile.provider_host}</dd></div>
                     <div><dt>密钥</dt><dd><code>{profile.key_hint}</code></dd></div>
                   </dl>
+                  {profile.key_status === "invalid" && (
+                    <div className="login-error" role="alert">
+                      密钥无法解密，请重新填写 API Key 并保存
+                    </div>
+                  )}
                   {editingProfileId === profile.id && (
                     <form className="settings-form llm-profile-edit" onSubmit={saveProfile}>
                       <div className="form-grid-2">

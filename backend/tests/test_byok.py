@@ -228,6 +228,36 @@ def test_settings_empty_when_unset(member):
     assert response.json()["profiles"] == []
 
 
+def test_settings_keeps_loading_when_one_profile_cannot_be_decrypted(member, monkeypatch):
+    monkeypatch.setattr("app.api.settings.validate_endpoint", lambda *_args, **_kwargs: None)
+    name, user_id = member
+    client = _login(name)
+    created = client.post(
+        "/api/v1/settings/llm/profiles",
+        json={
+            "name": "待修复模型",
+            "api_key": "sk-invalid-after-key-rotation",
+            "api_url": "https://openrouter.ai/api/v1",
+            "model": "model-a",
+            "is_default": True,
+        },
+        headers=_csrf(client),
+    )
+    assert created.status_code == 201, created.text
+
+    with SessionLocal() as session:
+        profile = session.execute(
+            select(LlmProfile).where(LlmProfile.user_id == user_id)
+        ).scalar_one()
+        profile.api_key_ciphertext = "not-a-valid-fernet-token"
+        session.commit()
+
+    response = client.get("/api/v1/settings/llm")
+    assert response.status_code == 200
+    assert response.json()["profiles"][0]["key_status"] == "invalid"
+    assert response.json()["profiles"][0]["key_hint"] == "不可用"
+
+
 def test_profile_rejects_whitespace_fields(member, monkeypatch):
     monkeypatch.setattr("app.api.settings.validate_endpoint", lambda *_args, **_kwargs: None)
     name, _ = member

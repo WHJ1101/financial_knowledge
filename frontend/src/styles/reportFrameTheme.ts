@@ -66,6 +66,15 @@ function createReportReaderTheme(theme: ReportReaderTheme): string {
   --reader-selection: ${palette.selection};
   --reader-accent-hover: ${palette.accentHover};
   --reader-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --background: var(--soft) !important;
+  --background-color: var(--soft) !important;
+  --bg: var(--soft) !important;
+  --surface: var(--paper) !important;
+  --surface-color: var(--paper) !important;
+  --card-bg: var(--paper) !important;
+  --text: var(--ink) !important;
+  --text-color: var(--ink) !important;
+  --border-color: var(--line) !important;
 }
 
 html {
@@ -95,6 +104,49 @@ article article {
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--accent) 8%, transparent) !important;
 }
 
+.card, .panel, .box, .content-card, .report-card, .section-card,
+.kpi, .metric, .stat, .quality, .source-item,
+[style*="background:#fff" i],
+[style*="background: #fff" i],
+[style*="background:#ffffff" i],
+[style*="background: #ffffff" i],
+[style*="background:white" i],
+[style*="background: white" i],
+[style*="background-color:#fff" i],
+[style*="background-color: #fff" i],
+[style*="background-color:#ffffff" i],
+[style*="background-color: #ffffff" i],
+[style*="background-color:white" i],
+[style*="background-color: white" i],
+[style*="background: rgb(255" i],
+[style*="background-color: rgb(255" i] {
+  color: var(--ink) !important;
+  background: var(--paper) !important;
+  border-color: var(--line) !important;
+}
+
+.note, .callout, .alert, .insight, .highlight, .summary, blockquote {
+  color: var(--ink) !important;
+  background: var(--reader-soft) !important;
+  border-color: var(--line) !important;
+}
+
+.meta > span, .chip, .pill, .badge, .tag, .confidence {
+  color: var(--muted) !important;
+  background: color-mix(in srgb, var(--paper) 82%, var(--reader-accent-wash)) !important;
+  border-color: var(--line) !important;
+}
+
+.kpi span, .metric span, .stat span, .meta, .source-meta, .section-note {
+  color: var(--muted) !important;
+}
+
+.table-wrap {
+  background: var(--reader-paper-deep) !important;
+  border-color: var(--line) !important;
+}
+tbody tr:nth-child(even) { background: color-mix(in srgb, var(--paper) 92%, var(--reader-soft)) !important; }
+
 h1, h2, h3, h4, h5, h6, strong, b { color: var(--ink) !important; }
 h1, h2, h3 { font-family: "Iowan Old Style", "Songti SC", "Noto Serif SC", Georgia, serif; }
 h1 { letter-spacing: -0.035em; font-weight: 600; }
@@ -114,7 +166,6 @@ table, th, td { border-color: var(--line) !important; }
 th { background: var(--reader-soft) !important; }
 ::selection { color: var(--ink); background: var(--reader-selection); }
 
-.meta, .source-meta, .section-note { color: var(--muted) !important; }
 .summary {
   border-left-color: var(--accent) !important;
   background: linear-gradient(135deg, var(--reader-accent-wash), color-mix(in srgb, var(--paper) 74%, var(--reader-accent-wash))) !important;

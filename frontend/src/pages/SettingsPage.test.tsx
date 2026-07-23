@@ -11,8 +11,9 @@ const mocks = vi.hoisted(() => ({
   revokeInvite: vi.fn(),
   settings: {
     profiles: [
-      { id: "p1", name: "默认分析", provider_host: "openrouter.ai", model: "model-a", key_hint: "sk-****1111", enabled: true, is_default: true },
-      { id: "p2", name: "独立裁判", provider_host: "api.deepseek.com", model: "model-b", key_hint: "sk-****2222", enabled: true, is_default: false },
+      { id: "p1", name: "默认分析", provider_host: "openrouter.ai", model: "model-a", key_hint: "sk-****1111", key_status: "valid", enabled: true, is_default: true },
+      { id: "p2", name: "独立裁判", provider_host: "api.deepseek.com", model: "model-b", key_hint: "sk-****2222", key_status: "valid", enabled: true, is_default: false },
+      { id: "p3", name: "迁移后待修复", provider_host: "openrouter.ai", model: "model-c", key_hint: "不可用", key_status: "invalid", enabled: true, is_default: false },
     ],
     routes: [{ role: "judge", profile_id: "p2", temperature: 0.1 }],
     available_roles: ["technical", "fundamental", "macro", "sentiment", "bull", "bear", "judge", "risk"],
@@ -64,4 +65,10 @@ test("保存角色到独立模型的路由", async () => {
     expect.objectContaining({ role: "technical", profile_id: "p2", temperature: 0.3 }),
     expect.objectContaining({ role: "judge", profile_id: "p2", temperature: 0.1 }),
   ]));
+});
+
+test("单个 Profile 密钥失效时保留设置页并给出修复提示", () => {
+  render(<SettingsPage />);
+  expect(screen.getByText("迁移后待修复")).toBeInTheDocument();
+  expect(screen.getByText(/密钥无法解密，请重新填写 API Key 并保存/)).toBeInTheDocument();
 });

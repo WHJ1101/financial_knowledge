@@ -27,6 +27,23 @@ describe("applyReportReaderTheme", () => {
     expect(result).toContain("--ink: #eee7da");
   });
 
+  it("normalizes common imported report surfaces and hard-coded white backgrounds", () => {
+    const source = [
+      "<!doctype html><html><head>",
+      "<style>.card{background:#fff}.kpi{background:white}</style>",
+      "</head><body><main><section class=\"card\">结论</section>",
+      "<div class=\"kpi\" style=\"background-color: #ffffff\">指标</div>",
+      "<img src=\"chart.png\" alt=\"图表\"></main></body></html>",
+    ].join("");
+    const result = applyReportReaderTheme(source, "dark");
+
+    expect(result).toContain(".card, .panel, .box");
+    expect(result).toContain('[style*="background-color: #ffffff" i]');
+    expect(result).toContain("background: var(--paper) !important");
+    expect(result.indexOf("data-reader-theme")).toBeGreaterThan(result.indexOf(".card{background:#fff}"));
+    expect(result).not.toContain("img { background: var(--paper) !important");
+  });
+
   it("replaces an injected reader palette when the application theme changes", () => {
     const light = applyReportReaderTheme("<article>报告正文</article>", "light");
     const dark = applyReportReaderTheme(light, "dark");

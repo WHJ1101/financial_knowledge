@@ -7,6 +7,7 @@ export interface LlmProfile {
   provider_host: string | null;
   model: string;
   key_hint: string;
+  key_status: "valid" | "invalid";
   enabled: boolean;
   is_default: boolean;
 }

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime
+from typing import Literal
 from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -58,6 +59,7 @@ class LlmProfileView(BaseModel):
     provider_host: str | None
     model: str
     key_hint: str
+    key_status: Literal["valid", "invalid"]
     enabled: bool
     is_default: bool
 
@@ -81,12 +83,20 @@ class LlmSettingsView(BaseModel):
 
 
 def _profile_view(profile: LlmProfile) -> LlmProfileView:
+    try:
+        key_hint = mask_api_key(decrypt_api_key(profile.api_key_ciphertext))
+        key_status: Literal["valid", "invalid"] = "valid"
+    except ValueError:
+        key_hint = "不可用"
+        key_status = "invalid"
+
     return LlmProfileView(
         id=profile.id,
         name=profile.name,
         provider_host=urlparse(profile.api_url).hostname,
         model=profile.model,
-        key_hint=mask_api_key(decrypt_api_key(profile.api_key_ciphertext)),
+        key_hint=key_hint,
+        key_status=key_status,
         enabled=profile.enabled,
         is_default=profile.is_default,
     )
