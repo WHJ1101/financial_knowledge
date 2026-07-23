@@ -1,6 +1,10 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
-import { expect, test, vi } from "vitest";
+import { beforeEach, expect, test, vi } from "vitest";
+
+const mocks = vi.hoisted(() => ({
+  toggleVisibility: vi.fn(),
+}));
 
 const reports = [
   {
@@ -16,7 +20,7 @@ const reports = [
     tags: ["美股"],
     content_status: "ok",
     created_at: "2026-07-22T01:00:00Z",
-    is_owner: false,
+    is_owner: true,
     starred: false,
     archived: false,
     read: false,
@@ -47,6 +51,7 @@ vi.mock("@/hooks/useReports", () => ({
   useToggleStar: () => ({ mutate: vi.fn(), isPending: false }),
   useToggleArchive: () => ({ mutate: vi.fn(), isPending: false }),
   useDeleteReport: () => ({ mutate: vi.fn(), isPending: false }),
+  useToggleVisibility: () => ({ mutate: mocks.toggleVisibility, isPending: false }),
 }));
 
 import { KnowledgePage } from "@/pages/KnowledgePage";
@@ -66,6 +71,11 @@ function renderKnowledge(initial = "/knowledge") {
   );
 }
 
+beforeEach(() => {
+  mocks.toggleVisibility.mockClear();
+  vi.restoreAllMocks();
+});
+
 test("中文输入法组合期间不改写 URL，提交候选后再同步搜索参数", () => {
   renderKnowledge();
   const input = screen.getByRole("textbox", { name: "搜索报告" });
@@ -83,6 +93,22 @@ test("中文输入法组合期间不改写 URL，提交候选后再同步搜索�
 
   fireEvent.compositionEnd(input, { data: "美股" });
   expect(screen.getByTestId("location")).toHaveTextContent("/knowledge?q=%E7%BE%8E%E8%82%A1");
+});
+
+test("报告属主确认后可将共享报告转为私有", () => {
+  vi.spyOn(window, "confirm").mockReturnValue(true);
+  renderKnowledge();
+
+  fireEvent.click(screen.getByRole("button", { name: "转为私有" }));
+
+  expect(window.confirm).toHaveBeenCalledWith("确认将「今日未读报告」转为私有？其他用户将无法再看到该报告。");
+  expect(mocks.toggleVisibility).toHaveBeenCalledWith(
+    { id: "today-unread", visibility: "private" },
+    expect.objectContaining({
+      onSuccess: expect.any(Function),
+      onError: expect.any(Function),
+    }),
+  );
 });
 
 test.each([

@@ -1,9 +1,10 @@
-"""报告只读 + 导入/删除/内容 API（方案 §3.4/§4.3/§11.3）。
+"""报告只读 + 导入/删除/内容/可见性 API（方案 §3.4/§4.3/§11.3）。
 
 只读：GET /reports、/reports/{id}（可见性 shared OR owner=self；合并个人态）。
 内容：GET /reports/{id}/content（经鉴权流式返回 HTML，Caddy 不暴露 data/reports，ADR-019）。
 导入：POST /reports/import（Import Token 代表超管身份 → owner=超管、private）。
 删除：DELETE /reports/{id}（仅 owner=self）。
+可见性：PATCH /reports/{id}/visibility（owner 切换 private ↔ shared）。
 """
 
 from __future__ import annotations
@@ -13,6 +14,7 @@ from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from fastapi.responses import HTMLResponse
+from pydantic import BaseModel, Field
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
@@ -186,4 +188,32 @@ def delete_report_endpoint(
     report = session.get(Report, report_id)
     require_owner(report.owner_id if report else None, user.id)
     delete_report(session, report_id)
+    return OkResponse()
+
+
+# ---- 可见性切换 ----
+
+
+class VisibilityRequest(BaseModel):
+    visibility: str = Field(pattern="^(private|shared)$")
+
+
+@router.patch(
+    "/reports/{report_id}/visibility",
+    response_model=OkResponse,
+    dependencies=[Depends(require_csrf)],
+)
+def update_report_visibility(
+    report_id: str,
+    body: VisibilityRequest,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> OkResponse:
+    """owner 切换报告可见性（private ↔ shared）。撤销共享后他人已有个人态静默失效（策略 A）。"""
+    report = session.get(Report, report_id)
+    require_owner(report.owner_id if report else None, user.id)
+    assert report is not None
+    report.visibility = body.visibility
+    report.updated_at = datetime.now(UTC)
+    session.commit()
     return OkResponse()

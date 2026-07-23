@@ -8,6 +8,7 @@ import {
   useReports,
   useToggleArchive,
   useToggleStar,
+  useToggleVisibility,
   type ReportView,
 } from "@/hooks/useReports";
 
@@ -38,7 +39,8 @@ export function KnowledgePage() {
   const star = useToggleStar();
   const archive = useToggleArchive();
   const del = useDeleteReport();
-  const actionPending = markRead.isPending || star.isPending || archive.isPending || del.isPending;
+  const visibility = useToggleVisibility();
+  const actionPending = markRead.isPending || star.isPending || archive.isPending || del.isPending || visibility.isPending;
   const [actionNote, setActionNote] = useState<ActionNote | null>(null);
   const [queryInput, setQueryInput] = useState(q);
   const composingQuery = useRef(false);
@@ -177,6 +179,16 @@ export function KnowledgePage() {
             onArchive={() => archive.mutate(r.id, {
               onError: (error) => actionError(error, "归档操作失败"),
             })}
+            onToggleVisibility={() => {
+              const next = r.visibility === "shared" ? "private" : "shared";
+              const msg = next === "shared" ? `确认公开「${r.title}」？其他用户将可见该报告。` : `确认将「${r.title}」转为私有？其他用户将无法再看到该报告。`;
+              if (confirm(msg)) {
+                visibility.mutate({ id: r.id, visibility: next }, {
+                  onSuccess: () => setActionNote({ text: `「${r.title}」已${next === "shared" ? "公开" : "转为私有"}`, error: false }),
+                  onError: (error) => actionError(error, "可见性切换失败"),
+                });
+              }
+            }}
             onDelete={() => {
               if (confirm(`确认删除「${r.title}」？该操作不可撤销。`)) {
                 del.mutate(r.id, {
@@ -206,6 +218,7 @@ function ReportCard({
   onRead,
   onArchive,
   onDelete,
+  onToggleVisibility,
 }: {
   r: ReportView;
   busy: boolean;
@@ -213,6 +226,7 @@ function ReportCard({
   onRead: () => void;
   onArchive: () => void;
   onDelete: () => void;
+  onToggleVisibility: () => void;
 }) {
   return (
     <GlassPanel as="article" tone="data" interactive className="report-card">
@@ -246,6 +260,11 @@ function ReportCard({
           <GlassButton tone="utility" size="sm" disabled={busy} onClick={onArchive}>
             {r.archived ? "取消归档" : "归档"}
           </GlassButton>
+          {r.is_owner && (
+            <GlassButton tone="utility" size="sm" disabled={busy} onClick={onToggleVisibility}>
+              {r.visibility === "shared" ? "转为私有" : "公开"}
+            </GlassButton>
+          )}
           {r.is_owner && (
             <GlassButton tone="danger" size="sm" disabled={busy} onClick={onDelete}>
               删除

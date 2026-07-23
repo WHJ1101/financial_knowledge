@@ -53,3 +53,13 @@ export function useDeleteReport() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["reports"] }),
   });
 }
+
+/** 切换报告可见性（仅 owner）。 */
+export function useToggleVisibility() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, visibility }: { id: string; visibility: "private" | "shared" }) =>
+      api.patch(`/reports/${encodeURIComponent(id)}/visibility`, { visibility }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["reports"] }),
+  });
+}

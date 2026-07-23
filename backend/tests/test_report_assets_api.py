@@ -174,6 +174,41 @@ def test_delete_report_owner_only(tmp_data_dir, member):
         s.commit()
 
 
+def test_report_visibility_owner_only(tmp_data_dir, member):
+    name, uid = member
+    other_name, other_uid = _mk_user()
+    client = _login(name)
+    other = _login(other_name)
+    rid = f"visibility_{uuid.uuid4().hex[:8]}"
+    with SessionLocal() as s:
+        s.add(
+            Report(
+                id=rid,
+                owner_id=uid,
+                visibility="private",
+                title="可见性测试",
+                topic="t",
+                type="custom",
+                created_at=datetime.now(UTC),
+                updated_at=datetime.now(UTC),
+            )
+        )
+        s.commit()
+
+    endpoint = f"/api/v1/reports/{rid}/visibility"
+    assert other.patch(endpoint, json={"visibility": "shared"}, headers=_csrf(other)).status_code == 404
+    assert client.patch(endpoint, json={"visibility": "shared"}, headers=_csrf(client)).status_code == 200
+    assert rid in {row["id"] for row in other.get("/api/v1/reports").json()}
+    assert client.patch(endpoint, json={"visibility": "private"}, headers=_csrf(client)).status_code == 200
+    assert rid not in {row["id"] for row in other.get("/api/v1/reports").json()}
+
+    with SessionLocal() as s:
+        s.execute(delete(Report).where(Report.id == rid))
+        s.execute(delete(UserSession).where(UserSession.user_id == other_uid))
+        s.execute(delete(User).where(User.id == other_uid))
+        s.commit()
+
+
 def test_report_asset_link_crud_and_ownership(tmp_data_dir, member):
     name, uid = member
     other_name, other_uid = _mk_user()
