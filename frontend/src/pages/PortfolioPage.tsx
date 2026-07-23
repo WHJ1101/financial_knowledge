@@ -7,7 +7,9 @@ import {
   useAnalyzeWatchlist,
   useDeletePosition,
   useDeleteWatchlist,
+  usePositions,
   useWatchlist,
+  type PositionView,
   type WatchlistItemView,
 } from "@/hooks/usePortfolio";
 import {
@@ -25,6 +27,7 @@ import { GlassActionLink, GlassButton, GlassPanel } from "@/components/LiquidGla
 type Tab = "positions" | "analysis" | "watchlist" | "etfs";
 type SortKey = "default" | "marketValue" | "pnlPct";
 type OperationNote = { text: string; error: boolean };
+type DisplayHolding = AnalysisHolding & { marketValueEstimated?: boolean };
 
 const ANALYSIS_LABEL: Record<string, string> = {
   pending: "待分析",
@@ -53,6 +56,57 @@ export function formatChangePct(value: string | null | undefined): string {
 }
 function errorDetail(error: unknown, fallback: string): string {
   return error instanceof ApiError ? error.detail : fallback;
+}
+
+function mergePositionsWithAnalysis(
+  positions: PositionView[] | undefined,
+  analyzed: AnalysisHolding[] | undefined,
+): DisplayHolding[] {
+  if (positions === undefined) {
+    return (analyzed ?? []).map((holding) => ({ ...holding, marketValueEstimated: false }));
+  }
+
+  const analyzedById = new Map((analyzed ?? []).map((holding) => [holding.id, holding]));
+  const totalCostValue = positions.reduce((sum, position) => sum + position.shares * position.cost, 0);
+
+  return positions.map((position) => {
+    const live = analyzedById.get(position.id);
+    if (live && live.shares === position.shares && live.cost === position.cost) {
+      return {
+        ...live,
+        code: position.code,
+        name: position.name,
+        market: position.market,
+        risk: position.risk,
+        reason: position.reason,
+        analysisDetail: position.analysis_detail ?? {},
+        analysisStatus: position.analysis_status,
+        marketValueEstimated: false,
+      };
+    }
+
+    const costValue = position.shares * position.cost;
+    return {
+      id: position.id,
+      code: position.code,
+      name: position.name,
+      market: position.market,
+      shares: position.shares,
+      cost: position.cost,
+      price: null,
+      changePct: null,
+      quoteSource: null,
+      marketValue: costValue,
+      pnl: null,
+      pnlPct: null,
+      weight: totalCostValue > 0 ? costValue / totalCostValue * 100 : 0,
+      risk: position.risk,
+      reason: position.reason,
+      analysisDetail: position.analysis_detail ?? {},
+      analysisStatus: position.analysis_status,
+      marketValueEstimated: true,
+    };
+  });
 }
 
 /** 持仓/自选/组合分析/指数基金 四 tab 工作台（方案 §11.4/§11.F）。 */
@@ -102,6 +156,7 @@ function AnalysisTab() {
 }
 
 function PositionsTab() {
+  const positions = usePositions();
   const analysis = usePortfolioAnalysis();
   const add = useAddPosition();
   const del = useDeletePosition();
@@ -111,7 +166,11 @@ function PositionsTab() {
   const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "default", dir: "desc" });
   const [form, setForm] = useState({ code: "", name: "", market: "A股", shares: "", cost: "" });
 
-  const holdings = analysis.data?.holdings ?? [];
+  const holdings = useMemo(
+    () => mergePositionsWithAnalysis(positions.data, analysis.data?.holdings),
+    [positions.data, analysis.data?.holdings],
+  );
+  const hasEstimatedValues = holdings.some((holding) => holding.marketValueEstimated);
   const sorted = useMemo(() => {
     const key = sort.key;
     if (key === "default") return holdings;
@@ -167,6 +226,15 @@ function PositionsTab() {
           </GlassButton>
         </form>
         {operationNote && <div className={operationNote.error ? "inline-note login-error" : "inline-note"} role={operationNote.error ? "alert" : "status"}>{operationNote.text}</div>}
+        {hasEstimatedValues && !analysis.isError && (
+          <div className="inline-note" role="status">持仓已加载，正在更新实时行情…</div>
+        )}
+        {hasEstimatedValues && analysis.isError && (
+          <div className="inline-note login-error" role="alert">
+            实时行情暂不可用，当前显示成本估算。
+            <GlassButton tone="text" size="sm" onClick={() => analysis.refetch()}>重试行情</GlassButton>
+          </div>
+        )}
 
         <div className="sortbar">
           <span className="muted">排序</span>
@@ -186,9 +254,9 @@ function PositionsTab() {
             <span>浮动盈亏</span>
             <span>状态</span>
           </div>
-          {analysis.isLoading && <p className="muted pad">加载中…</p>}
-          {analysis.isError && <div className="error-state" role="alert">持仓加载失败 <GlassButton tone="text" size="sm" onClick={() => analysis.refetch()}>重试</GlassButton></div>}
-          {!analysis.isLoading && !analysis.isError && sorted.length === 0 && <p className="empty-inline">暂无持仓，上方添加第一笔</p>}
+          {positions.isLoading && sorted.length === 0 && <p className="muted pad">加载中…</p>}
+          {positions.isError && sorted.length === 0 && <div className="error-state" role="alert">持仓加载失败 <GlassButton tone="text" size="sm" onClick={() => positions.refetch()}>重试</GlassButton></div>}
+          {!positions.isLoading && !positions.isError && sorted.length === 0 && <p className="empty-inline">暂无持仓，上方添加第一笔</p>}
           {sorted.map((h) => (
             <button
               key={h.id}
@@ -200,11 +268,11 @@ function PositionsTab() {
                 <em className="muted">{h.code} · {h.market}</em>
               </span>
               <span>
-                <strong>{fmtMoney(h.marketValue)}</strong>
+                <strong>{h.marketValueEstimated ? `成本估算 ${fmtMoney(h.marketValue)}` : fmtMoney(h.marketValue)}</strong>
                 <em className="muted">{fmtPct(h.weight)}</em>
               </span>
               <span>
-                <strong>{h.price != null ? h.price.toFixed(3) : "无行情"}</strong>
+                <strong>{h.price != null ? h.price.toFixed(3) : h.marketValueEstimated ? "更新中…" : "无行情"}</strong>
                 <em className="muted">成本 {h.cost}</em>
               </span>
               <span className={h.pnl == null ? "muted" : h.pnl >= 0 ? "up" : "down"}>
@@ -219,7 +287,7 @@ function PositionsTab() {
 
       {active ? (
         <PositionDetail
-          holding={active as AnalysisHolding}
+          holding={active}
           analyzing={analyze.isPending}
           deleting={del.isPending}
           onAnalyze={() =>

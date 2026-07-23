@@ -114,7 +114,7 @@ export function PositionDetail({
   analyzing = false,
   deleting = false,
 }: {
-  holding: AnalysisHolding;
+  holding: AnalysisHolding & { marketValueEstimated?: boolean };
   onAnalyze: () => void;
   onDelete: () => void;
   analyzing?: boolean;
@@ -150,7 +150,7 @@ export function PositionDetail({
 
       <div className="detail-metrics">
         <div className="mini-metric">
-          <span>市值</span>
+          <span>{holding.marketValueEstimated ? "成本估算" : "市值"}</span>
           <strong>{fmtMoney(holding.marketValue, 0)}</strong>
         </div>
         <div className="mini-metric">
