@@ -48,14 +48,14 @@ function createReportReaderTheme(theme: ReportReaderTheme): string {
   return `<style data-reader-theme="${theme}">
 :root {
   color-scheme: ${theme};
-  --accent: ${palette.accent} !important;
-  --ink: ${palette.ink} !important;
-  --muted: ${palette.muted} !important;
-  --line: ${palette.line} !important;
-  --line-soft: ${palette.lineSoft} !important;
-  --soft: ${palette.soft} !important;
-  --paper: ${palette.paper} !important;
-  --reader-paper-deep: ${palette.paperDeep};
+  --reader-accent: ${palette.accent};
+  --reader-text: ${palette.ink};
+  --reader-muted: ${palette.muted};
+  --reader-line: ${palette.line};
+  --reader-line-soft: ${palette.lineSoft};
+  --reader-background: ${palette.soft};
+  --reader-surface: ${palette.paper};
+  --reader-surface-deep: ${palette.paperDeep};
   --reader-soft: ${palette.readerSoft};
   --reader-accent-wash: ${palette.accentWash};
   --reader-snippet: ${palette.snippet};
@@ -66,46 +66,39 @@ function createReportReaderTheme(theme: ReportReaderTheme): string {
   --reader-selection: ${palette.selection};
   --reader-accent-hover: ${palette.accentHover};
   --reader-ease: cubic-bezier(0.16, 1, 0.3, 1);
-  --background: var(--soft) !important;
-  --background-color: var(--soft) !important;
-  --bg: var(--soft) !important;
-  --surface: var(--paper) !important;
-  --surface-color: var(--paper) !important;
-  --card-bg: var(--paper) !important;
-  --text: var(--ink) !important;
-  --text-color: var(--ink) !important;
-  --border-color: var(--line) !important;
 }
 
 html {
   color-scheme: ${theme};
-  background: var(--soft) !important;
+  background: var(--reader-background) !important;
 }
 
 body {
   background:
     radial-gradient(circle at 12% 0%, var(--reader-body-glow), transparent 25rem),
-    var(--soft) !important;
-  color: var(--ink) !important;
+    var(--reader-background) !important;
+  color: var(--reader-text) !important;
   font-family: "SF Pro Text", -apple-system, "PingFang SC", "Helvetica Neue", system-ui, sans-serif !important;
 }
 
 main { max-width: 1020px !important; padding: 40px 24px 68px !important; }
 article {
-  color: var(--ink) !important;
-  background: var(--paper) !important;
-  border-color: var(--line) !important;
+  color: var(--reader-text) !important;
+  background: var(--reader-surface) !important;
+  border-color: var(--reader-line) !important;
   border-radius: 10px !important;
   box-shadow: 0 2px 6px var(--reader-shadow-soft), 0 20px 54px var(--reader-shadow-strong) !important;
   animation: reader-document-in 0.58s var(--reader-ease) both;
 }
 article article {
-  background: var(--reader-paper-deep) !important;
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--accent) 8%, transparent) !important;
+  background: var(--reader-surface-deep) !important;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--reader-accent) 8%, transparent) !important;
 }
 
+.hero, .report-hero, .header-card,
 .card, .panel, .box, .content-card, .report-card, .section-card,
 .kpi, .metric, .stat, .quality, .source-item,
+.conclusion, .signal, .tbl, .table-wrap,
 [style*="background:#fff" i],
 [style*="background: #fff" i],
 [style*="background:#ffffff" i],
@@ -120,76 +113,83 @@ article article {
 [style*="background-color: white" i],
 [style*="background: rgb(255" i],
 [style*="background-color: rgb(255" i] {
-  color: var(--ink) !important;
-  background: var(--paper) !important;
-  border-color: var(--line) !important;
+  color: var(--reader-text) !important;
+  background: var(--reader-surface) !important;
+  border-color: var(--reader-line) !important;
 }
 
 .note, .callout, .alert, .insight, .highlight, .summary, blockquote {
-  color: var(--ink) !important;
+  color: var(--reader-text) !important;
   background: var(--reader-soft) !important;
-  border-color: var(--line) !important;
+  border-color: var(--reader-line) !important;
 }
 
 .meta > span, .chip, .pill, .badge, .tag, .confidence {
-  color: var(--muted) !important;
-  background: color-mix(in srgb, var(--paper) 82%, var(--reader-accent-wash)) !important;
-  border-color: var(--line) !important;
+  color: var(--reader-muted) !important;
+  background: color-mix(in srgb, var(--reader-surface) 82%, var(--reader-accent-wash)) !important;
+  border-color: var(--reader-line) !important;
 }
 
-.kpi span, .metric span, .stat span, .meta, .source-meta, .section-note {
-  color: var(--muted) !important;
+.kpi span, .metric span, .stat span,
+.kpi .l, .kpi .label, .metric .l, .metric .label, .stat .l, .stat .label,
+.meta, .source-meta, .section-note {
+  color: var(--reader-muted) !important;
 }
 
-.table-wrap {
-  background: var(--reader-paper-deep) !important;
-  border-color: var(--line) !important;
+.kpi .v, .kpi .value, .metric .v, .metric .value, .stat .v, .stat .value,
+.eyebrow, .kicker, .overline {
+  color: var(--reader-accent) !important;
 }
-tbody tr:nth-child(even) { background: color-mix(in srgb, var(--paper) 92%, var(--reader-soft)) !important; }
 
-h1, h2, h3, h4, h5, h6, strong, b { color: var(--ink) !important; }
+.table-wrap, .tbl {
+  background: var(--reader-surface-deep) !important;
+  border-color: var(--reader-line) !important;
+}
+tbody tr:nth-child(even) { background: color-mix(in srgb, var(--reader-surface) 92%, var(--reader-soft)) !important; }
+
+h1, h2, h3, h4, h5, h6, strong, b { color: var(--reader-text) !important; }
 h1, h2, h3 { font-family: "Iowan Old Style", "Songti SC", "Noto Serif SC", Georgia, serif; }
 h1 { letter-spacing: -0.035em; font-weight: 600; }
 h2 { letter-spacing: -0.018em; }
-p, li, td, th, blockquote { color: var(--ink) !important; }
-hr { border-color: var(--line) !important; }
+p, li, td, th, blockquote { color: var(--reader-text) !important; }
+hr { border-color: var(--reader-line) !important; }
 blockquote {
-  border-color: var(--accent) !important;
+  border-color: var(--reader-accent) !important;
   background: var(--reader-soft) !important;
 }
 pre, code {
-  color: var(--ink) !important;
+  color: var(--reader-text) !important;
   background: var(--reader-code) !important;
-  border-color: var(--line) !important;
+  border-color: var(--reader-line) !important;
 }
-table, th, td { border-color: var(--line) !important; }
+table, th, td { border-color: var(--reader-line) !important; }
 th { background: var(--reader-soft) !important; }
-::selection { color: var(--ink); background: var(--reader-selection); }
+::selection { color: var(--reader-text); background: var(--reader-selection); }
 
 .summary {
-  border-left-color: var(--accent) !important;
-  background: linear-gradient(135deg, var(--reader-accent-wash), color-mix(in srgb, var(--paper) 74%, var(--reader-accent-wash))) !important;
+  border-left-color: var(--reader-accent) !important;
+  background: linear-gradient(135deg, var(--reader-accent-wash), color-mix(in srgb, var(--reader-surface) 74%, var(--reader-accent-wash))) !important;
 }
 .tag, .confidence {
-  border-color: color-mix(in srgb, var(--accent) 22%, var(--line)) !important;
-  background: color-mix(in srgb, var(--paper) 78%, var(--reader-accent-wash)) !important;
-  color: var(--accent) !important;
+  border-color: color-mix(in srgb, var(--reader-accent) 22%, var(--reader-line)) !important;
+  background: color-mix(in srgb, var(--reader-surface) 78%, var(--reader-accent-wash)) !important;
+  color: var(--reader-accent) !important;
 }
-.quality, .source-item { background: var(--paper) !important; border-color: var(--line) !important; }
+.quality, .source-item { background: var(--reader-surface) !important; border-color: var(--reader-line) !important; }
 .quality { box-shadow: 0 8px 24px var(--reader-shadow-soft); }
 .source-item {
   border-radius: 8px !important;
   box-shadow: 0 8px 26px var(--reader-shadow-soft) !important;
   transition: border-color 0.24s var(--reader-ease), box-shadow 0.28s var(--reader-ease), transform 0.28s var(--reader-ease);
 }
-.source-top { background: linear-gradient(180deg, var(--paper), var(--reader-soft)) !important; }
+.source-top { background: linear-gradient(180deg, var(--reader-surface), var(--reader-soft)) !important; }
 .source-snippet, .source-empty { color: var(--reader-snippet) !important; }
-a { color: var(--accent) !important; text-underline-offset: 3px; }
+a { color: var(--reader-accent) !important; text-underline-offset: 3px; }
 a:hover { color: var(--reader-accent-hover) !important; }
 
 @media (hover: hover) and (pointer: fine) {
   .source-item:hover {
-    border-color: color-mix(in srgb, var(--accent) 38%, var(--line)) !important;
+    border-color: color-mix(in srgb, var(--reader-accent) 38%, var(--reader-line)) !important;
     box-shadow: 0 14px 34px var(--reader-shadow-strong) !important;
     transform: translateY(-1px);
   }

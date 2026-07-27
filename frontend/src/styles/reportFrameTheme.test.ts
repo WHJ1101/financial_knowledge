@@ -23,8 +23,35 @@ describe("applyReportReaderTheme", () => {
 
     expect(result).toContain('data-reader-theme="dark"');
     expect(result).toContain("color-scheme: dark");
-    expect(result).toContain("--paper: #242019");
-    expect(result).toContain("--ink: #eee7da");
+    expect(result).toContain("--reader-surface: #242019");
+    expect(result).toContain("--reader-text: #eee7da");
+  });
+
+  it("keeps imported report tokens isolated from the reader palette", () => {
+    const source = [
+      "<!doctype html><html><head>",
+      "<style>:root{--soft:#625e53;--paper:#fffdf8;--ink:#292720;--bg:#f3eee4}</style>",
+      "</head><body><div class=\"kpi\"><div class=\"l\">指标说明</div></div></body></html>",
+    ].join("");
+    const result = applyReportReaderTheme(source, "dark");
+    const injectedTheme = result.match(/<style data-reader-theme="dark">([\s\S]*?)<\/style>/)?.[1] ?? "";
+
+    expect(result).toContain("--soft:#625e53");
+    expect(injectedTheme).not.toMatch(/--(?:soft|paper|ink|bg):/);
+    expect(injectedTheme).toContain("--reader-background: #17140f");
+    expect(injectedTheme).toContain("--reader-surface: #242019");
+    expect(injectedTheme).toContain("--reader-text: #eee7da");
+  });
+
+  it("normalizes market report hero, conclusion, and metric-label surfaces", () => {
+    const result = applyReportReaderTheme(
+      "<main><header class=\"hero\">标题</header><div class=\"conclusion\">结论</div><div class=\"kpi\"><div class=\"l\">说明</div></div></main>",
+      "dark",
+    );
+
+    expect(result).toContain(".hero, .report-hero");
+    expect(result).toContain(".conclusion, .signal");
+    expect(result).toContain(".kpi .l, .kpi .label");
   });
 
   it("normalizes common imported report surfaces and hard-coded white backgrounds", () => {
@@ -39,9 +66,9 @@ describe("applyReportReaderTheme", () => {
 
     expect(result).toContain(".card, .panel, .box");
     expect(result).toContain('[style*="background-color: #ffffff" i]');
-    expect(result).toContain("background: var(--paper) !important");
+    expect(result).toContain("background: var(--reader-surface) !important");
     expect(result.indexOf("data-reader-theme")).toBeGreaterThan(result.indexOf(".card{background:#fff}"));
-    expect(result).not.toContain("img { background: var(--paper) !important");
+    expect(result).not.toContain("img { background: var(--reader-surface) !important");
   });
 
   it("replaces an injected reader palette when the application theme changes", () => {
