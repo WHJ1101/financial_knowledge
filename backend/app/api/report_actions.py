@@ -9,6 +9,7 @@ import uuid
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user, require_csrf, require_superadmin
@@ -34,14 +35,32 @@ def _assert_visible(session: Session, report_id: str, user: User) -> Report:
     return report
 
 
+def _upsert_read_state(session: Session, user_id: uuid.UUID, report_id: str) -> None:
+    now = datetime.now(UTC)
+    statement = (
+        insert(UserReportState)
+        .values(
+            user_id=user_id,
+            report_id=report_id,
+            read_at=now,
+            starred=False,
+            archived=False,
+            updated_at=now,
+        )
+        .on_conflict_do_update(
+            index_elements=[UserReportState.user_id, UserReportState.report_id],
+            set_={"read_at": now, "updated_at": now},
+        )
+    )
+    session.execute(statement)
+
+
 @router.post("/reports/{report_id}/read", response_model=OkResponse, dependencies=[Depends(require_csrf)])
 def mark_read(
     report_id: str, user: User = Depends(get_current_user), session: Session = Depends(get_session)
 ) -> OkResponse:
     _assert_visible(session, report_id, user)
-    state = _get_or_create_state(session, user.id, report_id)
-    state.read_at = datetime.now(UTC)
-    state.updated_at = datetime.now(UTC)
+    _upsert_read_state(session, user.id, report_id)
     session.commit()
     return OkResponse()
 

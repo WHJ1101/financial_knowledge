@@ -3,14 +3,16 @@
 from __future__ import annotations
 
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
+from threading import Barrier
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import delete
+from sqlalchemy import delete, event
 
 from app.core.security import hash_password
-from app.db import SessionLocal
+from app.db import SessionLocal, engine
 from app.main import app
 from app.models import Instrument, Position, Report, User, UserReportState, UserSession, WatchlistItem
 
@@ -34,8 +36,8 @@ def _mk_user(role: str = "member") -> tuple[str, uuid.UUID]:
     return username, uid
 
 
-def _login(username: str) -> TestClient:
-    client = TestClient(app)
+def _login(username: str, *, raise_server_exceptions: bool = True) -> TestClient:
+    client = TestClient(app, raise_server_exceptions=raise_server_exceptions)
     csrf = client.get("/api/v1/auth/csrf").json()["csrf_token"]
     client.post(
         "/api/v1/auth/login",
@@ -138,6 +140,56 @@ def test_report_star_read_personal_state(member):
         s.execute(delete(UserReportState).where(UserReportState.report_id == rid))
         s.execute(delete(Report).where(Report.id == rid))
         s.commit()
+
+
+def test_concurrent_first_read_is_idempotent(member):
+    name, uid = member
+    rid = f"m4read_{uuid.uuid4().hex[:8]}"
+    with SessionLocal() as s:
+        s.add(
+            Report(
+                id=rid,
+                owner_id=uid,
+                visibility="private",
+                title="并发已读",
+                topic="并发已读",
+                type="custom",
+                created_at=datetime.now(UTC),
+                updated_at=datetime.now(UTC),
+            )
+        )
+        s.commit()
+
+    clients = [
+        _login(name, raise_server_exceptions=False),
+        _login(name, raise_server_exceptions=False),
+    ]
+    barrier = Barrier(len(clients))
+
+    def synchronize_state_lookup(_conn, _cursor, statement, _parameters, _context, _executemany):
+        if "FROM user_report_states" in statement and "user_report_states.user_id" in statement:
+            barrier.wait(timeout=5)
+
+    event.listen(engine, "before_cursor_execute", synchronize_state_lookup)
+    try:
+        with ThreadPoolExecutor(max_workers=len(clients)) as pool:
+            statuses = list(
+                pool.map(
+                    lambda client: client.post(
+                        f"/api/v1/reports/{rid}/read",
+                        headers=_csrf(client),
+                    ).status_code,
+                    clients,
+                )
+            )
+    finally:
+        event.remove(engine, "before_cursor_execute", synchronize_state_lookup)
+        with SessionLocal() as s:
+            s.execute(delete(UserReportState).where(UserReportState.report_id == rid))
+            s.execute(delete(Report).where(Report.id == rid))
+            s.commit()
+
+    assert statuses == [200, 200]
 
 
 def test_member_cannot_publish(member):
