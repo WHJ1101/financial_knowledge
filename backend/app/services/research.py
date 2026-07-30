@@ -14,6 +14,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from app.llm.json import DEFAULT_JSON_PARSER, JsonParser
+
 MAX_EVIDENCE_ITEMS = 12
 DEFAULT_EXCERPT_LIMIT = 1200
 STRUCTURED_EXCERPT_LIMIT = 5000
@@ -186,28 +188,6 @@ def _normalize_str_array(value: Any) -> list[str]:
     return [str(x or "").strip() for x in value if str(x or "").strip()]
 
 
-def parse_llm_json(content: str) -> dict[str, Any]:
-    """从模型输出抠出 JSON（容忍 ```json``` 代码围栏与前后噪声）。"""
-    text = str(content or "").strip()
-    fence = re.search(r"```(?:json)?\s*([\s\S]*?)```", text)
-    if fence:
-        text = fence.group(1).strip()
-    try:
-        parsed = json.loads(text)
-    except (ValueError, TypeError) as e:
-        start, end = text.find("{"), text.rfind("}")
-        if start != -1 and end > start:
-            try:
-                parsed = json.loads(text[start : end + 1])
-            except (ValueError, TypeError):
-                raise ValueError("无法解析模型返回的 JSON") from e
-        else:
-            raise ValueError("无法解析模型返回的 JSON") from e
-    if not isinstance(parsed, dict):
-        raise ValueError("模型返回的 JSON 不是对象")
-    return parsed
-
-
 def normalize_llm_brief(value: dict[str, Any], evidence: list[Evidence]) -> Brief:
     def text_array(v: Any, label: str) -> list[str]:
         arr = _normalize_str_array(v)[:6]
@@ -371,6 +351,8 @@ def run_research_pipeline(
     previous_reports: list[dict[str, Any]],
     generated_at: str,
     model: str = "",
+    *,
+    json_parser: JsonParser = DEFAULT_JSON_PARSER,
 ) -> Brief:
     """研究流水线主入口（chat 为可选 BYOK 客户端；None 或调用失败时降级证据草稿）。"""
     evidence = collect_evidence(topic, type_, data_dir, previous_reports)
@@ -383,7 +365,7 @@ def run_research_pipeline(
     else:
         try:
             content = chat(_LLM_SYSTEM, build_llm_user_payload(topic, type_, evidence, generated_at))
-            brief = normalize_llm_brief(parse_llm_json(content), evidence)
+            brief = normalize_llm_brief(json_parser.parse_object(content), evidence)
             llm_ok = True
         except ValueError as e:  # JSON 解析失败
             llm_note = f"失败 · 模型结果解析失败：{str(e)[:200]}"

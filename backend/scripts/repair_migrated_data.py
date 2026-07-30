@@ -1,4 +1,4 @@
-"""清理历史测试污染并修复 legacy 报告/决策归属。
+"""清理历史测试污染并修复 legacy 报告归属。
 
 默认 dry-run；``--apply`` 才提交。只匹配仓库测试套件使用的随机账号命名规则，并只删除这些账号
 拥有的私有资源及其失去引用的测试证券。
@@ -20,7 +20,6 @@ from app.db import SessionLocal
 from app.models import (
     AutomationTask,
     Debate,
-    Decision,
     Instrument,
     InviteCode,
     LlmAgentRoute,
@@ -128,8 +127,6 @@ def main() -> int:
                 session.execute(
                     update(Report).where(Report.id.in_(source_ids)).values(owner_id=admin.id, visibility="shared")
                 )
-            # 历史每日决策已经冻结写入，全部属于超管的私人只读归档。
-            session.execute(update(Decision).values(owner_id=admin.id, visibility="private"))
         all_reports = list(session.execute(select(Report)).scalars())
         referenced_files = {item.file for item in all_reports if item.file}
         orphan_test_report_files = _orphan_test_report_files(referenced_files)

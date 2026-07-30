@@ -15,9 +15,9 @@ from pydantic import BaseModel
 
 from app.db import SessionLocal
 from app.llm.client import make_sync_chat
+from app.llm.json import parse_json_object
 from app.models import Instrument, Position, WatchlistItem
 from app.services.instrument_evidence import collect_instrument_evidence
-from app.services.research import parse_llm_json
 
 _WATCHLIST_SYSTEM = """你是一位采用产业链瓶颈分析方法的投研分析师。分析标的时必须回答：
 1. 它在产业链中卡住什么环节？（不是泛泛说"行业前景好"）
@@ -168,9 +168,31 @@ async def _quote_for(inst: Instrument) -> dict[str, Any] | None:
     return None
 
 
-def _fetch_quote_sync(inst: Instrument) -> dict[str, Any] | None:
+async def _resolved_quote_for(session: Any, inst: Instrument) -> dict[str, Any] | None:
+    """复用组合页统一行情解析，确保分析输入与用户看到的现价一致。"""
+    from app.services.instrument_catalog.repository import provider_ref_map
+    from app.services.market import resolve_batch
+
+    code = inst.display_code
+    provider_refs = provider_ref_map(inst)
+    quotes = await resolve_batch(
+        session,
+        [{"code": code, "quoteSecid": provider_refs.get("eastmoney") or ""}],
+    )
+    quote = quotes.get(code)
+    return dict(quote) if quote is not None else None
+
+
+def _fetch_quote_sync(inst: Instrument, session: Any | None = None) -> dict[str, Any] | None:
     import asyncio
 
+    if session is not None:
+        try:
+            quote = asyncio.run(_resolved_quote_for(session, inst))
+            if quote is not None:
+                return quote
+        except Exception:  # noqa: BLE001 -- 统一行情不可用时继续尝试旧 Provider 降级链
+            pass
     try:
         return asyncio.run(_quote_for(inst))
     except Exception:  # noqa: BLE001
@@ -194,7 +216,7 @@ def analyze_watchlist_item(item_id: str) -> None:
         session.commit()
         try:
             chat = make_sync_chat(session, str(item.owner_id), "stock_analysis", f"watchlist:{item_id}")
-            quote = _fetch_quote_sync(inst)
+            quote = _fetch_quote_sync(inst, session)
             user = _dumps(
                 {
                     "code": inst.canonical_symbol,
@@ -210,7 +232,7 @@ def analyze_watchlist_item(item_id: str) -> None:
                     },
                 }
             )
-            result = parse_llm_json(chat(_WATCHLIST_SYSTEM, user))
+            result = parse_json_object(chat(_WATCHLIST_SYSTEM, user))
             item.thesis = str(result.get("thesis") or "")
             item.advice = str(result.get("advice") or "")
             item.risk = str(result.get("risk") or "")
@@ -246,10 +268,11 @@ def analyze_position(pos_id: str) -> None:
         try:
             chat = make_sync_chat(session, str(pos.owner_id), "position_analysis", f"position:{pos_id}")
             evidence = collect_instrument_evidence(session, inst, "swing", viewer_id=pos.owner_id)
-            quote = _fetch_quote_sync(inst)
+            quote = _fetch_quote_sync(inst, session)
             raw_price = quote.get("price") if quote else None
             price = float(raw_price) if raw_price is not None else None
-            pnl_pct = f"{(price - cost) / cost * 100:.2f}%" if (price and cost) else "未知"
+            pnl_pct_value = (price - cost) / cost * 100 if (price is not None and cost) else None
+            pnl_pct = f"{pnl_pct_value:.2f}%" if pnl_pct_value is not None else "未知"
             user = _dumps(
                 {
                     "position": {
@@ -278,12 +301,24 @@ def analyze_position(pos_id: str) -> None:
                     },
                 }
             )
-            result = PositionAnalysisResult.model_validate(parse_llm_json(chat(_POSITION_SYSTEM, user)))
+            result = PositionAnalysisResult.model_validate(parse_json_object(chat(_POSITION_SYSTEM, user)))
             collected_gaps = _evidence_gaps(evidence)
             data_gaps = list(dict.fromkeys([*result.data_gaps, *collected_gaps]))
             fundamentals, holdings_citation = _ground_fundamentals(result.fundamentals, evidence)
             evidence_used = list(
                 dict.fromkeys([*result.evidence_used, *([holdings_citation] if holdings_citation else [])])
+            )
+            generated_at = datetime.now(UTC)
+            quote_as_of = (
+                (quote or {}).get("updatedAt")
+                or (quote or {}).get("navDate")
+                or (quote or {}).get("asOf")
+                or generated_at.isoformat()
+            )
+            quote_source = (
+                (quote or {}).get("sourceLabel")
+                or (quote or {}).get("source")
+                or "行情不可用"
             )
             pos.reason = f"【{result.action}】{result.summary}"
             pos.risk = result.risk
@@ -296,7 +331,18 @@ def analyze_position(pos_id: str) -> None:
                 "triggers": result.triggers,
                 "evidence_used": evidence_used,
                 "data_gaps": data_gaps,
-                "generated_at": datetime.now(UTC).isoformat(),
+                "generated_at": generated_at.isoformat(),
+                "quote_snapshot": {
+                    "price": price,
+                    "change_pct": (quote or {}).get("changePct"),
+                    "source": quote_source,
+                    "as_of": str(quote_as_of),
+                },
+                "position_snapshot": {
+                    "shares": shares,
+                    "cost": cost,
+                    "pnl_pct": pnl_pct_value,
+                },
             }
             pos.analysis_status = "done"
             pos.updated_at = datetime.now(UTC)

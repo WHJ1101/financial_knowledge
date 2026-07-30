@@ -16,7 +16,7 @@ from app.providers.base import FundamentalSnapshot, InstrumentRef
 from app.providers.eastmoney_finance import EquityFundamentalSnapshot
 from app.providers.eastmoney_fund import FundProfileSnapshot
 from app.services.debate_runner import _safe_error_message, execute_debate
-from app.services.instrument_evidence import collect_instrument_evidence, online_evidence, report_context
+from app.services.instrument_evidence import collect_instrument_evidence, online_fundamental, report_context
 
 
 class FakeRouter:
@@ -95,7 +95,7 @@ def test_report_context_includes_direct_research_and_news_briefing_without_html_
 
 
 @pytest.mark.asyncio
-async def test_online_evidence_routes_fund_assets_to_fund_profile(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_online_fundamental_routes_fund_assets_to_fund_profile(monkeypatch: pytest.MonkeyPatch) -> None:
     calls: list[str] = []
 
     async def fund_snapshot(_self, ref: InstrumentRef) -> FundProfileSnapshot:
@@ -106,39 +106,30 @@ async def test_online_evidence_routes_fund_assets_to_fund_profile(monkeypatch: p
         calls.append(f"equity:{ref.asset_class}")
         raise AssertionError("基金不应进入股票估值接口")
 
-    async def macro_snapshot(_as_of):
-        return {"pmi": {"period": "2026年06月份", "value": 50.3, "unit": "点"}}
-
     monkeypatch.setattr("app.providers.eastmoney_fund.EastmoneyFundProvider.snapshot", fund_snapshot)
     monkeypatch.setattr("app.providers.eastmoney.EastmoneyProvider.snapshot", equity_snapshot)
-    monkeypatch.setattr("app.providers.eastmoney_macro.latest_macro_snapshot", macro_snapshot)
 
-    fundamental, macro = await online_evidence(
+    fundamental = await online_fundamental(
         InstrumentRef("025208", "OTC_FUND", "open_end_fund", {"fund": "OF.025208"})
     )
 
     assert calls == ["fund:open_end_fund"]
     assert fundamental["kind"] == "fund_profile"
     assert fundamental["scale_billion"] == 14.45
-    assert macro["pmi"]["value"] == 50.3
 
 
 @pytest.mark.asyncio
-async def test_online_evidence_falls_back_to_finance_datacenter(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_online_fundamental_falls_back_to_finance_datacenter(monkeypatch: pytest.MonkeyPatch) -> None:
     async def failed_quote_snapshot(_self, _ref: InstrumentRef) -> FundamentalSnapshot:
         raise RuntimeError("push2 disconnected")
 
     async def finance_snapshot(_self, _ref: InstrumentRef) -> EquityFundamentalSnapshot:
         return EquityFundamentalSnapshot(roe=39.4, revenue_yoy=132.8, profit_yoy=2644.0)
 
-    async def macro_snapshot(_as_of):
-        return {"pmi": {"period": "2026年06月份", "value": 50.3, "unit": "点"}}
-
     monkeypatch.setattr("app.providers.eastmoney.EastmoneyProvider.snapshot", failed_quote_snapshot)
     monkeypatch.setattr("app.providers.eastmoney_finance.EastmoneyFinanceProvider.snapshot", finance_snapshot)
-    monkeypatch.setattr("app.providers.eastmoney_macro.latest_macro_snapshot", macro_snapshot)
 
-    fundamental, _macro = await online_evidence(
+    fundamental = await online_fundamental(
         InstrumentRef("301308", "SZSE", "equity", {"eastmoney": "0.301308"})
     )
 
@@ -160,7 +151,6 @@ def test_collect_evidence_backfills_missing_watchlist_bars_once(monkeypatch: pyt
         display_code=code,
         name="日线回补测试",
         market="科创板",
-        provider_ids={},
         source="test",
         active=True,
         created_at=now,
@@ -168,8 +158,8 @@ def test_collect_evidence_backfills_missing_watchlist_bars_once(monkeypatch: pyt
     )
     fetch_calls: list[str] = []
 
-    async def online_evidence(_ref: InstrumentRef):
-        return {"source": "test"}, {"source": "test"}
+    async def online_fundamental(_ref: InstrumentRef):
+        return {"source": "test"}
 
     async def fetch_bars(requested_secid: str, *_args, **_kwargs):
         fetch_calls.append(requested_secid)
@@ -178,7 +168,7 @@ def test_collect_evidence_backfills_missing_watchlist_bars_once(monkeypatch: pyt
             for day in range(1, 22)
         ]
 
-    monkeypatch.setattr("app.services.instrument_evidence.online_evidence", online_evidence)
+    monkeypatch.setattr("app.services.instrument_evidence.online_fundamental", online_fundamental)
     monkeypatch.setattr("app.providers.eastmoney.fetch_historical_exchange_bars", fetch_bars)
 
     with SessionLocal() as session:
@@ -221,7 +211,6 @@ def debate_record() -> tuple[str, uuid.UUID, uuid.UUID]:
                 display_code="SZTEST",
                 name="生命周期测试",
                 market="创业板",
-                provider_ids={},
                 source="test",
                 active=True,
                 created_at=now,

@@ -54,6 +54,18 @@ Codex 对话生成的报告默认使用：
 - 不提交 `.env`、API key、cookie、token、个人持仓、数据库、报告 HTML、日志和本地数据源。
 - 云端跨设备同步依赖同一个部署实例和持久化磁盘，不依赖 Git 同步 `data/`。
 
+## 长任务
+
+- 日更、数据源刷新和回补任务必须先写运行台账，再与 Procrastinate Job 同事务入队。
+- `automation_runs` 记录业务编排，`source_sync_runs` 记录来源能力子运行；页面不得依赖文本日志推断任务状态。
+- HTTP 触发长任务返回 `202 + run_id`，Worker 分步骤更新结构化状态。
+
+## 证券身份
+
+- Instrument 稳定身份是 `(exchange, asset_class, canonical_symbol)`。
+- 上游身份只写 `instrument_provider_refs`；禁止把 Provider key 重新塞回 Instrument JSONB。
+- 页面搜索候选必须先经 Catalog 签名 token resolve，客户端不得把 secid 当最终证券身份。
+
 ## 部署
 
 推荐 Docker Compose 单机部署：

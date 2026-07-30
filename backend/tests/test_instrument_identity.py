@@ -1,6 +1,6 @@
 """证券身份规范化单测（方案 §4.1）。用真实存量样例断言。"""
 
-from app.services.instrument_identity import merge_provider_id, normalize
+from app.services.instrument_identity import normalize, provider_reference
 
 
 def test_ashare_equity_by_market() -> None:
@@ -51,8 +51,10 @@ def test_unresolvable_returns_none() -> None:
     assert normalize("ABC", "未知市场") is None
 
 
-def test_merge_provider_id() -> None:
-    assert merge_provider_id({}, "OF.014662", "fund") == {"fund": "OF.014662"}
-    assert merge_provider_id({}, "0.159915", "exchange") == {"eastmoney": "0.159915"}
-    merged = merge_provider_id({"fund": "OF.007722"}, "150.007722", "exchange")
-    assert merged == {"fund": "OF.007722", "eastmoney": "150.007722"}
+def test_provider_reference() -> None:
+    assert provider_reference("OF.014662", "fund") == ("fund", "OF.014662", "eastmoney")
+    assert provider_reference("0.159915", "exchange") == (
+        "eastmoney",
+        "0.159915",
+        "eastmoney",
+    )

@@ -51,19 +51,6 @@ export interface DebateReport {
   model_assignments: Record<string, { profile_name: string; model: string; provider_host: string }>;
 }
 
-export interface LegacyDecision {
-  id: string;
-  date: string | null;
-  title: string;
-  summary: string | null;
-  action: string | null;
-  market: string | null;
-  positionAdvice: unknown[];
-  stockAdvice: unknown[];
-  reports: unknown[];
-  createdAt: string | null;
-}
-
 export function debateListRefetchInterval(data: DebateView[] | undefined): number | false {
   return data?.some((debate) => debate.status === "queued" || debate.status === "running") ? 2000 : false;
 }
@@ -73,14 +60,6 @@ export function useDebates() {
     queryKey: ["debates"],
     queryFn: () => api.get<DebateView[]>("/debates"),
     refetchInterval: (query) => debateListRefetchInterval(query.state.data),
-  });
-}
-
-export function useLegacyDecisions(enabled: boolean) {
-  return useQuery({
-    queryKey: ["legacy-decisions"],
-    queryFn: () => api.get<{ decisions: LegacyDecision[] }>("/decisions"),
-    enabled,
   });
 }
 

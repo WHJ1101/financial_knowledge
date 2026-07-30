@@ -17,7 +17,7 @@ from sqlalchemy import delete
 from app.core.security import hash_password
 from app.db import SessionLocal
 from app.main import app
-from app.models import AutomationTask, Report, Setting, User, UserSession
+from app.models import AutomationRun, AutomationTask, Report, Setting, User, UserSession
 
 
 def _mk_user(role: str = "member") -> tuple[str, uuid.UUID]:
@@ -80,7 +80,44 @@ def test_automation_requires_superadmin(member):
     name, _ = member
     client = _login(name)
     assert client.get("/api/v1/automation/tasks").status_code == 404
+    assert client.get("/api/v1/automation/runs").status_code == 404
+    assert client.get("/api/v1/source-sync-runs").status_code == 404
     assert client.get("/api/v1/logs").status_code == 404
+
+
+def test_automation_run_list_and_detail(superadmin):
+    name, uid = superadmin
+    run_id = uuid.uuid4()
+    now = datetime.now(UTC)
+    with SessionLocal() as session:
+        session.add(
+            AutomationRun(
+                id=run_id,
+                kind=f"api_test_{uuid.uuid4().hex[:8]}",
+                trigger="manual",
+                requested_by=uid,
+                status="succeeded",
+                step_summary=[{"key": "market", "status": "succeeded"}],
+                started_at=now,
+                finished_at=now,
+            )
+        )
+        session.commit()
+    try:
+        client = _login(name)
+        listed = client.get("/api/v1/automation/runs")
+        assert listed.status_code == 200
+        assert any(item["id"] == str(run_id) for item in listed.json()["runs"])
+        detail = client.get(f"/api/v1/automation/runs/{run_id}")
+        assert detail.status_code == 200
+        assert detail.json()["steps"][0]["key"] == "market"
+        missing = client.get(f"/api/v1/automation/runs/{uuid.uuid4()}")
+        assert missing.status_code == 404
+        assert missing.json()["detail"]["code"] == "run_not_found"
+    finally:
+        with SessionLocal() as session:
+            session.execute(delete(AutomationRun).where(AutomationRun.id == run_id))
+            session.commit()
 
 
 def test_task_crud_and_toggle_schedule(superadmin):

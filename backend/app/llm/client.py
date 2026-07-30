@@ -6,13 +6,12 @@ import uuid
 from collections.abc import Callable
 from typing import Any
 
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.agents.decision.role_registry import DEBATE_ROLE_KEYS
 from app.config import get_settings
 from app.core.crypto import decrypt_api_key
 from app.llm.context import (
-    DEBATE_AGENT_ROLES,
     AgentRole,
     LlmExecutionContext,
     LlmUnavailable,
@@ -21,6 +20,7 @@ from app.llm.context import (
     validate_endpoint,
 )
 from app.models import LlmAgentRoute, LlmProfile
+from app.repositories.scoping import scope_condition, scoped_select
 
 ChatFn = Callable[[str, str], str]
 
@@ -36,13 +36,13 @@ def resolve_llm_config(
     temperature = 0.3
     if role is not None:
         route_row = session.execute(
-            select(LlmAgentRoute, LlmProfile)
+            scoped_select(LlmAgentRoute, owner_id)
+            .add_columns(LlmProfile)
             .join(LlmProfile, LlmProfile.id == LlmAgentRoute.profile_id)
             .where(
-                LlmAgentRoute.user_id == owner_id,
                 LlmAgentRoute.purpose == ctx.purpose,
                 LlmAgentRoute.role == role,
-                LlmProfile.user_id == owner_id,
+                scope_condition(LlmProfile, owner_id),
                 LlmProfile.enabled.is_(True),
             )
         ).first()
@@ -51,9 +51,8 @@ def resolve_llm_config(
             temperature = route.temperature
     if profile is None:
         profile = session.execute(
-            select(LlmProfile)
+            scoped_select(LlmProfile, owner_id)
             .where(
-                LlmProfile.user_id == owner_id,
                 LlmProfile.enabled.is_(True),
                 LlmProfile.is_default.is_(True),
             )
@@ -156,7 +155,7 @@ def make_role_chat_router(
     run_id: str,
 ) -> RoleChatRouter:
     ctx = LlmExecutionContext(execution_owner_id=execution_owner_id, purpose=purpose, run_id=run_id)
-    return RoleChatRouter({role: resolve_llm_config(session, ctx, role) for role in DEBATE_AGENT_ROLES})
+    return RoleChatRouter({role: resolve_llm_config(session, ctx, role) for role in DEBATE_ROLE_KEYS})
 
 
 def make_sync_chat(session: Session, execution_owner_id: str, purpose: Purpose, run_id: str) -> ChatFn:

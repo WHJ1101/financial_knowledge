@@ -31,18 +31,55 @@ def analyze_position_task(pos_id: str) -> None:
     analyze_position(pos_id)
 
 
-def run_daily_briefing_job(task_id: str) -> None:
-    """日更简报任务（scheduler dispatcher 触发，超管 owner，方案 §11.6）。"""
-    from app.services.automation import run_daily_briefing_task
+def run_daily_job(run_id: str) -> None:
+    """按运行台账执行日更；业务终态由 run lifecycle 持久化。"""
+    from app.services.automation import run_daily_automation
 
-    run_daily_briefing_task(task_id)
+    run_daily_automation(run_id)
 
 
-def run_automation_job(task_id: str) -> None:
-    """执行没有专用 worker 的任务；当前会落一条明确的跳过日志。"""
+def run_automation_job(run_id: str) -> None:
+    """按运行台账分派没有专用队列名的自动化任务。"""
     from app.services.automation import run_automation_task
 
-    run_automation_task(task_id)
+    run_automation_task(run_id)
+
+
+def refresh_research_source(
+    run_id: str,
+    capability_key: str,
+    subject_key: str,
+    parameters: dict[str, object],
+) -> None:
+    """按来源运行台账刷新单一能力，写原始快照与标准事实。"""
+    from app.db import SessionLocal
+    from app.services.research_data_hub.source_operations import execute_source_refresh
+
+    with SessionLocal() as session:
+        execute_source_refresh(
+            session,
+            run_id=run_id,
+            capability_key=capability_key,
+            subject_key=subject_key,
+            parameters=parameters,
+        )
+
+
+def sync_feishu_signal_source(run_id: str, execution_owner_id: str) -> None:
+    """执行飞书 section 增量/回补同步。"""
+    import asyncio
+
+    from app.db import SessionLocal
+    from app.services.signal_ingestion import execute_signal_sync_run
+
+    with SessionLocal() as session:
+        asyncio.run(
+            execute_signal_sync_run(
+                session,
+                run_id=run_id,
+                execution_owner_id=execution_owner_id,
+            )
+        )
 
 
 def tick_scheduler(timestamp: int) -> None:
@@ -52,13 +89,25 @@ def tick_scheduler(timestamp: int) -> None:
     tick()
 
 
+def tick_research_sources(timestamp: int) -> None:
+    """按 freshness 清单补齐到期的宏观能力。"""
+    from app.services.research_data_hub.scheduler import tick_research_data
+
+    tick_research_data()
+
+
 def make_blueprint() -> Blueprint:
     """每次返回全新 Blueprint（不共享，避免命名空间重复前缀）。"""
     bp = Blueprint()
     bp.task(name="run_debate", queue="debates", retry=3)(run_debate)
     bp.task(name="analyze_watchlist", queue="analysis", retry=2)(analyze_watchlist)
     bp.task(name="analyze_position", queue="analysis", retry=2)(analyze_position_task)
-    bp.task(name="run_daily_briefing", queue="scheduler", retry=2)(run_daily_briefing_job)
+    bp.task(name="run_daily", queue="scheduler")(run_daily_job)
     bp.task(name="run_automation", queue="scheduler")(run_automation_job)
+    bp.task(name="refresh_research_source", queue="research")(refresh_research_source)
+    bp.task(name="sync_feishu_signal_source", queue="signals")(sync_feishu_signal_source)
     bp.periodic(cron="* * * * *")(bp.task(name="tick_scheduler", queue="scheduler")(tick_scheduler))
+    bp.periodic(cron="17 * * * *")(
+        bp.task(name="tick_research_sources", queue="scheduler")(tick_research_sources)
+    )
     return bp

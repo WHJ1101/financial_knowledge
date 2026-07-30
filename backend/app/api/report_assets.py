@@ -20,6 +20,7 @@ from app.core.auth import get_current_user, require_csrf
 from app.core.authz import require_owner
 from app.db import get_session
 from app.models import Report, ReportAssetLink, User
+from app.repositories.scoping import scoped_get
 from app.services.logs import append_log
 from app.services.report_assets import (
     delete_report_asset_link,
@@ -39,8 +40,8 @@ class AssetLinkRequest(BaseModel):
 
 
 def _visible_report_or_404(session: Session, report_id: str, user: User) -> Report:
-    report = session.get(Report, report_id)
-    if report is None or (report.visibility != "shared" and report.owner_id != user.id):
+    report = scoped_get(session, Report, report_id, user.id, access="visible")
+    if report is None:
         raise HTTPException(status_code=404, detail="Not Found")
     return report
 
@@ -61,7 +62,7 @@ def add_report_asset(
     session: Session = Depends(get_session),
 ) -> dict[str, Any]:
     # 改关联需报告属主（非属主/不存在 → 404，方案 §3.4）
-    report = session.get(Report, report_id)
+    report = scoped_get(session, Report, report_id, user.id)
     require_owner(report.owner_id if report else None, user.id)
     try:
         link = upsert_report_asset_link(session, report_id, body.model_dump())
@@ -85,7 +86,7 @@ def remove_report_asset_link(
     link = session.get(ReportAssetLink, link_id)
     if link is None:
         raise HTTPException(status_code=404, detail="Not Found")
-    report = session.get(Report, link.report_id)
+    report = scoped_get(session, Report, link.report_id, user.id)
     require_owner(report.owner_id if report else None, user.id)
     report_id = link.report_id
     deleted, _ = delete_report_asset_link(session, link_id)

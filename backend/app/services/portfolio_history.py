@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import re
+import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -19,6 +20,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.models import DailyBar, Instrument, Position
+from app.repositories.scoping import scoped_select
 
 _DAY = timedelta(days=1)
 _RANGE_DAYS = {"6m": 190}  # 半年约 126 交易日，留冗余按自然日 190 截取
@@ -108,7 +110,7 @@ def _exchange_secid_from_code(code: str) -> str | None:
 def resolve_bar_secid(inst: Instrument) -> tuple[str, str] | None:
     """instrument → (secid, kind)。kind ∈ exchange|fund。不支持（港美股）→ None。
 
-    基金分支最先短路；否则优先 provider_ids.eastmoney，再按 market+号段补前缀。
+    基金分支最先短路；否则优先 Provider Ref，再按 market+号段补前缀。
     """
     code = inst.canonical_symbol
     market = inst.market or ""
@@ -120,8 +122,10 @@ def resolve_bar_secid(inst: Instrument) -> tuple[str, str] | None:
         return None
     if inst.asset_class in ("hk_stock", "us_stock"):
         return None
-    # ③ provider_ids 已有交易所 secid
-    em = (inst.provider_ids or {}).get("eastmoney")
+    # ③ Provider Ref 已有交易所 secid
+    from app.services.instrument_catalog.repository import provider_ref_map
+
+    em = provider_ref_map(inst).get("eastmoney")
     if em and re.match(r"^(0|1)\.\d{6}$", em):
         return em, "exchange"
     # ④ A股/ETF 按号段补前缀
@@ -146,16 +150,16 @@ def _local_day(dt: datetime) -> str:
 
 
 def get_portfolio_history(
-    session: Session, owner_id: Any, range_: str = "6m", now: datetime | None = None
+    session: Session, owner_id: uuid.UUID, range_: str = "6m", now: datetime | None = None
 ) -> dict[str, Any]:
     """组合曲线查询（读 daily_bars 现算，按 owner 隔离）。移植 getPortfolioHistory。"""
     if range_ not in ("6m", "all"):
         raise ValueError("range must be 6m or all")
     now = now or datetime.now(UTC)
     positions = session.execute(
-        select(Position, Instrument)
+        scoped_select(Position, owner_id)
+        .add_columns(Instrument)
         .join(Instrument, Position.instrument_id == Instrument.id)
-        .where(Position.owner_id == owner_id)
     ).all()
 
     holdings: list[Holding] = []
@@ -213,15 +217,22 @@ def get_portfolio_history(
     }
 
 
-async def sync_portfolio_bars(session: Session, owner_id: Any | None = None) -> list[dict[str, Any]]:
+async def sync_portfolio_bars(session: Session, owner_id: uuid.UUID | None = None) -> list[dict[str, Any]]:
     """回补指定账号持仓的历史日线到 daily_bars（移植 syncPortfolioBars）。
 
     交易所判定取不到数 → 回退试基金接口（纠正 market 标错）。按 secid 去重。
     """
-    query = select(Instrument).join(Position, Position.instrument_id == Instrument.id)
-    if owner_id is not None:
-        query = query.where(Position.owner_id == owner_id)
-    insts = session.execute(query.distinct()).scalars().all()
+    if owner_id is None:
+        insts = session.execute(
+            select(Instrument).join(Position, Position.instrument_id == Instrument.id).distinct()
+        ).scalars().all()
+    else:
+        rows = session.execute(
+            scoped_select(Position, owner_id)
+            .add_columns(Instrument)
+            .join(Instrument, Position.instrument_id == Instrument.id)
+        ).all()
+        insts = list({inst.id: inst for _, inst in rows}.values())
     results: list[dict[str, Any]] = []
     done: set[str] = set()
     for inst in insts:

@@ -26,12 +26,14 @@ from app.schemas.auth import (
     InviteCreateRequest,
     InviteView,
     LoginRequest,
+    PasswordChangeRequest,
     RegisterRequest,
     SessionView,
     UserView,
 )
 from app.services import auth_service
 from app.services.auth_service import AuthError
+from app.services.user_accounts import UserAccountError, change_own_password
 
 router = APIRouter(prefix="/api/v1", tags=["auth"])
 
@@ -44,6 +46,17 @@ def _set_session_cookies(resp: Response, token: str) -> None:
     )
     # CSRF cookie 非 HttpOnly（前端需读取回填到 X-CSRF-Token 头，double-submit）
     resp.set_cookie(CSRF_COOKIE, csrf, httponly=False, secure=settings.cookie_secure, samesite="lax", max_age=24 * 3600)
+
+
+def _user_view(user: User) -> UserView:
+    return UserView(
+        id=str(user.id),
+        username=user.username,
+        role=user.role,
+        status=user.status,
+        must_change_password=user.must_change_password,
+        password_changed_at=user.password_changed_at,
+    )
 
 
 @router.get("/auth/csrf", response_model=CsrfView)
@@ -73,7 +86,7 @@ def get_session_status(
         from app.core.auth import get_current_user as _gcu
 
         user = _gcu(fk_session=fk_session, session=session)
-        uv = UserView(username=user.username, role=user.role, status=user.status)
+        uv = _user_view(user)
         return SessionView(authenticated=True, user=uv)
     except HTTPException:
         return SessionView(authenticated=False)
@@ -88,7 +101,7 @@ def login(body: LoginRequest, response: Response, session: Session = Depends(get
     except AuthError as e:
         raise HTTPException(status_code=e.status, detail=e.message) from e
     _set_session_cookies(response, token)
-    return SessionView(authenticated=True, user=UserView(username=user.username, role=user.role, status=user.status))
+    return SessionView(authenticated=True, user=_user_view(user))
 
 
 @router.post("/auth/logout", response_model=SessionView, dependencies=[Depends(require_csrf)])
@@ -112,12 +125,34 @@ def register(body: RegisterRequest, response: Response, session: Session = Depen
     except AuthError as e:
         raise HTTPException(status_code=e.status, detail=e.message) from e
     _set_session_cookies(response, token)
-    return SessionView(authenticated=True, user=UserView(username=user.username, role=user.role, status=user.status))
+    return SessionView(authenticated=True, user=_user_view(user))
 
 
 @router.get("/me", response_model=UserView)
 def me(user: User = Depends(get_current_user)) -> UserView:
-    return UserView(username=user.username, role=user.role, status=user.status)
+    return _user_view(user)
+
+
+@router.post("/me/password", dependencies=[Depends(require_csrf)])
+def change_password(
+    body: PasswordChangeRequest,
+    fk_session: str | None = Cookie(default=None),
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> dict[str, object]:
+    if not fk_session:
+        raise HTTPException(status_code=401, detail="session_required")
+    try:
+        revoked_count = change_own_password(
+            session,
+            user=user,
+            current_password=body.current_password,
+            new_password=body.new_password,
+            current_session_token=fk_session,
+        )
+    except UserAccountError as error:
+        raise HTTPException(status_code=error.status, detail=error.code) from error
+    return {"ok": True, "revoked_count": revoked_count, "user": _user_view(user)}
 
 
 @router.post("/invites", response_model=InviteView, dependencies=[Depends(require_csrf)])

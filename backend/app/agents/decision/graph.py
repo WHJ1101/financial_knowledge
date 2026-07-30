@@ -12,12 +12,24 @@ from typing import Any, Protocol
 
 from langgraph.graph import END, START, StateGraph
 
+from app.agents.decision.role_registry import role_spec, roles_in_parallel_group
 from app.agents.decision.roles import ChatFn, run_analyst, run_debater, run_judge, run_risk
 from app.agents.decision.state import DISCLAIMER, DecisionState
 from app.llm.context import AgentRole
 from app.llm.json import to_json_safe
 
-_ANALYSTS: tuple[AgentRole, ...] = ("technical", "fundamental", "macro", "sentiment")
+# Graph topology stays explicit for auditability. Adding a role requires one
+# registry entry and the corresponding node/edge here.
+_ANALYST_NODES: dict[AgentRole, str] = {
+    "technical": "analyst_technical",
+    "fundamental": "analyst_fundamental",
+    "macro": "analyst_macro",
+    "sentiment": "analyst_sentiment",
+}
+_DEBATER_ROLES: tuple[AgentRole, ...] = ("bull", "bear")
+
+assert tuple(_ANALYST_NODES) == roles_in_parallel_group("analysis")
+assert roles_in_parallel_group("opening") == _DEBATER_ROLES
 
 
 class ChatRouter(Protocol):
@@ -49,7 +61,10 @@ def build_graph(
         stage("证据校验", 25)
         evidence = state.get("evidence", {})
         gaps = [
-            face for face in _ANALYSTS if not evidence.get(face) or bool((evidence.get(face) or {}).get("data_gap"))
+            spec.evidence_key
+            for role in _ANALYST_NODES
+            if not evidence.get((spec := role_spec(role)).evidence_key)
+            or bool((evidence.get(spec.evidence_key) or {}).get("data_gap"))
         ]
         stage("四面分析", 35)
         return {"evidence_gaps": gaps}
@@ -57,7 +72,7 @@ def build_graph(
     def analyst_node(role: AgentRole) -> Any:
         def run(state: DecisionState) -> dict[str, Any]:
             view = run_analyst(
-                router.for_role(role),
+                router.for_role(role_spec(role).route),
                 role,
                 state.get("evidence", {}),
                 debate_context(state),
@@ -71,8 +86,22 @@ def build_graph(
         views = state.get("analyst_views", {})
         with ThreadPoolExecutor(max_workers=2, thread_name_prefix="debate-opening") as executor:
             context = debate_context(state)
-            bull = executor.submit(run_debater, router.for_role("bull"), "bull", views, None, context)
-            bear = executor.submit(run_debater, router.for_role("bear"), "bear", views, None, context)
+            bull = executor.submit(
+                run_debater,
+                router.for_role(role_spec("bull").route),
+                "bull",
+                views,
+                None,
+                context,
+            )
+            bear = executor.submit(
+                run_debater,
+                router.for_role(role_spec("bear").route),
+                "bear",
+                views,
+                None,
+                context,
+            )
             return {"bull_case": bull.result().model_dump(), "bear_case": bear.result().model_dump()}
 
     def rebuttal_node(state: DecisionState) -> dict[str, Any]:
@@ -82,8 +111,22 @@ def build_graph(
         bear_opening = state.get("bear_case") or {}
         with ThreadPoolExecutor(max_workers=2, thread_name_prefix="debate-rebuttal") as executor:
             context = debate_context(state)
-            bull = executor.submit(run_debater, router.for_role("bull"), "bull", views, bear_opening, context)
-            bear = executor.submit(run_debater, router.for_role("bear"), "bear", views, bull_opening, context)
+            bull = executor.submit(
+                run_debater,
+                router.for_role(role_spec("bull").route),
+                "bull",
+                views,
+                bear_opening,
+                context,
+            )
+            bear = executor.submit(
+                run_debater,
+                router.for_role(role_spec("bear").route),
+                "bear",
+                views,
+                bull_opening,
+                context,
+            )
             bull_result = bull.result().model_dump()
             bear_result = bear.result().model_dump()
         # 保留开篇要点，把第二轮正文落在 rebuttal。
@@ -94,7 +137,7 @@ def build_graph(
     def judge_node(state: DecisionState) -> dict[str, Any]:
         stage("裁判裁决", 84)
         result = run_judge(
-            router.for_role("judge"),
+            router.for_role(role_spec("judge").route),
             state.get("analyst_views", {}),
             state.get("bull_case") or {},
             state.get("bear_case") or {},
@@ -106,7 +149,7 @@ def build_graph(
         stage("风险复核", 94)
         return {
             "risk_review": run_risk(
-                router.for_role("risk"),
+                router.for_role(role_spec("risk").route),
                 state.get("judge_result") or {},
                 debate_context(state),
             ).model_dump()
@@ -132,8 +175,8 @@ def build_graph(
 
     g = StateGraph(DecisionState)
     g.add_node("validate_evidence", validate_evidence)
-    for role in _ANALYSTS:
-        g.add_node(f"analyst_{role}", analyst_node(role))
+    for role, node_name in _ANALYST_NODES.items():
+        g.add_node(node_name, analyst_node(role))
     g.add_node("opening", opening_node)
     g.add_node("rebuttal", rebuttal_node)
     g.add_node("judge", judge_node)
@@ -141,7 +184,7 @@ def build_graph(
     g.add_node("persist", persist_node)
 
     g.add_edge(START, "validate_evidence")
-    analyst_nodes = [f"analyst_{role}" for role in _ANALYSTS]
+    analyst_nodes = list(_ANALYST_NODES.values())
     for node in analyst_nodes:
         g.add_edge("validate_evidence", node)
     g.add_edge(analyst_nodes, "opening")

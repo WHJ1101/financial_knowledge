@@ -11,10 +11,10 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 import pytest
-from sqlalchemy import delete, text
+from sqlalchemy import delete, select, text
 
 from app.db import SessionLocal
-from app.models import AutomationTask, Setting
+from app.models import AutomationRun, AutomationTask, Setting
 from app.services.scheduler_service import tick
 
 _TZ = ZoneInfo("Asia/Shanghai")
@@ -43,9 +43,10 @@ def daily_task():
     with SessionLocal() as s:
         s.execute(delete(Setting).where(Setting.key == f"lastAutomationTaskRun:{tid}"))
         s.execute(delete(Setting).where(Setting.key == "automationEnabled"))
+        s.execute(delete(AutomationRun).where(AutomationRun.task_id == tid))
         s.execute(delete(AutomationTask).where(AutomationTask.id == tid))
         s.execute(
-            text("DELETE FROM procrastinate_jobs WHERE task_name IN ('fk:run_daily_briefing', 'fk:run_automation')")
+            text("DELETE FROM procrastinate_jobs WHERE task_name IN ('fk:run_daily', 'fk:run_automation')")
         )
         s.commit()
 
@@ -72,6 +73,12 @@ def test_tick_triggers_after_schedule(daily_task):
     # 10:00 > 09:30 且当天未跑 → 触发
     triggered = tick(now=datetime(2026, 7, 15, 10, 0, tzinfo=_TZ))
     assert str(tid) in triggered
+    with SessionLocal() as session:
+        run = session.execute(
+            select(AutomationRun).where(AutomationRun.task_id == tid)
+        ).scalar_one()
+        assert run.status == "queued"
+        assert isinstance(run.queue_job_id, int)
     # 占位后再 tick 同一天 → 不重复
     again = tick(now=datetime(2026, 7, 15, 11, 0, tzinfo=_TZ))
     assert str(tid) not in again
@@ -111,10 +118,15 @@ def test_tick_unknown_task_enqueues_auditable_generic_worker():
                 text("SELECT task_name FROM procrastinate_jobs WHERE task_name='fk:run_automation' LIMIT 1")
             ).scalar_one()
             assert task_name == "fk:run_automation"
+            run = session.execute(
+                select(AutomationRun).where(AutomationRun.task_id == tid)
+            ).scalar_one()
+            assert run.kind.startswith("task:")
     finally:
         with SessionLocal() as session:
             session.execute(text("DELETE FROM procrastinate_jobs WHERE task_name='fk:run_automation'"))
             session.execute(delete(Setting).where(Setting.key == f"lastAutomationTaskRun:{tid}"))
             session.execute(delete(Setting).where(Setting.key == "automationEnabled"))
+            session.execute(delete(AutomationRun).where(AutomationRun.task_id == tid))
             session.execute(delete(AutomationTask).where(AutomationTask.id == tid))
             session.commit()

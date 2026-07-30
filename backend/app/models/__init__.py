@@ -5,18 +5,26 @@
 
 from app.models.base import Base
 from app.models.debate import Debate
-from app.models.instrument import Instrument
+from app.models.instrument import Instrument, InstrumentProviderRef
 from app.models.macro import MacroObservation, MacroSeries
-from app.models.market import (
-    CommunitySignal,
-    DailyBar,
-    MarketIndex,
-    QuoteOverride,
-    UserSignalState,
-)
+from app.models.market import DailyBar, MarketIndex, QuoteOverride
 from app.models.portfolio import Position, WatchlistItem
 from app.models.report import Report, ReportAssetLink, UserReportState
-from app.models.system import AutomationTask, Decision, Log, Setting
+from app.models.research_data import (
+    FundHolding,
+    FundHoldingSnapshot,
+    FundNavObservation,
+    FundProfileSnapshot,
+    IndexConstituent,
+    IndexConstituentSnapshot,
+    InstrumentEvent,
+    InstrumentMetricObservation,
+    InstrumentMetricSeries,
+    MacroReleaseEvent,
+    SourcePayloadSnapshot,
+)
+from app.models.signal import CommunitySignal, NotificationDelivery, SignalSourceSection, UserSignalState
+from app.models.system import AutomationRun, AutomationTask, Log, Setting, SourceSyncRun
 from app.models.user import InviteCode, LlmAgentRoute, LlmProfile, RateLimitBucket, User, UserSession
 
 __all__ = [
@@ -28,6 +36,7 @@ __all__ = [
     "LlmAgentRoute",
     "RateLimitBucket",
     "Instrument",
+    "InstrumentProviderRef",
     "WatchlistItem",
     "Position",
     "Report",
@@ -36,13 +45,27 @@ __all__ = [
     "Debate",
     "MacroSeries",
     "MacroObservation",
+    "SourcePayloadSnapshot",
+    "MacroReleaseEvent",
+    "IndexConstituentSnapshot",
+    "IndexConstituent",
+    "InstrumentMetricSeries",
+    "InstrumentMetricObservation",
+    "InstrumentEvent",
+    "FundNavObservation",
+    "FundHoldingSnapshot",
+    "FundHolding",
+    "FundProfileSnapshot",
     "CommunitySignal",
+    "SignalSourceSection",
     "UserSignalState",
+    "NotificationDelivery",
     "MarketIndex",
     "DailyBar",
     "QuoteOverride",
     "AutomationTask",
-    "Decision",
+    "AutomationRun",
+    "SourceSyncRun",
     "Log",
     "Setting",
 ]

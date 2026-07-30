@@ -69,7 +69,6 @@ def two_users_with_data():
             display_code=f"SZ{sym}",
             name="测试标的",
             market="创业板",
-            provider_ids={},
             created_at=datetime.now(UTC),
             updated_at=datetime.now(UTC),
         )

@@ -267,7 +267,7 @@
   --gold-deep: #835c29;
   --text-primary: #eee7da;
   --text-secondary: #beb2a2;
-  --text-tertiary: #918575;
+  --text-tertiary: #9d9282;
   --border-subtle: rgba(219, 183, 122, 0.18);
   --border-highlight: rgba(255, 232, 192, 0.14);
   --shadow-warm: rgba(0, 0, 0, 0.38);
@@ -420,8 +420,6 @@ html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; 
 body {
   margin: 0;
   min-width: 320px;
-  overflow-x: hidden;
-  overflow-x: clip;
   background-color: var(--page-bg);
   background-image:
     radial-gradient(ellipse 56% 46% at 4% -8%, var(--ambient-top-left), transparent 74%),

@@ -94,14 +94,6 @@ def normalize(code: str, market: str | None) -> NormalizedInstrument | None:
     return None  # 无法判定 → reconciliation
 
 
-def merge_provider_id(provider_ids: dict[str, str], secid: str, kind: str) -> dict[str, str]:
-    """把 secid_map 的一条并入 provider_ids（方案 §4.1）。
-
-    kind=exchange → eastmoney（如 0.159915）；kind=fund → fund（如 OF.014662）。
-    """
-    result = dict(provider_ids)
-    if kind == "fund":
-        result["fund"] = secid
-    else:
-        result["eastmoney"] = secid
-    return result
+def provider_reference(secid: str, kind: str) -> tuple[str, str, str]:
+    """旧 secid_map 行转换为 (provider, provider_key, upstream_family)。"""
+    return ("fund" if kind == "fund" else "eastmoney", secid, "eastmoney")

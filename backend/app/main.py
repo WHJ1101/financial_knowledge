@@ -15,9 +15,12 @@ from fastapi import FastAPI, HTTPException
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
+from app.api import admin_users as admin_users_api
 from app.api import auth as auth_api
 from app.api import decisions as decisions_api
 from app.api import exports as exports_api
+from app.api import instruments as instruments_api
+from app.api import integrations as integrations_api
 from app.api import jobs as jobs_api
 from app.api import market as market_api
 from app.api import portfolio as portfolio_api
@@ -25,6 +28,7 @@ from app.api import pressure as pressure_api
 from app.api import report_actions as report_actions_api
 from app.api import report_assets as report_assets_api
 from app.api import reports as reports_api
+from app.api import research_data as research_data_api
 from app.api import settings as settings_api
 from app.api import signals as signals_api
 from app.api import status as status_api
@@ -75,6 +79,7 @@ app = FastAPI(
 )
 
 app.include_router(auth_api.router)
+app.include_router(admin_users_api.router)
 app.include_router(portfolio_api.router)
 app.include_router(reports_api.router)
 app.include_router(report_actions_api.router)
@@ -84,8 +89,11 @@ app.include_router(settings_api.router)
 app.include_router(decisions_api.router)
 app.include_router(signals_api.router)
 app.include_router(market_api.router)
+app.include_router(instruments_api.router)
+app.include_router(integrations_api.router)
 app.include_router(jobs_api.router)
 app.include_router(tasks_api.router)
+app.include_router(research_data_api.router)
 app.include_router(exports_api.router)
 app.include_router(status_api.router)
 

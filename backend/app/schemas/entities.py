@@ -60,6 +60,9 @@ class ReportView(BaseModel):
     type_label: str | None
     summary: str | None
     origin: str | None
+    source: str | None
+    imported_at: datetime | None = None
+    sanitization_policy: str | None = None
     local_date: str | None
     tags: list[Any]
     highlights: list[Any]

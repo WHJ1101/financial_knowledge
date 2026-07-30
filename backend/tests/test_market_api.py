@@ -77,7 +77,8 @@ def test_market_endpoints_require_auth():
     client = TestClient(app)
     assert client.get("/api/v1/market/snapshot").status_code == 401
     assert client.get("/api/v1/market/indices").status_code == 401
-    assert client.get("/api/v1/search?q=test").status_code == 401
+    assert client.get("/api/v1/search?q=test").status_code == 404
+    assert client.get("/api/v1/instruments/search?q=test").status_code == 401
 
 
 def test_market_snapshot_and_indices(member):
@@ -94,7 +95,8 @@ def test_market_snapshot_and_indices(member):
 def test_search_requires_q(member):
     name, _ = member
     client = _login(name)
-    assert client.get("/api/v1/search").status_code == 422  # q 缺失
+    assert client.get("/api/v1/search").status_code == 404
+    assert client.get("/api/v1/instruments/search").status_code == 422  # q 缺失
 
 
 def test_member_cannot_write_quote_override(member):

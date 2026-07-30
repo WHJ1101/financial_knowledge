@@ -68,7 +68,7 @@ def test_pressure_monitor_persists_bars_crossing_and_summary(monkeypatch):
     async def fake_fetch(secid: str):
         return [{"date": "2026-07-16", "close": 100, "volume": 1000}]
 
-    async def fake_notify(_themes):
+    async def fake_notify(_session, _themes):
         return {"ok": True, "count": 1}
 
     theme = {
@@ -85,7 +85,7 @@ def test_pressure_monitor_persists_bars_crossing_and_summary(monkeypatch):
     monkeypatch.setattr("app.services.pressure_monitor._all_secids", lambda: ["1.TEST"])
     monkeypatch.setattr("app.services.pressure_monitor._fetch_pressure_bars", fake_fetch)
     monkeypatch.setattr("app.services.pressure_monitor.get_pressure_snapshot", lambda _session: [theme])
-    monkeypatch.setattr("app.providers.feishu.notify_pressure_crossings", fake_notify)
+    monkeypatch.setattr("app.services.notification_delivery.deliver_pressure_crossings", fake_notify)
 
     from app.services.pressure_monitor import run_pressure_monitor
 

@@ -10,13 +10,15 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import or_, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user
 from app.db import get_session
-from app.models import LlmProfile, Report, Setting, User, UserReportState
+from app.models import AutomationRun, LlmProfile, Report, Setting, SourceSyncRun, User, UserReportState
+from app.repositories.scoping import scoped_select
 from app.services.market import get_market_snapshot
+from app.services.run_lifecycle import automation_run_view, source_sync_run_view
 
 router = APIRouter(prefix="/api/v1", tags=["status"])
 
@@ -33,14 +35,14 @@ def status(user: User = Depends(get_current_user), session: Session = Depends(ge
 
     # 可见报告（shared 或自有）+ 本人已读态
     reports = (
-        session.execute(select(Report).where(or_(Report.visibility == "shared", Report.owner_id == user.id)))
+        session.execute(scoped_select(Report, user.id, access="visible"))
         .scalars()
         .all()
     )
     read_ids = {
         s.report_id
         for s in session.execute(
-            select(UserReportState).where(UserReportState.user_id == user.id, UserReportState.read_at.isnot(None))
+            scoped_select(UserReportState, user.id).where(UserReportState.read_at.isnot(None))
         )
         .scalars()
         .all()
@@ -54,8 +56,7 @@ def status(user: User = Depends(get_current_user), session: Session = Depends(ge
 
     llm_configured = (
         session.execute(
-            select(LlmProfile.id).where(
-                LlmProfile.user_id == user.id,
+            scoped_select(LlmProfile, user.id).where(
                 LlmProfile.enabled.is_(True),
                 LlmProfile.is_default.is_(True),
             )
@@ -65,7 +66,7 @@ def status(user: User = Depends(get_current_user), session: Session = Depends(ge
     auto_flag = session.get(Setting, "automationEnabled")
     daily_sched = session.get(Setting, "dailyScheduleTime")
 
-    return {
+    payload: dict[str, Any] = {
         "app": "financial_knowledge",
         "now": now_display,
         "today": today,
@@ -84,6 +85,37 @@ def status(user: User = Depends(get_current_user), session: Session = Depends(ge
             "llmConfigured": llm_configured,
         },
     }
+    if user.role == "superadmin":
+        latest_run = session.execute(
+            select(AutomationRun).order_by(AutomationRun.created_at.desc()).limit(1)
+        ).scalar_one_or_none()
+        recent_sources = session.execute(
+            select(SourceSyncRun).order_by(SourceSyncRun.created_at.desc()).limit(100)
+        ).scalars()
+        source_health: list[dict[str, Any]] = []
+        seen_sources: set[str] = set()
+        for run in recent_sources:
+            if run.source_key in seen_sources:
+                continue
+            seen_sources.add(run.source_key)
+            health = {
+                "succeeded": "ready",
+                "partial": "degraded",
+                "failed": "unavailable",
+                "canceled": "unavailable",
+            }.get(run.status, run.status)
+            source_health.append(
+                {
+                    "source_key": run.source_key,
+                    "health": health,
+                    "latest_run": source_sync_run_view(run),
+                }
+            )
+        payload["operations"] = {
+            "latest_run": automation_run_view(latest_run) if latest_run else None,
+            "sources": source_health,
+        }
+    return payload
 
 
 def _ordinal(local_date: str) -> int:

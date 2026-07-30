@@ -1,4 +1,4 @@
-"""限流：PG 固定窗口（方案 §4.5/§16）。仅 login/register/invite_verify 三个防爆破点。"""
+"""限流：PG 固定窗口（方案 §4.5/§16）。"""
 
 from __future__ import annotations
 
@@ -13,6 +13,7 @@ _LIMITS = {
     "login": (300, 10),  # 5 分钟内 10 次
     "register": (3600, 5),  # 1 小时内 5 次
     "invite_verify": (3600, 20),
+    "instrument_search": (60, 120),
 }
 
 

@@ -64,11 +64,20 @@ Caddy 按 `FK_DOMAIN` 自动签发 Let's Encrypt 证书；postgres 不暴露公�
 
 | 页面 | 功能 |
 |------|------|
-| 决策辩论 | 选标的、周期与问题 → 四面分析 → 多空开篇和交叉反驳 → 裁判裁决 → 独立风控（含模型审计、证伪条件、数据缺口） |
+| 决策辩论 | 从 Instrument Catalog 搜索任意股票、ETF、指数或基金 → 四面分析 → 多空交叉反驳 → 裁判裁决 → 独立风控（含模型审计、证伪条件、数据缺口） |
 | 投资组合 | 持仓、自选、趋势、组合分析与导出 |
 | 知识库 | 共享研报 + 私有报告，标星/归档/已读（个人态） |
 | 信号源 | 社群信号 + 个人确认/忽略 |
+| 任务 | 自动化配置、运行台账、分步骤进度与来源同步健康 |
 | 设置 | 多 Profile BYOK、八 Agent 模型路由、邀请码管理 |
+
+长耗时日更通过 `POST /api/v1/jobs/daily` 原子写入运行台账与 PostgreSQL 队列，
+接口返回 `202 + run_id`。超管可通过 `GET /api/v1/automation/runs/{run_id}`
+查看 `queued/running/succeeded/partial/failed/canceled` 状态和步骤摘要。
+
+证券搜索统一走 `GET /api/v1/instruments/search`，候选携带短时签名 token；
+`POST /api/v1/instruments/resolve` 在数据库唯一键下解析为公共 Instrument。
+Provider 身份保存在 `instrument_provider_refs`，业务代码不再读取 Instrument JSONB。
 
 ## 数据存储
 

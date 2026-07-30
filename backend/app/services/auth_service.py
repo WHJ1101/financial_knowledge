@@ -35,6 +35,11 @@ def login(session: Session, username: str, password: str) -> tuple[User, str]:
     if user.status != "active":
         raise AuthError("user_disabled", "用户已被禁用", 403)
 
+    return user, issue_session(session, user)
+
+
+def issue_session(session: Session, user: User) -> str:
+    """为已完成身份校验的用户签发可撤销会话。"""
     token = generate_token()
     now = datetime.now(UTC)
     session.add(
@@ -48,7 +53,7 @@ def login(session: Session, username: str, password: str) -> tuple[User, str]:
         )
     )
     session.commit()
-    return user, token
+    return token
 
 
 def logout(session: Session, token: str) -> None:

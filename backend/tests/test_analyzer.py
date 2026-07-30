@@ -53,7 +53,6 @@ def _mk_instrument() -> uuid.UUID:
                 display_code=f"SZ{sym}",
                 name="测试标的",
                 market="创业板",
-                provider_ids={},
                 created_at=datetime.now(UTC),
                 updated_at=datetime.now(UTC),
             )
@@ -75,6 +74,22 @@ def _login(username: str) -> TestClient:
 
 def _csrf(client: TestClient) -> dict:
     return {"X-CSRF-Token": client.cookies.get("fk_csrf"), "Origin": "http://localhost:5173"}
+
+
+def test_quote_fetch_falls_back_when_unified_resolver_fails(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.services import analyzer
+
+    async def fail_resolved(*_args):
+        raise TimeoutError("unified quote timeout")
+
+    async def legacy_quote(*_args):
+        return {"price": 12.3, "source": "legacy"}
+
+    monkeypatch.setattr(analyzer, "_resolved_quote_for", fail_resolved)
+    monkeypatch.setattr(analyzer, "_quote_for", legacy_quote)
+    instrument = Instrument(canonical_symbol="600000", display_code="600000", name="浦发银行")
+
+    assert analyzer._fetch_quote_sync(instrument, object()) == {"price": 12.3, "source": "legacy"}
 
 
 def _set_llm(uid: uuid.UUID) -> None:
@@ -135,7 +150,7 @@ def test_analyze_watchlist_service_writes_fields(member, monkeypatch):
         )
 
     monkeypatch.setattr("app.services.analyzer.make_sync_chat", fake_make_chat)
-    monkeypatch.setattr("app.services.analyzer._fetch_quote_sync", lambda inst: None)
+    monkeypatch.setattr("app.services.analyzer._fetch_quote_sync", lambda inst, session=None: None)
 
     from app.services.analyzer import analyze_watchlist_item
 
@@ -171,7 +186,7 @@ def test_analyze_position_service_failed_on_bad_json(member, monkeypatch):
         s.commit()
 
     monkeypatch.setattr("app.services.analyzer.make_sync_chat", lambda *a: lambda system, user: "这不是 JSON")
-    monkeypatch.setattr("app.services.analyzer._fetch_quote_sync", lambda inst: None)
+    monkeypatch.setattr("app.services.analyzer._fetch_quote_sync", lambda inst, session=None: None)
     monkeypatch.setattr("app.services.analyzer.collect_instrument_evidence", lambda *_args, **_kwargs: {})
 
     from app.services.analyzer import analyze_position
@@ -249,7 +264,15 @@ def test_analyze_position_uses_full_evidence_and_writes_structured_detail(member
 
     monkeypatch.setattr("app.services.analyzer.make_sync_chat", fake_make_chat)
     monkeypatch.setattr("app.services.analyzer.collect_instrument_evidence", lambda *_args, **_kwargs: evidence)
-    monkeypatch.setattr("app.services.analyzer._fetch_quote_sync", lambda _inst: {"price": 10.5, "changePct": "1.2"})
+    monkeypatch.setattr(
+        "app.services.analyzer._fetch_quote_sync",
+        lambda _inst, session=None: {
+            "price": 10.5,
+            "changePct": "1.2",
+            "source": "统一行情",
+            "asOf": "2026-07-18T15:00:00+08:00",
+        },
+    )
 
     from app.services.analyzer import analyze_position
 
@@ -267,6 +290,17 @@ def test_analyze_position_uses_full_evidence_and_writes_structured_detail(member
         assert "基金基本面：数据源未提供单项权重与明确报告期" in row.analysis_detail["data_gaps"]
         assert "情绪面：未找到直接信号" in row.analysis_detail["data_gaps"]
         assert "研究简报：没有直接关联报告" in row.analysis_detail["data_gaps"]
+        assert row.analysis_detail["quote_snapshot"] == {
+            "price": 10.5,
+            "change_pct": "1.2",
+            "source": "统一行情",
+            "as_of": "2026-07-18T15:00:00+08:00",
+        }
+        assert row.analysis_detail["position_snapshot"] == {
+            "shares": 100.0,
+            "cost": 10.0,
+            "pnl_pct": 5.0,
+        }
         s.execute(delete(Position).where(Position.id == pos_id))
         s.execute(delete(Instrument).where(Instrument.id == iid))
         s.commit()

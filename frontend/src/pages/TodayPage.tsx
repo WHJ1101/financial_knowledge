@@ -2,7 +2,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ApiError } from "@/api/client";
+import { PullToRefresh } from "@/components/mobile/PullToRefresh";
 import { useSession } from "@/hooks/useAuth";
+import { useInputCapabilities } from "@/hooks/useInputCapabilities";
 import { usePressure, useSyncPressure } from "@/hooks/useMarket";
 import { useCreateResearch, useRunDaily, useStatus } from "@/hooks/useStatus";
 import { PressureCard } from "@/components/PressureCard";
@@ -25,6 +27,7 @@ const RESEARCH_TYPES = [
 ];
 
 export function TodayPage() {
+  const capabilities = useInputCapabilities();
   const status = useStatus();
   const reports = useReports();
   const navigate = useNavigate();
@@ -82,9 +85,9 @@ export function TodayPage() {
     daily.mutate(undefined, {
       onSuccess: (r) => {
         setDailySuccess(true);
-        setNote({ text: `日更完成：${r.title}`, error: false });
+        setNote({ text: "日更已入队，可到任务页查看执行进度", error: false });
         navigationTimer.current = window.setTimeout(() => {
-          navigate(`/reports/${encodeURIComponent(r.id)}`);
+          navigate(`/tasks?run=${encodeURIComponent(r.run_id)}`);
         }, 420);
       },
       onError: (err) => setNote({
@@ -152,6 +155,10 @@ export function TodayPage() {
         <h1>今日</h1>
       </header>
 
+      <PullToRefresh
+        disabled={!capabilities.isMobile}
+        onRefresh={() => Promise.all([status.refetch(), reports.refetch(), pressure.refetch()])}
+      >
       <section className="stat-row" aria-label="今日概览" aria-busy={status.isLoading || undefined}>
         <GlassSurface
           className="stat-cell"
@@ -257,8 +264,8 @@ export function TodayPage() {
             {isSuperadmin && (
               <GlassButton
                 state={dailyButtonState}
-                loadingLabel="正在执行"
-                successLabel="日更完成"
+                loadingLabel="正在入队"
+                successLabel="已入队"
                 errorLabel="重新执行"
                 onClick={onDaily}
               >
@@ -302,6 +309,7 @@ export function TodayPage() {
           ))}
         </div>
       </section>
+      </PullToRefresh>
     </div>
   );
 }

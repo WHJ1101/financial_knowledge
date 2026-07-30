@@ -1,8 +1,4 @@
-"""决策/辩论 API（方案 §3.4/§7.7）。隔离资源，属主校验，ULID id。
-
-旧「每日决策指南」已被辩论决策取代（ADR-023）：不再提供生成端点；
-GET /decisions 仅超管只读归档历史（decisions 表冻结写入，§4.4）。
-"""
+"""辩论决策 API（方案 §3.4/§7.7）。隔离资源，属主校验，ULID id。"""
 
 from __future__ import annotations
 
@@ -13,51 +9,18 @@ from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from ulid import ULID
 
-from app.core.auth import get_current_user, require_csrf, require_superadmin
+from app.core.auth import get_current_user, require_csrf
 from app.core.authz import require_owner
 from app.db import get_session
-from app.models import Debate, Decision, Instrument, LlmProfile, Position, User, WatchlistItem
+from app.models import Debate, Instrument, LlmProfile, User
+from app.repositories.scoping import scoped_get, scoped_select
 
 router = APIRouter(prefix="/api/v1", tags=["decisions"])
 logger = logging.getLogger(__name__)
-
-
-@router.get("/decisions")
-def list_decisions(_: User = Depends(require_superadmin), session: Session = Depends(get_session)) -> dict[str, Any]:
-    """旧每日决策只读归档（超管，ADR-023 冻结写入）。每天保留最新一条，按日期倒序。"""
-    latest = select(Decision.date, func.max(Decision.created_at).label("mx")).group_by(Decision.date).subquery()
-    rows = (
-        session.execute(
-            select(Decision)
-            .join(latest, (Decision.date == latest.c.date) & (Decision.created_at == latest.c.mx))
-            .order_by(Decision.date.desc())
-            .limit(60)
-        )
-        .scalars()
-        .all()
-    )
-    return {
-        "decisions": [
-            {
-                "id": d.id,
-                "date": d.date,
-                "title": d.title,
-                "summary": d.summary,
-                "action": d.action,
-                "market": d.market,
-                "positionAdvice": d.position_advice,
-                "stockAdvice": d.stock_advice,
-                "reports": d.reports,
-                "createdAt": d.created_at,
-            }
-            for d in rows
-        ]
-    }
 
 
 class CreateDebateRequest(BaseModel):
@@ -129,22 +92,10 @@ def create_debate(
     inst = session.get(Instrument, body.instrument_id)
     if inst is None:
         raise HTTPException(status_code=400, detail="invalid_instrument")
-    # 标的须在本人持仓或自选中（隔离，方案 §9.4）
-    owned = (
-        session.execute(
-            select(Position.id).where(Position.owner_id == user.id, Position.instrument_id == inst.id)
-        ).first()
-        or session.execute(
-            select(WatchlistItem.id).where(WatchlistItem.owner_id == user.id, WatchlistItem.instrument_id == inst.id)
-        ).first()
-    )
-    if not owned:
-        raise HTTPException(status_code=400, detail="instrument_not_in_portfolio")
     # 未配 BYOK key → 422 llm_unavailable（方案 §7.7，不用他人 key）
     if (
         session.execute(
-            select(LlmProfile.id).where(
-                LlmProfile.user_id == user.id,
+            scoped_select(LlmProfile, user.id).where(
                 LlmProfile.enabled.is_(True),
                 LlmProfile.is_default.is_(True),
             )
@@ -154,8 +105,7 @@ def create_debate(
         raise HTTPException(status_code=422, detail="llm_unavailable")
     # 强制去重：同 owner+instrument 已有进行中辩论 → 409（方案 §7.7）
     active = session.execute(
-        select(Debate).where(
-            Debate.owner_id == user.id,
+        scoped_select(Debate, user.id).where(
             Debate.instrument_id == inst.id,
             Debate.status.in_(("queued", "running")),
         )
@@ -199,9 +149,9 @@ def create_debate(
 @router.get("/debates", response_model=list[DebateView])
 def list_debates(user: User = Depends(get_current_user), session: Session = Depends(get_session)) -> list[DebateView]:
     rows = session.execute(
-        select(Debate, Instrument)
+        scoped_select(Debate, user.id)
+        .add_columns(Instrument)
         .join(Instrument, Instrument.id == Debate.instrument_id)
-        .where(Debate.owner_id == user.id)
         .order_by(Debate.created_at.desc())
         .limit(50)
     ).all()
@@ -212,7 +162,7 @@ def list_debates(user: User = Depends(get_current_user), session: Session = Depe
 def get_debate(
     debate_id: str, user: User = Depends(get_current_user), session: Session = Depends(get_session)
 ) -> DebateView:
-    d = session.get(Debate, debate_id)
+    d = scoped_get(session, Debate, debate_id, user.id)
     require_owner(d.owner_id if d else None, user.id)
     assert d is not None
     return _view(d, session.get(Instrument, d.instrument_id))
@@ -223,7 +173,7 @@ def cancel_debate(
     debate_id: str, user: User = Depends(get_current_user), session: Session = Depends(get_session)
 ) -> DebateView:
     # 与 worker 的最终结果提交共用行锁，确保“取消先到则取消、完成先到则 409”。
-    d = session.execute(select(Debate).where(Debate.id == debate_id).with_for_update()).scalar_one_or_none()
+    d = scoped_get(session, Debate, debate_id, user.id, for_update=True)
     require_owner(d.owner_id if d else None, user.id)
     assert d is not None
     if d.status in ("done", "failed"):
@@ -250,15 +200,14 @@ def resume_debate(
     debate_id: str, user: User = Depends(get_current_user), session: Session = Depends(get_session)
 ) -> DebateView:
     """失败任务复用原 graph_thread_id，从 PostgreSQL checkpoint 重新入队。"""
-    d = session.execute(select(Debate).where(Debate.id == debate_id).with_for_update()).scalar_one_or_none()
+    d = scoped_get(session, Debate, debate_id, user.id, for_update=True)
     require_owner(d.owner_id if d else None, user.id)
     assert d is not None
     if d.status != "failed":
         raise HTTPException(status_code=409, detail="resume_not_allowed")
     if (
         session.execute(
-            select(LlmProfile.id).where(
-                LlmProfile.user_id == user.id,
+            scoped_select(LlmProfile, user.id).where(
                 LlmProfile.enabled.is_(True),
                 LlmProfile.is_default.is_(True),
             )
@@ -267,8 +216,7 @@ def resume_debate(
     ):
         raise HTTPException(status_code=422, detail="llm_unavailable")
     if session.execute(
-        select(Debate.id).where(
-            Debate.owner_id == user.id,
+        scoped_select(Debate, user.id).where(
             Debate.instrument_id == d.instrument_id,
             Debate.id != d.id,
             Debate.status.in_(("queued", "running")),

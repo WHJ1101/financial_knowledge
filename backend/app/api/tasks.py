@@ -18,8 +18,9 @@ from sqlalchemy.orm import Session
 
 from app.core.auth import require_csrf, require_superadmin
 from app.db import get_session
-from app.models import AutomationTask, Log, Setting, User
+from app.models import AutomationRun, AutomationTask, Log, Setting, SourceSyncRun, User
 from app.services.automation import is_daily_briefing_task
+from app.services.run_lifecycle import automation_run_view, source_sync_run_view
 
 router = APIRouter(prefix="/api/v1", tags=["automation"])
 
@@ -70,6 +71,68 @@ def _task_view(task: AutomationTask) -> dict[str, Any]:
 def list_tasks(_: User = Depends(require_superadmin), session: Session = Depends(get_session)) -> dict[str, Any]:
     tasks = session.execute(select(AutomationTask).order_by(AutomationTask.created_at.desc())).scalars().all()
     return {"tasks": [_task_view(t) for t in tasks]}
+
+
+@router.get("/automation/runs")
+def list_automation_runs(
+    kind: str | None = None,
+    limit: int = 50,
+    _: User = Depends(require_superadmin),
+    session: Session = Depends(get_session),
+) -> dict[str, Any]:
+    query = select(AutomationRun)
+    if kind:
+        query = query.where(AutomationRun.kind == kind)
+    rows = session.execute(
+        query.order_by(AutomationRun.created_at.desc()).limit(max(1, min(limit, 200)))
+    ).scalars()
+    return {"runs": [automation_run_view(run) for run in rows]}
+
+
+@router.get("/automation/runs/{run_id}")
+def get_automation_run(
+    run_id: uuid.UUID,
+    _: User = Depends(require_superadmin),
+    session: Session = Depends(get_session),
+) -> dict[str, Any]:
+    run = session.get(AutomationRun, run_id)
+    if run is None:
+        raise HTTPException(
+            status_code=404,
+            detail={"code": "run_not_found", "message": "运行记录不存在"},
+        )
+    return automation_run_view(run)
+
+
+@router.get("/source-sync-runs")
+def list_source_sync_runs(
+    source_key: str | None = None,
+    limit: int = 50,
+    _: User = Depends(require_superadmin),
+    session: Session = Depends(get_session),
+) -> dict[str, Any]:
+    query = select(SourceSyncRun)
+    if source_key:
+        query = query.where(SourceSyncRun.source_key == source_key)
+    rows = session.execute(
+        query.order_by(SourceSyncRun.created_at.desc()).limit(max(1, min(limit, 200)))
+    ).scalars()
+    return {"runs": [source_sync_run_view(run) for run in rows]}
+
+
+@router.get("/source-sync-runs/{run_id}")
+def get_source_sync_run(
+    run_id: uuid.UUID,
+    _: User = Depends(require_superadmin),
+    session: Session = Depends(get_session),
+) -> dict[str, Any]:
+    run = session.get(SourceSyncRun, run_id)
+    if run is None:
+        raise HTTPException(
+            status_code=404,
+            detail={"code": "run_not_found", "message": "来源同步记录不存在"},
+        )
+    return source_sync_run_view(run)
 
 
 @router.post("/automation/tasks", status_code=201, dependencies=[Depends(require_csrf)])

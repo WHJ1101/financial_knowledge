@@ -19,9 +19,12 @@ class RegisterRequest(BaseModel):
 
 
 class UserView(BaseModel):
+    id: str
     username: str
     role: str
     status: str
+    must_change_password: bool = False
+    password_changed_at: datetime | None = None
 
 
 class SessionView(BaseModel):
@@ -44,3 +47,8 @@ class InviteView(BaseModel):
 
 class CsrfView(BaseModel):
     csrf_token: str
+
+
+class PasswordChangeRequest(BaseModel):
+    current_password: str = Field(min_length=1, max_length=256)
+    new_password: str = Field(min_length=8, max_length=256)

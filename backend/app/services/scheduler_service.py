@@ -15,6 +15,7 @@ from sqlalchemy import select
 from app.db import SessionLocal
 from app.models import AutomationTask, Setting
 from app.services.automation import is_daily_briefing_task
+from app.services.run_lifecycle import create_automation_run
 
 _TZ = ZoneInfo("Asia/Shanghai")
 
@@ -61,11 +62,16 @@ def tick(now: datetime | None = None) -> list[str]:
                 # 到点任务 defer 到 worker（同事务入队，§4.7）；未知类型也会落明确跳过日志。
                 from app.queue import procrastinate_app
 
-                if is_daily_briefing_task(task):
-                    job = procrastinate_app.tasks["fk:run_daily_briefing"]
-                else:
-                    job = procrastinate_app.tasks["fk:run_automation"]
-                job.configure(connection=session.connection()).defer(task_id=str(task.id))
+                is_daily = is_daily_briefing_task(task)
+                run = create_automation_run(
+                    session,
+                    task_id=task.id,
+                    kind="daily_briefing" if is_daily else f"task:{str(task.id)[:27]}",
+                    trigger="schedule",
+                    requested_by=task.execution_owner_id,
+                )
+                job = procrastinate_app.tasks["fk:run_daily" if is_daily else "fk:run_automation"]
+                run.queue_job_id = job.configure(connection=session.connection()).defer(run_id=str(run.id))
                 session.commit()
                 triggered.append(str(task.id))
     return triggered

@@ -11,7 +11,7 @@ from dataclasses import asdict
 from html.parser import HTMLParser
 from typing import Any, cast
 
-from sqlalchemy import or_, select
+from sqlalchemy import select
 
 from app.llm.json import to_json_safe
 from app.models import CommunitySignal, DailyBar, Instrument, Report, ReportAssetLink
@@ -19,6 +19,7 @@ from app.providers.base import InstrumentRef
 from app.providers.eastmoney import EastmoneyProvider, eastmoney_secid
 from app.providers.eastmoney_finance import EastmoneyFinanceProvider
 from app.providers.eastmoney_fund import EastmoneyFundProvider
+from app.repositories.scoping import scope_condition
 from app.services.report_store import read_report_file
 
 
@@ -65,7 +66,12 @@ def technical_snapshot(rows: list[DailyBar], secid: str) -> dict[str, Any]:
 def sentiment_snapshot(session: Any, inst: Instrument, *, match_limit: int = 20) -> dict[str, Any]:
     scan_limit = max(300, match_limit * 20)
     rows = list(
-        session.execute(select(CommunitySignal).order_by(CommunitySignal.date.desc()).limit(scan_limit)).scalars()
+        session.execute(
+            select(CommunitySignal)
+            .where(CommunitySignal.active.is_(True))
+            .order_by(CommunitySignal.date.desc())
+            .limit(scan_limit)
+        ).scalars()
     )
     needles = {inst.canonical_symbol.lower(), inst.display_code.lower(), inst.name.lower()}
     matched: list[dict[str, Any]] = []
@@ -100,45 +106,32 @@ def sentiment_snapshot(session: Any, inst: Instrument, *, match_limit: int = 20)
     return {"source": "community_signals", "items": matched, "sample_size": len(matched)}
 
 
-async def online_evidence(ref: InstrumentRef) -> tuple[dict[str, Any], dict[str, Any]]:
-    from app.providers.eastmoney_macro import latest_macro_snapshot
-
+async def online_fundamental(ref: InstrumentRef) -> dict[str, Any]:
+    """抓取标的实时基本面；宏观与纵向事实统一从 Research Data Hub 读取。"""
     provider = EastmoneyProvider()
     finance_provider = EastmoneyFinanceProvider()
     fund_provider = EastmoneyFundProvider()
 
-    async def fundamental() -> dict[str, Any]:
-        if ref.asset_class in {"etf", "open_end_fund"}:
-            try:
-                return asdict(await fund_provider.snapshot(ref))
-            except Exception as exc:  # noqa: BLE001 -- 单一数据面降级
-                return {"source": "eastmoney_fund", "data_gap": f"基金画像抓取失败：{type(exc).__name__}"}
-        primary_error: Exception | None = None
+    if ref.asset_class in {"etf", "open_end_fund"}:
         try:
-            primary = await provider.snapshot(ref)
-            if primary.data_gap is None:
-                return asdict(primary)
-        except Exception as exc:  # noqa: BLE001 -- 主行情域名失败时转独立财务主机
-            primary_error = exc
-        fallback = await finance_provider.snapshot(ref)
-        if fallback.data_gap is None:
-            return asdict(fallback)
-        primary_reason = type(primary_error).__name__ if primary_error else "无有效估值字段"
-        return {
-            "source": "eastmoney",
-            "data_gap": f"基本面主源失败：{primary_reason}；{fallback.data_gap}",
-        }
-
-    async def macro() -> dict[str, Any]:
-        try:
-            from datetime import UTC, datetime
-
-            return await latest_macro_snapshot(datetime.now(UTC))
+            return asdict(await fund_provider.snapshot(ref))
         except Exception as exc:  # noqa: BLE001 -- 单一数据面降级
-            return {"source": "eastmoney_datacenter", "data_gap": f"宏观抓取失败：{type(exc).__name__}"}
-
-    fundamental_result, macro_result = await asyncio.gather(fundamental(), macro())
-    return fundamental_result, macro_result
+            return {"source": "eastmoney_fund", "data_gap": f"基金画像抓取失败：{type(exc).__name__}"}
+    primary_error: Exception | None = None
+    try:
+        primary = await provider.snapshot(ref)
+        if primary.data_gap is None:
+            return asdict(primary)
+    except Exception as exc:  # noqa: BLE001 -- 主行情域名失败时转独立财务主机
+        primary_error = exc
+    fallback = await finance_provider.snapshot(ref)
+    if fallback.data_gap is None:
+        return asdict(fallback)
+    primary_reason = type(primary_error).__name__ if primary_error else "无有效估值字段"
+    return {
+        "source": "eastmoney",
+        "data_gap": f"基本面主源失败：{primary_reason}；{fallback.data_gap}",
+    }
 
 
 class _VisibleTextParser(HTMLParser):
@@ -199,7 +192,7 @@ def report_context(
     visible = (
         Report.visibility == "shared"
         if viewer_id is None
-        else or_(Report.visibility == "shared", Report.owner_id == viewer_id)
+        else scope_condition(Report, viewer_id, access="visible")
     )
     direct = list(
         session.execute(
@@ -255,13 +248,14 @@ def collect_instrument_evidence(
     viewer_id: uuid.UUID | None = None,
 ) -> dict[str, Any]:
     """采集单标的五面证据；各数据面独立降级并保留 data gap。"""
+    from app.services.instrument_catalog.repository import provider_ref_map
     from app.services.portfolio_history import ensure_instrument_bars
 
     ref = InstrumentRef(
         canonical_symbol=inst.canonical_symbol,
         exchange=inst.exchange,
         asset_class=inst.asset_class,
-        provider_ids=dict(inst.provider_ids or {}),
+        provider_ids=provider_ref_map(inst),
     )
     secid = eastmoney_secid(ref)
     bar_limit = {"short": 90, "swing": 250, "long": 750}.get(horizon, 250)
@@ -281,7 +275,21 @@ def collect_instrument_evidence(
         if bar_sync.get("ok"):
             secid = str(bar_sync["secid"])
             bars = load_bars()
-    fundamental, macro = asyncio.run(online_evidence(ref))
+    fundamental = asyncio.run(online_fundamental(ref))
+    from datetime import UTC, datetime
+
+    from app.services.research_data_hub.repository import (
+        instrument_evidence_bundle,
+        macro_evidence_bundle,
+    )
+
+    as_of = datetime.now(UTC)
+    macro = macro_evidence_bundle(session, as_of=as_of).as_dict()
+    structured_facts = instrument_evidence_bundle(
+        session,
+        instrument=inst,
+        as_of=as_of,
+    ).as_dict()
     technical = technical_snapshot(bars, secid)
     if technical.get("data_gap") and bar_sync and not bar_sync.get("ok"):
         reason = str(bar_sync.get("reason") or "unknown")
@@ -303,6 +311,7 @@ def collect_instrument_evidence(
                 "technical": technical,
                 "fundamental": fundamental,
                 "macro": macro,
+                "structured_facts": structured_facts,
                 "sentiment": sentiment,
                 "research": research,
             }

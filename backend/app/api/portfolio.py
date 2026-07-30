@@ -15,6 +15,7 @@ from app.core.auth import get_current_user, require_csrf, require_superadmin
 from app.core.authz import require_owner
 from app.db import get_session
 from app.models import Instrument, LlmProfile, Position, User, WatchlistItem
+from app.repositories.scoping import scoped_get, scoped_select
 from app.schemas.entities import (
     OkResponse,
     PositionUpdateRequest,
@@ -74,7 +75,7 @@ def _position_view(pos: Position, inst: Instrument | None) -> PositionView:
 def list_watchlist(
     user: User = Depends(get_current_user), session: Session = Depends(get_session)
 ) -> list[WatchlistItemView]:
-    items = list(session.execute(select(WatchlistItem).where(WatchlistItem.owner_id == user.id)).scalars().all())
+    items = list(session.execute(scoped_select(WatchlistItem, user.id)).scalars().all())
     imap = _instrument_map(session, [i.instrument_id for i in items])
     return [_watchlist_view(i, imap.get(i.instrument_id)) for i in items]
 
@@ -88,7 +89,7 @@ def add_watchlist(
     inst = resolve_or_create_instrument(session, body.code, body.market, body.name)
     now = datetime.now(UTC)
     existing = session.execute(
-        select(WatchlistItem).where(WatchlistItem.owner_id == user.id, WatchlistItem.instrument_id == inst.id)
+        scoped_select(WatchlistItem, user.id).where(WatchlistItem.instrument_id == inst.id)
     ).scalar_one_or_none()
     if existing:
         existing.status = body.status
@@ -119,8 +120,9 @@ def add_watchlist(
 def delete_watchlist(
     item_id: uuid.UUID, user: User = Depends(get_current_user), session: Session = Depends(get_session)
 ) -> OkResponse:
-    item = session.get(WatchlistItem, item_id)
+    item = scoped_get(session, WatchlistItem, item_id, user.id)
     require_owner(item.owner_id if item else None, user.id)
+    assert item is not None
     session.delete(item)
     session.commit()
     return OkResponse()
@@ -133,7 +135,7 @@ def delete_watchlist(
 def list_positions(
     user: User = Depends(get_current_user), session: Session = Depends(get_session)
 ) -> list[PositionView]:
-    rows = list(session.execute(select(Position).where(Position.owner_id == user.id)).scalars().all())
+    rows = list(session.execute(scoped_select(Position, user.id)).scalars().all())
     imap = _instrument_map(session, [p.instrument_id for p in rows])
     return [_position_view(p, imap.get(p.instrument_id)) for p in rows]
 
@@ -170,7 +172,7 @@ def update_position(
     user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ) -> PositionView:
-    pos = session.get(Position, pos_id)
+    pos = scoped_get(session, Position, pos_id, user.id)
     require_owner(pos.owner_id if pos else None, user.id)
     assert pos is not None  # require_owner 已保证
     pos.shares = body.shares
@@ -184,8 +186,9 @@ def update_position(
 def delete_position(
     pos_id: uuid.UUID, user: User = Depends(get_current_user), session: Session = Depends(get_session)
 ) -> OkResponse:
-    pos = session.get(Position, pos_id)
+    pos = scoped_get(session, Position, pos_id, user.id)
     require_owner(pos.owner_id if pos else None, user.id)
+    assert pos is not None
     session.delete(pos)
     session.commit()
     return OkResponse()
@@ -208,12 +211,12 @@ def analyze_watchlist_item(
     item_id: uuid.UUID, user: User = Depends(get_current_user), session: Session = Depends(get_session)
 ) -> AnalyzeAccepted:
     """触发自选分析（仅 owner=self）。未配 BYOK key → 422。同事务入队（§4.7）。"""
-    item = session.get(WatchlistItem, item_id)
+    item = scoped_get(session, WatchlistItem, item_id, user.id)
     require_owner(item.owner_id if item else None, user.id)
     if (
         session.execute(
-            select(LlmProfile.id).where(
-                LlmProfile.user_id == user.id, LlmProfile.enabled.is_(True), LlmProfile.is_default.is_(True)
+            scoped_select(LlmProfile, user.id).where(
+                LlmProfile.enabled.is_(True), LlmProfile.is_default.is_(True)
             )
         ).first()
         is None
@@ -234,13 +237,13 @@ def analyze_position_endpoint(
     pos_id: uuid.UUID, user: User = Depends(get_current_user), session: Session = Depends(get_session)
 ) -> AnalyzeAccepted:
     """触发持仓分析（仅 owner=self）。未配 BYOK key → 422。同事务入队（§4.7）。"""
-    pos = session.get(Position, pos_id)
+    pos = scoped_get(session, Position, pos_id, user.id)
     require_owner(pos.owner_id if pos else None, user.id)
     assert pos is not None
     if (
         session.execute(
-            select(LlmProfile.id).where(
-                LlmProfile.user_id == user.id, LlmProfile.enabled.is_(True), LlmProfile.is_default.is_(True)
+            scoped_select(LlmProfile, user.id).where(
+                LlmProfile.enabled.is_(True), LlmProfile.is_default.is_(True)
             )
         ).first()
         is None
@@ -293,10 +296,11 @@ async def portfolio_analysis(
     user: User = Depends(get_current_user), session: Session = Depends(get_session)
 ) -> dict[str, Any]:
     """组合分析（按 owner 隔离）：批量取实时行情 → 现算分布/归因/健康度/主题穿透。"""
+    from app.services.instrument_catalog.repository import provider_ref_map
     from app.services.market import resolve_batch
     from app.services.portfolio_analysis import build_analysis, build_holdings, build_overview
 
-    rows = list(session.execute(select(Position).where(Position.owner_id == user.id)).scalars().all())
+    rows = list(session.execute(scoped_select(Position, user.id)).scalars().all())
     imap = _instrument_map(session, [p.instrument_id for p in rows])
     # 组装行情 batch 输入：code=display_code，quoteSecid 优先 eastmoney provider id
     items: list[dict[str, Any]] = []
@@ -305,7 +309,7 @@ async def portfolio_analysis(
         inst = imap.get(p.instrument_id)
         if inst is None:
             continue
-        secid = (inst.provider_ids or {}).get("eastmoney") or ""
+        secid = provider_ref_map(inst).get("eastmoney") or ""
         items.append({"code": inst.display_code, "quoteSecid": secid})
         holdings_raw.append(
             {

@@ -18,6 +18,7 @@ export interface SignalView {
   verification_status: string;
   importance: number;
   state: "unread" | "confirmed" | "ignored";
+  version_no: number;
 }
 
 export function useSignals() {
@@ -33,19 +34,64 @@ export function useSetSignalState() {
   });
 }
 
-export interface SignalSyncResult {
-  ok: boolean;
-  skipped: boolean;
-  reason: string;
-  written: number;
-  processed_dates: string[];
+export interface SignalSyncRun {
+  id: string;
+  source_key: string;
+  status: "queued" | "running" | "succeeded" | "partial" | "failed" | "canceled";
+  stage: string | null;
+  range_start: string | null;
+  range_end: string | null;
+  scanned_count: number;
+  changed_count: number;
+  written_count: number;
+  failed_count: number;
+  error_code: string | null;
+  error_message: string | null;
+  result_summary: {
+    processed_dates?: string[];
+    failure_dates?: string[];
+    content_only_dates?: string[];
+  };
+  created_at: string;
+  finished_at: string | null;
 }
 
-/** 同步飞书社群信号（超管）。 */
+export interface SignalSyncCreated {
+  run_id: string;
+  status: "queued";
+  poll_url: string;
+}
+
+export function useLatestSignalSync(enabled = true) {
+  return useQuery({
+    queryKey: ["signal-sync-latest"],
+    queryFn: () => api.get<SignalSyncRun | null>("/signals/sync-runs/latest"),
+    enabled,
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      return status === "queued" || status === "running" ? 2_000 : false;
+    },
+  });
+}
+
+/** 飞书增量或日期回补入队（超管）。 */
 export function useSyncSignals() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: () => api.post<SignalSyncResult>("/signals/sync"),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["signals"] }),
+    mutationFn: (body: {
+      mode: "incremental" | "backfill";
+      date_from: string | null;
+      date_to: string | null;
+    }) => api.post<SignalSyncCreated>("/signals/sync-runs", body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["signal-sync-latest"] }),
+  });
+}
+
+export function useRetrySignalSync() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (runId: string) =>
+      api.post<SignalSyncCreated>(`/signals/sync-runs/${runId}/retry`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["signal-sync-latest"] }),
   });
 }

@@ -9,6 +9,8 @@ dist/
 .runtime/
 .idea
 .codegraph
+frontend/playwright-report/
+frontend/test-results/
 
 # Python 后端
 .venv/

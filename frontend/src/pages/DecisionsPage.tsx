@@ -1,17 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import { ApiError } from "@/api/client";
 import { GlassButton, GlassPanel } from "@/components/LiquidGlass";
-import { useSession } from "@/hooks/useAuth";
+import { BottomSheet } from "@/components/mobile/BottomSheet";
+import {
+  InstrumentPicker,
+  type InstrumentQuickTarget,
+} from "@/features/instruments/InstrumentPicker";
+import type { InstrumentSelection } from "@/features/instruments/useInstruments";
+import { useInputCapabilities } from "@/hooks/useInputCapabilities";
 import {
   useCancelDebate,
   useCreateDebate,
   useDebate,
   useDebates,
-  useLegacyDecisions,
   useResumeDebate,
 } from "@/hooks/useDebates";
-import { usePositions, useWatchlist } from "@/hooks/usePortfolio";
+import { useAddWatchlist, usePositions, useWatchlist } from "@/hooks/usePortfolio";
 import { DebateDetail } from "@/pages/DebateDetail";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -36,48 +40,60 @@ function debateListBadgeClass(status: string, verdict: string | null) {
 }
 
 export function DecisionsPage() {
-  const session = useSession();
-  const isSuperadmin = session.data?.user?.role === "superadmin";
+  const capabilities = useInputCapabilities();
   const positions = usePositions();
   const watchlist = useWatchlist();
+  const addWatchlist = useAddWatchlist();
   const debates = useDebates();
-  const legacy = useLegacyDecisions(Boolean(isSuperadmin));
   const createDebate = useCreateDebate();
   const cancelDebate = useCancelDebate();
   const resumeDebate = useResumeDebate();
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [instrumentId, setInstrumentId] = useState("");
+  const [instrument, setInstrument] = useState<InstrumentSelection | null>(null);
   const [horizon, setHorizon] = useState<"short" | "swing" | "long">("swing");
   const [question, setQuestion] = useState("");
-  const [tab, setTab] = useState<"debates" | "archive">("debates");
+  const [showLauncher, setShowLauncher] = useState(false);
   const detail = useDebate(selectedId);
 
   const targets = useMemo(() => {
-    const map = new Map<string, string>();
-    positions.data?.forEach((item) => map.set(
-      item.instrument_id,
-      `持仓 · ${item.name || item.code || item.instrument_id.slice(0, 8)}`,
-    ));
-    watchlist.data?.forEach((item) => map.set(
-      item.instrument_id,
-      `自选 · ${item.name || item.code || item.instrument_id.slice(0, 8)}`,
-    ));
-    return [...map.entries()].map(([id, label]) => ({ id, label }));
+    const map = new Map<string, InstrumentQuickTarget>();
+    positions.data?.forEach((item) => map.set(item.instrument_id, {
+      id: item.instrument_id,
+      name: item.name || item.code || item.instrument_id.slice(0, 8),
+      display_code: item.code,
+      market: item.market,
+      group: "持仓",
+    }));
+    watchlist.data?.forEach((item) => {
+      if (!map.has(item.instrument_id)) {
+        map.set(item.instrument_id, {
+          id: item.instrument_id,
+          name: item.name || item.code || item.instrument_id.slice(0, 8),
+          display_code: item.code,
+          market: item.market,
+          group: "自选",
+        });
+      }
+    });
+    return [...map.values()];
   }, [positions.data, watchlist.data]);
 
   useEffect(() => {
-    if (!selectedId && debates.data?.length) setSelectedId(debates.data[0].id);
-  }, [debates.data, selectedId]);
+    if (!capabilities.isMobile && !selectedId && debates.data?.length) {
+      setSelectedId(debates.data[0].id);
+    }
+  }, [capabilities.isMobile, debates.data, selectedId]);
 
   const onCreate = (event: React.FormEvent) => {
     event.preventDefault();
-    if (!instrumentId) return;
+    if (!instrument) return;
     createDebate.mutate(
-      { instrument_id: instrumentId, horizon, question: question.trim() || undefined },
+      { instrument_id: instrument.id, horizon, question: question.trim() || undefined },
       {
         onSuccess: (result) => {
           setSelectedId(result.id);
           setQuestion("");
+          setShowLauncher(false);
         },
       },
     );
@@ -101,6 +117,51 @@ export function DecisionsPage() {
         : resumeDebate.error.detail
     : resumeDebate.error ? "辩论重新入队失败" : null;
 
+  const renderLauncher = (showTitle = true) => (
+    <GlassPanel as="form" tone="control" className="decision-launcher" onSubmit={onCreate}>
+      {showTitle && <h2>发起辩论</h2>}
+      <div className="field-label">
+        <span>标的</span>
+        <InstrumentPicker selected={instrument} onSelect={setInstrument} quickTargets={targets} />
+      </div>
+      {(positions.isLoading || watchlist.isLoading) && (
+        <p className="field-hint" aria-live="polite">持仓与自选标的加载中…</p>
+      )}
+      <label>
+        投资周期
+        <select value={horizon} onChange={(event) => setHorizon(event.target.value as typeof horizon)}>
+          {Object.entries(HORIZON_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+        </select>
+      </label>
+      <label>
+        关注问题（可选）
+        <textarea
+          rows={3}
+          maxLength={500}
+          value={question}
+          onChange={(event) => setQuestion(event.target.value)}
+          placeholder="例如：当前估值是否已反映二季度增长？"
+        />
+      </label>
+      {targets.length === 0 && !positions.isLoading && !watchlist.isLoading && !positions.isError && !watchlist.isError && (
+        <p className="field-hint">可直接搜索任意标的发起辩论</p>
+      )}
+      {(positions.isError || watchlist.isError) && (
+        <div className="inline-error" role="alert">
+          标的加载失败
+          <GlassButton tone="text" size="sm" type="button" onClick={() => {
+            positions.refetch();
+            watchlist.refetch();
+          }}>重试</GlassButton>
+        </div>
+      )}
+      <GlassButton tone="primary" refraction type="submit" disabled={!instrument || createDebate.isPending}>
+        {createDebate.isPending ? "创建中…" : "发起辩论"}
+      </GlassButton>
+      {createError && <div className="login-error" role="alert">{createError}</div>}
+    </GlassPanel>
+  );
+
   return (
     <div className="page fade-up decisions-page">
       <header className="page-head decision-page-head">
@@ -108,64 +169,16 @@ export function DecisionsPage() {
           <h1>决策辩论</h1>
           <p className="muted">四面分析、多空交叉反驳、裁判裁决和独立风险复核</p>
         </div>
-        {isSuperadmin && (
-          <div className="segmented" role="tablist" aria-label="决策内容">
-            <button role="tab" aria-selected={tab === "debates"} className={tab === "debates" ? "active" : ""} onClick={() => setTab("debates")}>辩论</button>
-            <button role="tab" aria-selected={tab === "archive"} className={tab === "archive" ? "active" : ""} onClick={() => setTab("archive")}>旧决策归档</button>
-          </div>
-        )}
+        <div className="task-actions">
+          {capabilities.isMobile && (
+            <GlassButton tone="primary" refraction onClick={() => setShowLauncher(true)}>发起</GlassButton>
+          )}
+        </div>
       </header>
 
-      {tab === "archive" && isSuperadmin ? (
-        <LegacyArchive query={legacy} />
-      ) : (
-        <div className="decision-layout">
-          <aside className="decision-sidebar">
-            <GlassPanel as="form" tone="control" className="decision-launcher" onSubmit={onCreate}>
-              <h2>发起辩论</h2>
-              <label>
-                标的
-                <select value={instrumentId} onChange={(event) => setInstrumentId(event.target.value)}>
-                  <option value="">选择持仓或自选…</option>
-                  {targets.map((target) => <option key={target.id} value={target.id}>{target.label}</option>)}
-                </select>
-              </label>
-              {(positions.isLoading || watchlist.isLoading) && (
-                <p className="field-hint" aria-live="polite">持仓与自选标的加载中…</p>
-              )}
-              <label>
-                投资周期
-                <select value={horizon} onChange={(event) => setHorizon(event.target.value as typeof horizon)}>
-                  {Object.entries(HORIZON_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-                </select>
-              </label>
-              <label>
-                关注问题（可选）
-                <textarea
-                  rows={3}
-                  maxLength={500}
-                  value={question}
-                  onChange={(event) => setQuestion(event.target.value)}
-                  placeholder="例如：当前估值是否已反映二季度增长？"
-                />
-              </label>
-              {targets.length === 0 && !positions.isLoading && !watchlist.isLoading && !positions.isError && !watchlist.isError && (
-                <p className="field-hint">先在<Link to="/portfolio">投资组合</Link>添加持仓或自选标的</p>
-              )}
-              {(positions.isError || watchlist.isError) && (
-                <div className="inline-error" role="alert">
-                  标的加载失败
-                  <GlassButton tone="text" size="sm" type="button" onClick={() => {
-                    positions.refetch();
-                    watchlist.refetch();
-                  }}>重试</GlassButton>
-                </div>
-              )}
-              <GlassButton tone="primary" refraction type="submit" disabled={!instrumentId || createDebate.isPending}>
-                {createDebate.isPending ? "创建中…" : "发起辩论"}
-              </GlassButton>
-              {createError && <div className="login-error" role="alert">{createError}</div>}
-            </GlassPanel>
+      <div className="decision-layout">
+          <aside className={`decision-sidebar ${capabilities.isMobile && selectedId ? "mobile-hidden" : ""}`}>
+            {!capabilities.isMobile && renderLauncher()}
 
             <GlassPanel as="section" tone="data" className="debate-history">
               <div className="section-heading compact">
@@ -198,7 +211,12 @@ export function DecisionsPage() {
             </GlassPanel>
           </aside>
 
-          <section className="decision-detail" aria-live="polite">
+          <section className={`decision-detail ${capabilities.isMobile && !selectedId ? "mobile-hidden" : ""}`} aria-live="polite">
+            {capabilities.isMobile && selectedId && (
+              <GlassButton tone="text" className="mobile-detail-back" onClick={() => setSelectedId(null)}>
+                ← 返回辩论列表
+              </GlassButton>
+            )}
             {!selectedId && <div className="panel empty-state">选择历史记录，或发起一场辩论</div>}
             {selectedId && detail.isLoading && <div className="panel loading-state">加载辩论详情…</div>}
             {selectedId && detail.isError && (
@@ -215,31 +233,50 @@ export function DecisionsPage() {
                   onRefresh={() => detail.refetch()}
                   refreshing={detail.isFetching}
                 />
+                {detail.data.status === "done"
+                  && !targets.some((target) => target.id === detail.data?.instrument_id)
+                  && (
+                    <GlassPanel tone="control" className="debate-followup">
+                      <div>
+                        <strong>继续跟踪这个标的？</strong>
+                        <p className="muted">加入自选后可持续记录观点和触发信号。</p>
+                      </div>
+                      <GlassButton
+                        tone="secondary"
+                        size="sm"
+                        disabled={addWatchlist.isPending}
+                        onClick={() => addWatchlist.mutate({
+                          code: detail.data!.instrument_code,
+                          name: detail.data!.instrument_name,
+                          market: detail.data!.report?.target.market ?? "",
+                          status: "watching",
+                          thesis: detail.data!.question ?? undefined,
+                        })}
+                      >
+                        {addWatchlist.isPending ? "加入中…" : "加入自选"}
+                      </GlassButton>
+                    </GlassPanel>
+                  )}
+                {addWatchlist.error && (
+                  <div className="login-error" role="alert">
+                    {addWatchlist.error instanceof ApiError ? addWatchlist.error.detail : "加入自选失败"}
+                  </div>
+                )}
                 {cancelError && <div className="login-error" role="alert">{cancelError}</div>}
                 {resumeError && <div className="login-error" role="alert">{resumeError}</div>}
               </>
             )}
           </section>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function LegacyArchive({ query }: { query: ReturnType<typeof useLegacyDecisions> }) {
-  if (query.isLoading) return <div className="panel loading-state">加载旧决策归档…</div>;
-  if (query.isError) return <div className="panel error-state" role="alert">归档加载失败 <GlassButton tone="text" size="sm" onClick={() => query.refetch()}>重试</GlassButton></div>;
-  return (
-    <div className="legacy-decision-list">
-      {query.data?.decisions.map((item) => (
-        <GlassPanel as="article" tone="data" interactive className="legacy-decision-card" key={item.id}>
-          <div className="section-heading compact"><h2>{item.title}</h2><time>{item.date}</time></div>
-          {item.summary && <p>{item.summary}</p>}
-          {item.action && <div className="legacy-action"><strong>行动建议</strong><p>{item.action}</p></div>}
-          {item.market && <p className="muted">{item.market}</p>}
-        </GlassPanel>
-      ))}
-      {query.data?.decisions.length === 0 && <div className="panel empty-state">没有旧决策归档</div>}
+      </div>
+      <BottomSheet
+        open={showLauncher}
+        title="发起辩论"
+        onClose={() => setShowLauncher(false)}
+        height="full"
+        className="decision-launcher-sheet"
+      >
+        {renderLauncher(false)}
+      </BottomSheet>
     </div>
   );
 }

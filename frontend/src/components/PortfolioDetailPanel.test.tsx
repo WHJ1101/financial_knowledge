@@ -44,6 +44,18 @@ const holding: AnalysisHolding = {
     triggers: ["重新站上MA20后复核加仓条件"],
     evidence_used: ["daily_bars 2026-07-18", "2026-07-18 每日市场简报"],
     data_gaps: ["基金基本面：缺少十大持仓单项权重"],
+    generated_at: "2026-07-18T15:00:00+08:00",
+    quote_snapshot: {
+      price: 2.973,
+      change_pct: "0.5",
+      source: "基金估算净值",
+      as_of: "2026-07-18T15:00:00+08:00",
+    },
+    position_snapshot: {
+      shares: 37101,
+      cost: 2.911,
+      pnl_pct: 2.13,
+    },
   },
 };
 
@@ -62,4 +74,26 @@ test("持仓详情分维度展示走势、基本面、宏观、简报与证据�
   expect(evidence).toHaveTextContent("重新站上MA20后复核加仓条件");
   expect(evidence).toHaveTextContent("daily_bars 2026-07-18");
   expect(evidence).toHaveTextContent("缺少十大持仓单项权重");
+});
+
+test("缺少行情快照的旧分析默认停止展示为当前建议", () => {
+  render(
+    <MemoryRouter>
+      <PositionDetail
+        holding={{
+          ...holding,
+          reason: "【减仓】当前价格1元，盈亏比为-18.14%。",
+          analysisDetail: {
+            generated_at: "2026-07-01T10:00:00+08:00",
+          },
+        }}
+        onAnalyze={() => undefined}
+        onDelete={() => undefined}
+      />
+    </MemoryRouter>,
+  );
+
+  expect(screen.getByRole("status")).toHaveTextContent("旧版分析缺少行情快照");
+  expect(screen.getByText("查看旧分析（仅供追溯）")).toBeInTheDocument();
+  expect(screen.queryByText("【减仓】当前价格1元，盈亏比为-18.14%。")).not.toBeInTheDocument();
 });

@@ -11,13 +11,13 @@ from datetime import UTC, datetime
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import delete
+from sqlalchemy import delete, text
 
 from app.config import get_settings
 from app.core.security import hash_password
 from app.db import SessionLocal
 from app.main import app
-from app.models import Log, Report, User, UserSession
+from app.models import AutomationRun, Log, Report, User, UserSession
 
 
 def _mk_user(role: str = "member") -> tuple[str, uuid.UUID]:
@@ -71,6 +71,18 @@ def member():
         s.commit()
 
 
+@pytest.fixture
+def superadmin():
+    name, uid = _mk_user("superadmin")
+    yield name, uid
+    with SessionLocal() as s:
+        s.execute(text("DELETE FROM procrastinate_jobs WHERE task_name='fk:run_daily'"))
+        s.execute(delete(AutomationRun).where(AutomationRun.requested_by == uid))
+        s.execute(delete(UserSession).where(UserSession.user_id == uid))
+        s.execute(delete(User).where(User.id == uid))
+        s.commit()
+
+
 def test_research_requires_auth():
     client = TestClient(app)
     assert client.post("/api/v1/research", json={"topic": "x"}).status_code in (401, 403)
@@ -100,3 +112,27 @@ def test_daily_job_requires_superadmin(member):
     # 成员触发日更 → 404（require_superadmin 不泄露）
     resp = client.post("/api/v1/jobs/daily", headers=_csrf(client))
     assert resp.status_code == 404
+
+
+def test_daily_job_returns_run_and_enqueues_atomically(superadmin):
+    name, uid = superadmin
+    client = _login(name)
+    resp = client.post("/api/v1/jobs/daily", headers=_csrf(client))
+    assert resp.status_code == 202, resp.text
+    body = resp.json()
+    assert body["status"] == "queued"
+    assert body["poll_url"] == f"/api/v1/automation/runs/{body['run_id']}"
+    with SessionLocal() as session:
+        run = session.get(AutomationRun, uuid.UUID(body["run_id"]))
+        assert run is not None
+        assert run.requested_by == uid
+        assert isinstance(run.queue_job_id, int)
+        queued = session.execute(
+            text("SELECT task_name, args->>'run_id' FROM procrastinate_jobs WHERE id=:id"),
+            {"id": run.queue_job_id},
+        ).one()
+        assert queued == ("fk:run_daily", body["run_id"])
+
+    active = client.post("/api/v1/jobs/daily", headers=_csrf(client))
+    assert active.status_code == 409
+    assert active.json()["detail"]["code"] == "active_run_exists"

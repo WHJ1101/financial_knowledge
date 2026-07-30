@@ -39,7 +39,6 @@ def resolve_or_create_instrument(session: Session, code: str, market: str | None
         display_code=norm.display_code,
         name=name or norm.display_code,
         market=(market or ""),
-        provider_ids={},
         source="user",
         active=True,
         created_at=now,

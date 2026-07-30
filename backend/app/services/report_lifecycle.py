@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 
 from app.models import Report, User
 from app.services.logs import append_log
+from app.services.report_sanitizer import REPORT_HTML_SANITIZER_POLICY, sanitize_report_html
 from app.services.report_store import build_report_file, write_report_file
 from app.services.report_template import REPORT_TYPES, render_report_html
 
@@ -157,7 +158,8 @@ def import_report(session: Session, owner: User, body: dict[str, Any]) -> Report
     raw_type = str(body.get("type") or "")
     type_ = raw_type if raw_type in REPORT_TYPES else _infer_type(f"{title} {topic}")
     rtype = REPORT_TYPES[type_]
-    created_at = _parse_dt(body.get("createdAt")) or datetime.now(UTC)
+    imported_at = datetime.now(UTC)
+    created_at = _parse_dt(body.get("createdAt")) or imported_at
     raw_local = str(body.get("localDate") or "")
     local_day = raw_local if re.match(r"^\d{4}-\d{2}-\d{2}$", raw_local) else _local_day(created_at)
     report_id = _safe_id(body["id"]) if body.get("id") else _build_id(local_day, topic, type_)
@@ -175,7 +177,7 @@ def import_report(session: Session, owner: User, body: dict[str, Any]) -> Report
     report = Report(
         id=report_id,
         owner_id=owner.id,
-        visibility="private",
+        visibility="shared",
         title=title,
         topic=topic,
         type=type_,
@@ -192,6 +194,13 @@ def import_report(session: Session, owner: User, body: dict[str, Any]) -> Report
         meta={
             "accent": rtype["accent"],
             "wiki_path": body.get("wikiPath") or f"{rtype['path']}/{local_day}-{_slugify(topic)}.html",
+            "import_source": source,
+            "imported_at": imported_at.isoformat(),
+            "import_visibility": "private",
+            "sanitization": {
+                "policy": REPORT_HTML_SANITIZER_POLICY,
+                "stored": "sanitized",
+            },
         },
         created_at=created_at,
         updated_at=_parse_dt(body.get("updatedAt")) or created_at,
@@ -205,7 +214,7 @@ def import_report(session: Session, owner: User, body: dict[str, Any]) -> Report
         "evidence": body.get("evidence") if isinstance(body.get("evidence"), list) else [],
         "dataQuality": [{"name": "导入来源", "status": "Codex 对话手动入库" if source == "chat" else source}],
     }
-    html = _normalize_imported_html(body, _report_for_template(report, source), brief)
+    html = _normalize_imported_html(body, _report_for_template(report, source), brief, report_id=report_id)
     return _save_report(session, report, brief, html, "report_import", f"Imported report: {title}", {"source": source})
 
 
@@ -235,7 +244,7 @@ def create_daily_briefing_report(
     report = Report(
         id=report_id,
         owner_id=owner.id,
-        visibility="private",
+        visibility="shared",
         title=title,
         topic=topic,
         type=type_,
@@ -327,14 +336,20 @@ def _escape_html(value: Any) -> str:
     )
 
 
-def _normalize_imported_html(body: dict[str, Any], report: dict[str, Any], brief: dict[str, Any]) -> str:
+def _normalize_imported_html(
+    body: dict[str, Any], report: dict[str, Any], brief: dict[str, Any], *, report_id: str
+) -> str:
     html = str(body.get("html") or "").strip()
     if html:
-        return html if re.match(r"^<!doctype html|<html[\s>]", html, re.I) else _wrap_fragment(report, html)
+        candidate = html if re.match(r"^<!doctype html|<html[\s>]", html, re.I) else _wrap_fragment(report, html)
+        return sanitize_report_html(candidate, report_id=report_id)
     content = str(body.get("content") or body.get("markdown") or "").strip()
     if content:
-        return _wrap_fragment(report, f"<pre>{_escape_html(content)}</pre>")
-    return render_report_html(report, brief)
+        return sanitize_report_html(
+            _wrap_fragment(report, f"<pre>{_escape_html(content)}</pre>"),
+            report_id=report_id,
+        )
+    return sanitize_report_html(render_report_html(report, brief), report_id=report_id)
 
 
 def _wrap_fragment(report: dict[str, Any], fragment: str) -> str:

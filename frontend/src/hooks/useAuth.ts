@@ -3,9 +3,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, ensureCsrf } from "@/api/client";
 
 export interface UserView {
+  id: string;
   username: string;
   role: "superadmin" | "member";
   status: string;
+  must_change_password: boolean;
+  password_changed_at: string | null;
 }
 interface SessionView {
   authenticated: boolean;
@@ -56,6 +59,81 @@ export function useLogout() {
   return useMutation({
     mutationFn: () => api.post("/auth/logout"),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["session"] }),
+  });
+}
+
+export function useChangePassword() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { current_password: string; new_password: string }) =>
+      api.post<{ ok: boolean; revoked_count: number; user: UserView }>("/me/password", body),
+    onSuccess: (data) => {
+      qc.setQueryData<SessionView>(["session"], (current) => (
+        current ? { ...current, user: data.user } : current
+      ));
+      qc.invalidateQueries({ queryKey: ["session"] });
+    },
+  });
+}
+
+export interface AdminUserView {
+  id: string;
+  username: string;
+  role: "superadmin" | "member";
+  status: "active" | "disabled";
+  created_at: string;
+  updated_at: string;
+  last_login_at: string | null;
+  active_session_count: number;
+  must_change_password: boolean;
+  password_changed_at: string | null;
+}
+
+export function useAdminUsers(enabled: boolean) {
+  return useQuery({
+    queryKey: ["admin-users"],
+    queryFn: () => api.get<AdminUserView[]>("/admin/users"),
+    enabled,
+  });
+}
+
+export function useUpdateUserStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: "active" | "disabled" }) =>
+      api.patch<AdminUserView>(`/admin/users/${id}/status`, { status }),
+    onSuccess: (updated) => {
+      qc.setQueryData<AdminUserView[]>(["admin-users"], (current) =>
+        current?.map((user) => user.id === updated.id ? updated : user));
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+      qc.invalidateQueries({ queryKey: ["session"] });
+    },
+  });
+}
+
+export function useRevokeUserSessions() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api.post<{ revoked_count: number }>(`/admin/users/${id}/sessions/revoke`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+      qc.invalidateQueries({ queryKey: ["session"] });
+    },
+  });
+}
+
+export function useResetUserPassword() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api.post<{ user: AdminUserView; one_time_password: string }>(`/admin/users/${id}/password-reset`),
+    onSuccess: (result) => {
+      qc.setQueryData<AdminUserView[]>(["admin-users"], (current) =>
+        current?.map((user) => user.id === result.user.id ? result.user : user));
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+      qc.invalidateQueries({ queryKey: ["session"] });
+    },
   });
 }
 

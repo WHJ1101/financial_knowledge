@@ -11,6 +11,9 @@ export interface ReportView {
   type_label: string | null;
   summary: string | null;
   origin: string | null;
+  source: string | null;
+  imported_at: string | null;
+  sanitization_policy: string | null;
   local_date: string | null;
   tags: string[];
   content_status: string;

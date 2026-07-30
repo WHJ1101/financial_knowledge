@@ -5,16 +5,13 @@ import { expect, test, vi } from "vitest";
 
 const createDebate = vi.hoisted(() => vi.fn());
 
-vi.mock("@/hooks/useAuth", () => ({
-  useSession: () => ({ data: { user: { role: "member", username: "member" } } }),
-}));
-
 vi.mock("@/hooks/usePortfolio", () => ({
   usePositions: () => ({
     data: [{ instrument_id: "instrument-1", name: "江波龙", code: "301308" }],
     isLoading: false,
   }),
   useWatchlist: () => ({ data: [], isLoading: false }),
+  useAddWatchlist: () => ({ mutate: vi.fn(), isPending: false, error: null }),
 }));
 
 vi.mock("@/hooks/useDebates", () => ({
@@ -28,18 +25,24 @@ vi.mock("@/hooks/useDebates", () => ({
     isError: false,
     refetch: vi.fn(),
   }),
-  useLegacyDecisions: () => ({ data: { decisions: [] }, isLoading: false, isError: false, refetch: vi.fn() }),
   useCreateDebate: () => ({ mutate: createDebate, isPending: false, error: null }),
   useCancelDebate: () => ({ mutate: vi.fn(), isPending: false, error: null }),
   useResumeDebate: () => ({ mutate: vi.fn(), isPending: false, error: null }),
   useDebate: () => ({ data: null, isLoading: false, isError: false, refetch: vi.fn() }),
 }));
 
+vi.mock("@/features/instruments/useInstruments", () => ({
+  useInstrumentSearch: () => ({ data: [], isLoading: false, isError: false, isSuccess: true }),
+  useResolveInstrument: () => ({ mutate: vi.fn(), isPending: false, error: null }),
+  useInstrumentCoverage: () => ({ data: null }),
+}));
+
 import { DecisionsPage } from "@/pages/DecisionsPage";
 
 test("发起辩论时提交标的、周期和关注问题", async () => {
   render(<MemoryRouter><DecisionsPage /></MemoryRouter>);
-  await userEvent.selectOptions(screen.getByLabelText("标的"), "instrument-1");
+  await userEvent.click(screen.getByRole("button", { name: /搜索股票、ETF、指数或基金/ }));
+  await userEvent.click(screen.getByRole("button", { name: /江波龙.*301308/ }));
   await userEvent.selectOptions(screen.getByLabelText("投资周期"), "long");
   await userEvent.type(screen.getByLabelText("关注问题（可选）"), "长期竞争力如何？");
   await userEvent.click(screen.getByRole("button", { name: "发起辩论" }));

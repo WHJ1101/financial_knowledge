@@ -12,12 +12,12 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
-from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user
 from app.db import get_session
 from app.models import Instrument, Position, Report, User
+from app.repositories.scoping import scoped_select
 
 router = APIRouter(prefix="/api/v1", tags=["export"])
 
@@ -49,9 +49,9 @@ _REPORT_COLUMNS = [
 
 def _position_rows(session: Session, user: User) -> list[dict[str, Any]]:
     rows = session.execute(
-        select(Position, Instrument)
+        scoped_select(Position, user.id)
+        .add_columns(Instrument)
         .join(Instrument, Position.instrument_id == Instrument.id)
-        .where(Position.owner_id == user.id)
         .order_by(Position.updated_at.desc())
     ).all()
     return [
@@ -72,8 +72,7 @@ def _position_rows(session: Session, user: User) -> list[dict[str, Any]]:
 def _report_rows(session: Session, user: User) -> list[dict[str, Any]]:
     rows = (
         session.execute(
-            select(Report)
-            .where(or_(Report.visibility == "shared", Report.owner_id == user.id))
+            scoped_select(Report, user.id, access="visible")
             .order_by(Report.created_at.desc())
         )
         .scalars()

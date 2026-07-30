@@ -1,8 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { api, ApiError } from "@/api/client";
-import { useDeleteReport, useMarkRead, useReport } from "@/hooks/useReports";
+import {
+  useDeleteReport,
+  useMarkRead,
+  useReport,
+  useToggleArchive,
+  useToggleStar,
+} from "@/hooks/useReports";
 import { GlassButton, GlassPanel } from "@/components/LiquidGlass";
+import { AppDialog } from "@/components/mobile/AppDialog";
+import { BottomSheet } from "@/components/mobile/BottomSheet";
 import { applyReportReaderTheme, type ReportReaderTheme } from "@/styles/reportFrameTheme";
 
 interface AssetLink {
@@ -17,11 +25,27 @@ function resolvedReaderTheme(): ReportReaderTheme {
   return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
 }
 
+export function buildReaderToc(headings: HTMLElement[]) {
+  let previousKey = "";
+  return headings.flatMap((heading, index) => {
+    const label = heading.textContent?.trim() || `第 ${index + 1} 节`;
+    const level = Number(heading.tagName.slice(1));
+    const key = `${level}:${label.replace(/\s+/g, " ")}`;
+    if (key === previousKey) return [];
+    previousKey = key;
+    const id = heading.id || `reader-heading-${index + 1}`;
+    heading.id = id;
+    return [{ id, label, level }];
+  });
+}
+
 export function ReportReaderPage() {
   const { reportId = "" } = useParams();
   const navigate = useNavigate();
   const metadata = useReport(reportId);
   const markRead = useMarkRead();
+  const toggleStar = useToggleStar();
+  const toggleArchive = useToggleArchive();
   const removeReport = useDeleteReport();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [html, setHtml] = useState<string | null>(null);
@@ -35,6 +59,9 @@ export function ReportReaderPage() {
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [frameHeight, setFrameHeight] = useState(900);
   const [readerTheme, setReaderTheme] = useState<ReportReaderTheme>(resolvedReaderTheme);
+  const [toc, setToc] = useState<Array<{ id: string; label: string; level: number }>>([]);
+  const [showToc, setShowToc] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const themedHtml = useMemo(
     () => (html === null ? null : applyReportReaderTheme(html, readerTheme)),
     [html, readerTheme],
@@ -105,9 +132,26 @@ export function ReportReaderPage() {
     }
   };
 
-  const resizeFrame = () => {
-    const document = iframeRef.current?.contentDocument;
-    if (document) setFrameHeight(Math.max(640, document.documentElement.scrollHeight + 8));
+  const onFrameLoad = () => {
+    const frameDocument = iframeRef.current?.contentDocument;
+    if (!frameDocument) return;
+    setFrameHeight(Math.max(640, frameDocument.documentElement.scrollHeight + 8));
+    const headings = [...frameDocument.querySelectorAll<HTMLElement>("h1, h2, h3")];
+    setToc(buildReaderToc(headings));
+  };
+
+  const goToHeading = (id: string) => {
+    const frame = iframeRef.current;
+    const heading = frame?.contentDocument?.getElementById(id);
+    if (!frame || !heading) return;
+    const top = frame.offsetTop + heading.offsetTop - 118;
+    const scrollRoot = frame.closest(".app-main");
+    if (scrollRoot && scrollRoot.scrollHeight > scrollRoot.clientHeight) {
+      scrollRoot.scrollTo({ top, behavior: "smooth" });
+    } else {
+      window.scrollTo({ top, behavior: "smooth" });
+    }
+    setShowToc(false);
   };
 
   return (
@@ -115,16 +159,32 @@ export function ReportReaderPage() {
       <header className="reader-head">
         <Link to="/knowledge" className="back-link">← 返回知识库</Link>
         <div className="reader-actions">
+          {toc.length > 0 && <GlassButton tone="utility" onClick={() => setShowToc(true)}>目录</GlassButton>}
+          {metadata.data && (
+            <>
+              <GlassButton
+                tone="utility"
+                disabled={toggleStar.isPending}
+                onClick={() => toggleStar.mutate(reportId, { onSuccess: () => metadata.refetch() })}
+              >
+                {metadata.data.starred ? "取消星标" : "星标"}
+              </GlassButton>
+              <GlassButton
+                tone="utility"
+                disabled={toggleArchive.isPending}
+                onClick={() => toggleArchive.mutate(reportId, { onSuccess: () => metadata.refetch() })}
+              >
+                {metadata.data.archived ? "移出归档" : "归档"}
+              </GlassButton>
+            </>
+          )}
           {metadata.data?.is_owner && (
             <>
               <GlassButton tone="utility" onClick={() => setEditingAssets((value) => !value)}>编辑关联标的</GlassButton>
               <GlassButton
                 tone="danger"
                 disabled={removeReport.isPending}
-                onClick={() => window.confirm(`确认删除「${metadata.data?.title}」？`) && removeReport.mutate(reportId, {
-                  onSuccess: () => navigate("/knowledge", { replace: true }),
-                  onError: (reason) => setActionError(reason instanceof ApiError ? reason.detail : "报告删除失败"),
-                })}
+                onClick={() => setShowDeleteConfirm(true)}
               >
                 {removeReport.isPending ? "删除中…" : "删除报告"}
               </GlassButton>
@@ -137,6 +197,13 @@ export function ReportReaderPage() {
         <div className="reader-meta">
           <h1>{metadata.data.title}</h1>
           <p className="muted">{metadata.data.topic}</p>
+          {metadata.data.imported_at && (
+            <p className="muted reader-provenance">
+              导入来源：{metadata.data.source || "未知"} · 导入时间：
+              {new Date(metadata.data.imported_at).toLocaleString("zh-CN")} · 可见性：
+              {metadata.data.visibility === "shared" ? "共享" : "私有"}
+            </p>
+          )}
         </div>
       )}
 
@@ -193,11 +260,46 @@ export function ReportReaderPage() {
           className="reader-frame"
           style={{ height: frameHeight }}
           title="报告正文"
-          sandbox="allow-same-origin allow-popups"
+          sandbox="allow-same-origin"
           srcDoc={themedHtml}
-          onLoad={resizeFrame}
+          onLoad={onFrameLoad}
         />
       )}
+      <BottomSheet
+        open={showToc}
+        title="报告目录"
+        onClose={() => setShowToc(false)}
+        height="medium"
+        showOnDesktop
+      >
+        <nav className="reader-toc" aria-label="报告目录">
+          {toc.map((item) => (
+            <button
+              key={item.id}
+              className={`reader-toc-level-${item.level}`}
+              onClick={() => goToHeading(item.id)}
+            >
+              {item.label}
+            </button>
+          ))}
+        </nav>
+      </BottomSheet>
+      <AppDialog
+        open={showDeleteConfirm}
+        title="删除报告"
+        description={<p>确认删除「{metadata.data?.title}」？正文文件、关联标的和个人状态将一并删除。</p>}
+        confirmLabel="确认删除"
+        tone="danger"
+        pending={removeReport.isPending}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={() => removeReport.mutate(reportId, {
+          onSuccess: () => navigate("/knowledge", { replace: true }),
+          onError: (reason) => {
+            setShowDeleteConfirm(false);
+            setActionError(reason instanceof ApiError ? reason.detail : "报告删除失败");
+          },
+        })}
+      />
     </div>
   );
 }

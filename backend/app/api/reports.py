@@ -15,7 +15,7 @@ from datetime import UTC, datetime
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
-from sqlalchemy import or_, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
@@ -24,8 +24,10 @@ from app.core.authz import require_owner
 from app.core.security import token_digest
 from app.db import get_session
 from app.models import Report, User, UserReportState, UserSession
+from app.repositories.scoping import scoped_get, scoped_select
 from app.schemas.entities import OkResponse, ReportView
 from app.services.report_lifecycle import delete_report, import_report
+from app.services.report_sanitizer import REPORT_CONTENT_SECURITY_POLICY
 from app.services.report_store import read_report_file, report_file_exists
 
 router = APIRouter(prefix="/api/v1", tags=["reports"])
@@ -38,6 +40,15 @@ def _to_view(
     *,
     content_status: str | None = None,
 ) -> ReportView:
+    metadata = report.meta or {}
+    imported_at_value = metadata.get("imported_at")
+    imported_at = None
+    if isinstance(imported_at_value, str):
+        try:
+            imported_at = datetime.fromisoformat(imported_at_value.replace("Z", "+00:00"))
+        except ValueError:
+            imported_at = None
+    sanitization = metadata.get("sanitization")
     return ReportView(
         id=report.id,
         visibility=report.visibility,
@@ -47,6 +58,9 @@ def _to_view(
         type_label=report.type_label,
         summary=report.summary,
         origin=report.origin,
+        source=report.source,
+        imported_at=imported_at,
+        sanitization_policy=sanitization.get("policy") if isinstance(sanitization, dict) else None,
         local_date=report.local_date,
         tags=report.tags,
         highlights=report.highlights,
@@ -64,16 +78,14 @@ def list_reports(user: User = Depends(get_current_user), session: Session = Depe
     # 可见性：共享 OR 自有（方案 §4.3）
     reports = (
         session.execute(
-            select(Report)
-            .where(or_(Report.visibility == "shared", Report.owner_id == user.id))
-            .order_by(Report.created_at.desc())
+            scoped_select(Report, user.id, access="visible").order_by(Report.created_at.desc())
         )
         .scalars()
         .all()
     )
     states = {
         s.report_id: s
-        for s in session.execute(select(UserReportState).where(UserReportState.user_id == user.id)).scalars().all()
+        for s in session.execute(scoped_select(UserReportState, user.id)).scalars().all()
     }
     # 内容缺失仍返回元数据和实时 content_status；GET 不产生数据库写入。
     return [
@@ -88,9 +100,8 @@ def list_reports(user: User = Depends(get_current_user), session: Session = Depe
 
 
 def _visible_or_404(session: Session, report_id: str, user: User) -> Report:
-    report = session.get(Report, report_id)
-    # 私有且非自有 → 404（不泄露存在性，方案 §9.4）
-    if report is None or (report.visibility != "shared" and report.owner_id != user.id):
+    report = scoped_get(session, Report, report_id, user.id, access="visible")
+    if report is None:
         raise HTTPException(status_code=404, detail="Not Found")
     return report
 
@@ -118,7 +129,15 @@ def get_report_content(
     html = read_report_file(report.file)
     if html is None:
         raise HTTPException(status_code=404, detail="报告内容缺失")
-    return HTMLResponse(content=html)
+    return HTMLResponse(
+        content=html,
+        headers={
+            "Content-Security-Policy": REPORT_CONTENT_SECURITY_POLICY,
+            "X-Content-Type-Options": "nosniff",
+            "Referrer-Policy": "no-referrer",
+            "Cache-Control": "private, no-store",
+        },
+    )
 
 
 def _resolve_import_owner(
@@ -185,7 +204,7 @@ def delete_report_endpoint(
     report_id: str, user: User = Depends(get_current_user), session: Session = Depends(get_session)
 ) -> OkResponse:
     """删报告（仅 owner=self；非属主/不存在 → 404）。"""
-    report = session.get(Report, report_id)
+    report = scoped_get(session, Report, report_id, user.id)
     require_owner(report.owner_id if report else None, user.id)
     delete_report(session, report_id)
     return OkResponse()
@@ -210,7 +229,7 @@ def update_report_visibility(
     session: Session = Depends(get_session),
 ) -> OkResponse:
     """owner 切换报告可见性（private ↔ shared）。撤销共享后他人已有个人态静默失效（策略 A）。"""
-    report = session.get(Report, report_id)
+    report = scoped_get(session, Report, report_id, user.id)
     require_owner(report.owner_id if report else None, user.id)
     assert report is not None
     report.visibility = body.visibility

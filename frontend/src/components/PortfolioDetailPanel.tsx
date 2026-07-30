@@ -35,6 +35,42 @@ const ANALYSIS_LABEL: Record<string, string> = {
   failed: "分析失败",
 };
 
+export function positionAnalysisFreshness(
+  holding: AnalysisHolding & { marketValueEstimated?: boolean },
+): { stale: boolean; message: string | null } {
+  if (!holding.reason) return { stale: false, message: null };
+  const quoteSnapshot = holding.analysisDetail?.quote_snapshot;
+  const positionSnapshot = holding.analysisDetail?.position_snapshot;
+  if (!quoteSnapshot || quoteSnapshot.price == null) {
+    return {
+      stale: true,
+      message: "旧版分析缺少行情快照，已停止作为当前建议展示。请重新分析。",
+    };
+  }
+  if (
+    positionSnapshot
+    && (
+      Math.abs(positionSnapshot.cost - holding.cost) > 0.000001
+      || Math.abs(positionSnapshot.shares - holding.shares) > 0.000001
+    )
+  ) {
+    return {
+      stale: true,
+      message: "持仓数量或成本已在分析后变化，旧建议已停止展示。请重新分析。",
+    };
+  }
+  if (holding.price != null && quoteSnapshot.price !== 0) {
+    const change = Math.abs(holding.price - quoteSnapshot.price) / Math.abs(quoteSnapshot.price);
+    if (change >= 0.01) {
+      return {
+        stale: true,
+        message: `当前行情较分析快照变化 ${(change * 100).toFixed(2)}%，旧建议已停止展示。请重新分析。`,
+      };
+    }
+  }
+  return { stale: false, message: null };
+}
+
 function PositionEvidenceDetail({ detail }: { detail: PositionAnalysisDetail | undefined }) {
   if (!detail || Object.keys(detail).length === 0) return null;
   const sections = [
@@ -126,18 +162,21 @@ export function PositionDetail({
   const upsertQuote = useUpsertQuoteOverride();
   const deleteQuote = useDeleteQuoteOverride();
   const [editing, setEditing] = useState(false);
+  const [showStaleAnalysis, setShowStaleAnalysis] = useState(false);
   const [note, setNote] = useState<{ text: string; error: boolean } | null>(null);
   const [form, setForm] = useState({ shares: String(holding.shares), cost: String(holding.cost) });
   const [quote, setQuote] = useState({ price: "", changePct: "", note: "" });
 
   useEffect(() => {
     setEditing(false);
+    setShowStaleAnalysis(false);
     setForm({ shares: String(holding.shares), cost: String(holding.cost) });
     setQuote({ price: "", changePct: "", note: "" });
     setNote(null);
   }, [holding.id, holding.price]);
 
   const isManual = holding.quoteSource === "手动行情";
+  const analysisFreshness = positionAnalysisFreshness(holding);
 
   return (
     <GlassPanel as="aside" tone="data" className="detail-panel">
@@ -273,14 +312,40 @@ export function PositionDetail({
       )}
 
       <div className="detail-analysis">
-        <div className="detail-section-label">AI 分析 · {ANALYSIS_LABEL[holding.analysisStatus] ?? holding.analysisStatus}</div>
-        {holding.reason ? (
-          <p className="detail-analysis-text">{holding.reason}</p>
+        <div className="detail-section-label">
+          AI 分析 · {ANALYSIS_LABEL[holding.analysisStatus] ?? holding.analysisStatus}
+          {holding.analysisDetail?.quote_snapshot?.as_of && (
+            <span className="analysis-as-of"> · 行情时点 {holding.analysisDetail.quote_snapshot.as_of}</span>
+          )}
+        </div>
+        {analysisFreshness.stale ? (
+          <>
+            <div className="analysis-stale-banner" role="status">
+              <strong>分析已过期</strong>
+              <span>{analysisFreshness.message}</span>
+              <button type="button" onClick={() => setShowStaleAnalysis((value) => !value)}>
+                {showStaleAnalysis ? "收起旧分析" : "查看旧分析（仅供追溯）"}
+              </button>
+            </div>
+            {showStaleAnalysis && (
+              <div className="analysis-stale-content">
+                {holding.reason && <p className="detail-analysis-text">{holding.reason}</p>}
+                <PositionEvidenceDetail detail={holding.analysisDetail} />
+                {holding.risk && <p className="detail-analysis-risk">风险：{holding.risk}</p>}
+              </div>
+            )}
+          </>
         ) : (
-          <p className="muted">{holding.analysisStatus === "analyzing" ? "AI 正在整理投研要点…" : "暂无分析内容"}</p>
+          <>
+            {holding.reason ? (
+              <p className="detail-analysis-text">{holding.reason}</p>
+            ) : (
+              <p className="muted">{holding.analysisStatus === "analyzing" ? "AI 正在整理投研要点…" : "暂无分析内容"}</p>
+            )}
+            <PositionEvidenceDetail detail={holding.analysisDetail} />
+            {holding.risk && <p className="detail-analysis-risk">风险：{holding.risk}</p>}
+          </>
         )}
-        <PositionEvidenceDetail detail={holding.analysisDetail} />
-        {holding.risk && <p className="detail-analysis-risk">风险：{holding.risk}</p>}
       </div>
 
       <RelatedReports code={holding.code} />

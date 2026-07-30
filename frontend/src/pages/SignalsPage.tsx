@@ -1,8 +1,22 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ApiError } from "@/api/client";
 import { GlassButton, GlassPanel } from "@/components/LiquidGlass";
+import { BottomSheet } from "@/components/mobile/BottomSheet";
+import { LongPressMenu } from "@/components/mobile/LongPressMenu";
+import { PullToRefresh } from "@/components/mobile/PullToRefresh";
+import { Snackbar } from "@/components/mobile/Snackbar";
+import { SwipeActionRow } from "@/components/mobile/SwipeActionRow";
 import { useSession } from "@/hooks/useAuth";
-import { useSetSignalState, useSignals, useSyncSignals, type SignalView } from "@/hooks/useSignals";
+import { useInputCapabilities } from "@/hooks/useInputCapabilities";
+import {
+  useLatestSignalSync,
+  useRetrySignalSync,
+  useSetSignalState,
+  useSignals,
+  useSyncSignals,
+  type SignalSyncRun,
+  type SignalView,
+} from "@/hooks/useSignals";
 
 type Filter = "all" | "unread" | "confirmed" | "high";
 
@@ -16,15 +30,25 @@ function statusClass(v: string): string {
 
 /** 信号源页（方案 §8.2/§4.4/§11.5）：公共信号 + 个人确认/忽略态 + 飞书同步（超管）。 */
 export function SignalsPage() {
+  const session = useSession();
+  const isSuperadmin = session.data?.user?.role === "superadmin";
+  const capabilities = useInputCapabilities();
   const signals = useSignals();
   const setState = useSetSignalState();
   const sync = useSyncSignals();
-  const session = useSession();
+  const latestSync = useLatestSignalSync(isSuperadmin);
+  const retrySync = useRetrySignalSync();
   const [filter, setFilter] = useState<Filter>("all");
   const [page, setPage] = useState(1);
   const [note, setNote] = useState<{ text: string; error: boolean } | null>(null);
-  const isSuperadmin = session.data?.user?.role === "superadmin";
-
+  const [showBackfill, setShowBackfill] = useState(false);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [undo, setUndo] = useState<{
+    signalId: string;
+    previous: SignalView["state"];
+    message: string;
+  } | null>(null);
   const rows = signals.data ?? [];
   const stats = useMemo(
     () => ({
@@ -46,13 +70,45 @@ export function SignalsPage() {
   const pageCount = Math.max(1, Math.ceil(list.length / pageSize));
   const visible = list.slice((Math.min(page, pageCount) - 1) * pageSize, Math.min(page, pageCount) * pageSize);
 
-  const onSync = () => {
-    sync.mutate(undefined, {
+  const onSync = (mode: "incremental" | "backfill" = "incremental") => {
+    sync.mutate({
+      mode,
+      date_from: mode === "backfill" ? dateFrom : null,
+      date_to: mode === "backfill" ? dateTo : null,
+    }, {
       onSuccess: (r) =>
-        setNote({ text: r.skipped ? r.reason : `已同步 ${r.written} 条信号（${r.processed_dates.length} 天）`, error: false }),
+        {
+          setNote({ text: `飞书同步已入队：${r.run_id}`, error: false });
+          setShowBackfill(false);
+        },
       onError: (e) => setNote({ text: e instanceof ApiError ? `同步失败：${e.detail}` : "同步失败", error: true }),
     });
   };
+
+  const updateSignalState = (signal: SignalView, state: SignalView["state"]) => {
+    setState.mutate(
+      { id: signal.id, state },
+      {
+        onSuccess: () => {
+          setNote({ text: state === "ignored" ? "信号已忽略" : "信号状态已更新", error: false });
+          setUndo({
+            signalId: signal.id,
+            previous: signal.state,
+            message: state === "ignored" ? "已忽略信号" : "已确认信号",
+          });
+        },
+        onError: (error) => setNote({
+          text: error instanceof ApiError ? error.detail : "状态更新失败",
+          error: true,
+        }),
+      },
+    );
+  };
+
+  useEffect(() => {
+    const status = latestSync.data?.status;
+    if (status === "succeeded" || status === "partial") signals.refetch();
+  }, [latestSync.data?.id, latestSync.data?.status]);
 
   return (
     <div className="page fade-up">
@@ -62,14 +118,27 @@ export function SignalsPage() {
           <p className="muted">沉淀飞书社群、私域反馈与一线线索，确认与忽略状态仅对你生效</p>
         </div>
         {isSuperadmin && (
-          <GlassButton tone="primary" refraction onClick={onSync} disabled={sync.isPending}>
-            {sync.isPending ? "同步中…" : "同步飞书"}
-          </GlassButton>
+          <div className="task-actions">
+            <GlassButton tone="utility" onClick={() => setShowBackfill(true)}>
+              日期回补
+            </GlassButton>
+            <GlassButton tone="primary" refraction onClick={() => onSync()} disabled={sync.isPending}>
+              {sync.isPending ? "正在入队…" : "增量同步"}
+            </GlassButton>
+          </div>
         )}
       </header>
 
       {note && <div className={note.error ? "inline-note login-error" : "inline-note"} role={note.error ? "alert" : "status"}>{note.text}</div>}
+      {isSuperadmin && <SignalSyncStatus run={latestSync.data ?? null} loading={latestSync.isLoading} onRetry={() => latestSync.data && retrySync.mutate(latestSync.data.id)} retrying={retrySync.isPending} />}
 
+      <PullToRefresh
+        disabled={!capabilities.isMobile}
+        onRefresh={() => Promise.all([
+          signals.refetch(),
+          ...(isSuperadmin ? [latestSync.refetch()] : []),
+        ])}
+      >
       <section className="stat-row">
         <div className="stat-cell">
           <span className="stat-num">{signals.isSuccess ? stats.total : "暂无"}</span>
@@ -112,20 +181,19 @@ export function SignalsPage() {
 
       <div className="signal-list">
         {visible.map((s) => (
-          <SignalRow
+          <SwipeActionRow
             key={s.id}
-            signal={s}
-            pending={setState.isPending}
-            onSet={(state) =>
-              setState.mutate(
-                { id: s.id, state },
-                {
-                  onSuccess: () => setNote({ text: state === "ignored" ? "信号已忽略" : "信号状态已更新", error: false }),
-                  onError: (error) => setNote({ text: error instanceof ApiError ? error.detail : "状态更新失败", error: true }),
-                },
-              )
-            }
-          />
+            leadingLabel="确认"
+            trailingLabel="忽略"
+            onLeading={() => updateSignalState(s, "confirmed")}
+            onTrailing={() => updateSignalState(s, "ignored")}
+          >
+            <SignalRow
+              signal={s}
+              pending={setState.isPending}
+              onSet={(state) => updateSignalState(s, state)}
+            />
+          </SwipeActionRow>
         ))}
       </div>
       {pageCount > 1 && (
@@ -135,7 +203,94 @@ export function SignalsPage() {
           <GlassButton tone="utility" disabled={page >= pageCount} onClick={() => setPage((value) => value + 1)}>下一页</GlassButton>
         </nav>
       )}
+      </PullToRefresh>
+      <BottomSheet
+        open={showBackfill}
+        title="回补飞书信号"
+        onClose={() => setShowBackfill(false)}
+        height="compact"
+        className="signal-backfill-sheet"
+      >
+          <div className="signal-backfill-dialog">
+            <p className="muted">选择最多 90 天。Worker 会逐日比对 section 指纹，只处理发生变化的内容。</p>
+            <label>
+              开始日期
+              <input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
+            </label>
+            <label>
+              结束日期
+              <input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
+            </label>
+            <div className="task-actions">
+              <GlassButton tone="utility" onClick={() => setShowBackfill(false)}>取消</GlassButton>
+              <GlassButton tone="primary" disabled={!dateFrom || !dateTo || sync.isPending} onClick={() => onSync("backfill")}>
+                {sync.isPending ? "正在入队…" : "开始回补"}
+              </GlassButton>
+            </div>
+          </div>
+      </BottomSheet>
+      <Snackbar
+        open={undo !== null}
+        message={undo?.message ?? ""}
+        actionLabel="撤销"
+        onClose={() => setUndo(null)}
+        onAction={() => {
+          if (!undo) return;
+          setState.mutate(
+            { id: undo.signalId, state: undo.previous },
+            { onSettled: () => setUndo(null) },
+          );
+        }}
+      />
     </div>
+  );
+}
+
+const SYNC_STATUS: Record<SignalSyncRun["status"], string> = {
+  queued: "排队中",
+  running: "执行中",
+  succeeded: "已完成",
+  partial: "部分完成",
+  failed: "失败",
+  canceled: "已取消",
+};
+
+function SignalSyncStatus({
+  run,
+  loading,
+  onRetry,
+  retrying,
+}: {
+  run: SignalSyncRun | null;
+  loading: boolean;
+  onRetry: () => void;
+  retrying: boolean;
+}) {
+  if (loading) return <p className="muted">同步状态加载中…</p>;
+  if (!run) return <div className="inline-note">尚无飞书同步运行。增量同步会扫描全部 section 并跳过未变化内容。</div>;
+  const noChange = run.status === "succeeded" && run.changed_count === 0;
+  return (
+    <GlassPanel as="section" tone="data" className="signal-sync-status">
+      <div className="task-card-head">
+        <div>
+          <strong>最近同步 · {SYNC_STATUS[run.status]}</strong>
+          <p className="muted">
+            {noChange
+              ? `已扫描 ${run.scanned_count} 个 section，内容无变化`
+              : `扫描 ${run.scanned_count} · 变化 ${run.changed_count} · 新版本 ${run.written_count} · 失败 ${run.failed_count}`}
+          </p>
+        </div>
+        <span className={run.status === "failed" ? "badge badge-danger" : "badge badge-neutral"}>
+          {run.stage ?? "等待 Worker"}
+        </span>
+      </div>
+      {run.error_message && <p className="login-error">{run.error_message}</p>}
+      {(run.status === "partial" || run.status === "failed") && (
+        <GlassButton tone="secondary" size="sm" onClick={onRetry} disabled={retrying}>
+          {retrying ? "正在入队…" : "重试失败日期"}
+        </GlassButton>
+      )}
+    </GlassPanel>
   );
 }
 
@@ -174,14 +329,29 @@ function SignalRow({
             </span>
           ))}
         </div>
-        <div className="signal-src-line muted">
-          <span>{signal.source_title || "飞书知识源"}</span>
-          {signal.source_url && (
-            <a href={signal.source_url} target="_blank" rel="noreferrer" className="signal-src-link">
-              打开来源
-            </a>
+        <LongPressMenu
+          title="信号来源"
+          trigger={(
+            <div className="signal-src-line muted">
+              <span>{signal.source_title || "飞书知识源"}</span>
+              {signal.source_url && (
+                <a href={signal.source_url} target="_blank" rel="noreferrer" className="signal-src-link">
+                  打开来源
+                </a>
+              )}
+            </div>
           )}
-        </div>
+        >
+          <div className="signal-source-sheet">
+            <strong>{signal.source_title || "飞书知识源"}</strong>
+            <p className="muted">{signal.date} · 版本 {signal.version_no}</p>
+            {signal.source_url && (
+              <a href={signal.source_url} target="_blank" rel="noreferrer" className="glass-button glass-button-utility">
+                打开原始来源
+              </a>
+            )}
+          </div>
+        </LongPressMenu>
       </div>
       <div className="signal-actions">
         <GlassButton tone="utility" size="sm" onClick={() => onSet("confirmed")} disabled={pending || signal.state === "confirmed"}>

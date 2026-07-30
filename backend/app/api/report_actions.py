@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 from app.core.auth import get_current_user, require_csrf, require_superadmin
 from app.db import get_session
 from app.models import Report, User, UserReportState
+from app.repositories.scoping import scoped_get
 from app.schemas.entities import OkResponse
 
 router = APIRouter(prefix="/api/v1", tags=["reports"])
@@ -29,8 +30,8 @@ def _get_or_create_state(session: Session, user_id: uuid.UUID, report_id: str) -
 
 
 def _assert_visible(session: Session, report_id: str, user: User) -> Report:
-    report = session.get(Report, report_id)
-    if report is None or (report.visibility != "shared" and report.owner_id != user.id):
+    report = scoped_get(session, Report, report_id, user.id, access="visible")
+    if report is None:
         raise HTTPException(status_code=404, detail="Not Found")
     return report
 

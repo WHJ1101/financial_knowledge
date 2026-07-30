@@ -18,7 +18,7 @@ from app.core.security import hash_password
 from app.db import SessionLocal
 from app.models import Log, Report, User
 from app.services import report_store
-from app.services.report_lifecycle import create_report, import_report
+from app.services.report_lifecycle import create_daily_briefing_report, create_report, import_report
 
 
 @pytest.fixture
@@ -120,11 +120,41 @@ def test_import_report_infers_type_and_wraps_html(tmp_data_dir, owner):
             },
         )
         rid, file, rtype = report.id, report.file, report.type
+        metadata = report.meta
     assert rtype == "policy"  # inferType 命中「工信部」
     html = report_store.read_report_file(file)
     assert html is not None
     assert "正文明文内容" in html
+    assert "Content-Security-Policy" in html
+    assert metadata["import_source"] == "chat"
+    assert metadata["import_visibility"] == "private"
+    assert metadata["imported_at"]
+    assert metadata["sanitization"] == {"policy": "report-html-v1", "stored": "sanitized"}
     with SessionLocal() as s:
         s.execute(delete(Log).where(Log.type == "report_import"))
         s.execute(delete(Report).where(Report.id == rid))
+        s.commit()
+
+
+def test_daily_briefing_is_shared_and_rerun_repairs_visibility(tmp_data_dir, owner):
+    now = datetime(2040, 1, 2, 8, tzinfo=UTC)
+    brief = {
+        "summary": "日更摘要",
+        "highlights": ["要点"],
+        "tags": ["日更"],
+        "dataQuality": [],
+    }
+    with SessionLocal() as s:
+        user = s.get(User, owner.id)
+        first = create_daily_briefing_report(s, user, brief, now, source="scheduled")
+        report_id = first.id
+        assert first.visibility == "shared"
+        first.visibility = "private"
+        s.commit()
+
+        second = create_daily_briefing_report(s, user, brief, now, source="scheduled")
+        assert second.id == report_id
+        assert second.visibility == "shared"
+
+        s.execute(delete(Log).where(Log.type == "daily_market_briefing"))
         s.commit()

@@ -17,12 +17,12 @@ from sqlalchemy import delete
 from app.core.security import hash_password
 from app.db import SessionLocal
 from app.main import app
-from app.models import DailyBar, Instrument, Position, User, UserSession
+from app.models import DailyBar, Instrument, InstrumentProviderRef, Position, User, UserSession
 from app.services.portfolio_history import Holding, build_portfolio_series, resolve_bar_secid
 
 
 def _inst(asset_class: str, market: str, symbol: str, provider_ids: dict | None = None) -> Instrument:
-    return Instrument(
+    instrument = Instrument(
         id=uuid.uuid4(),
         asset_class=asset_class,
         exchange="SZSE",
@@ -30,10 +30,23 @@ def _inst(asset_class: str, market: str, symbol: str, provider_ids: dict | None 
         display_code=symbol,
         name="x",
         market=market,
-        provider_ids=provider_ids or {},
         created_at=datetime.now(UTC),
         updated_at=datetime.now(UTC),
     )
+    instrument.provider_refs = [
+        InstrumentProviderRef(
+            id=uuid.uuid4(),
+            instrument_id=instrument.id,
+            provider=provider,
+            provider_key=provider_key,
+            upstream_family="eastmoney",
+            ref_metadata={},
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
+        )
+        for provider, provider_key in (provider_ids or {}).items()
+    ]
+    return instrument
 
 
 def test_build_series_members_enter_over_time():
@@ -77,7 +90,7 @@ def test_resolve_bar_secid():
     assert resolve_bar_secid(_inst("equity", "创业板", "301308")) == ("0.301308", "exchange")
     # 沪市 6 开头 → 1.
     assert resolve_bar_secid(_inst("equity", "沪市主板", "603986")) == ("1.603986", "exchange")
-    # provider_ids 优先
+    # Provider Ref 优先
     assert resolve_bar_secid(_inst("equity", "A股", "512480", {"eastmoney": "1.512480"})) == ("1.512480", "exchange")
     # 港股/美股 skip
     assert resolve_bar_secid(_inst("hk_stock", "港股", "00700")) is None
@@ -114,7 +127,6 @@ def member_with_position():
                 display_code=code,
                 name="测试",
                 market="创业板",
-                provider_ids={},
                 created_at=datetime.now(UTC),
                 updated_at=datetime.now(UTC),
             )

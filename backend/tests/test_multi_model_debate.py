@@ -16,10 +16,10 @@ from typing import Any
 import pytest
 from sqlalchemy import delete
 
+from app.agents.decision.role_registry import DEBATE_ROLE_KEYS
 from app.core.crypto import encrypt_api_key
 from app.core.security import hash_password
 from app.db import SessionLocal
-from app.llm.context import DEBATE_AGENT_ROLES
 from app.models import Debate, Instrument, LlmAgentRoute, LlmProfile, User
 from app.services.debate_runner import execute_debate
 
@@ -53,7 +53,6 @@ def fully_routed_debate() -> tuple[str, dict[str, str]]:
                 display_code="MMTEST",
                 name="多模型路由测试",
                 market="创业板",
-                provider_ids={},
                 source="test",
                 active=True,
                 created_at=now,
@@ -63,7 +62,7 @@ def fully_routed_debate() -> tuple[str, dict[str, str]]:
         # 这些模型没有 ORM relationship，先显式落主表，再写带外键的 Profile。
         session.flush()
         profiles: dict[str, LlmProfile] = {}
-        for index, role in enumerate(DEBATE_AGENT_ROLES):
+        for index, role in enumerate(DEBATE_ROLE_KEYS):
             api_key = f"sk-test-{role}-credential"
             expected_keys[role] = api_key
             profile = LlmProfile(
@@ -94,7 +93,7 @@ def fully_routed_debate() -> tuple[str, dict[str, str]]:
                     created_at=now,
                     updated_at=now,
                 )
-                for index, role in enumerate(DEBATE_AGENT_ROLES)
+                for index, role in enumerate(DEBATE_ROLE_KEYS)
             ]
         )
         session.add(
@@ -184,9 +183,9 @@ def test_eight_agents_use_their_own_profiles_keys_and_models(
         assert debate.status == "done"
         assert debate.report is not None
         assignments = debate.model_assignments
-        assert set(assignments) == set(DEBATE_AGENT_ROLES)
+        assert set(assignments) == set(DEBATE_ROLE_KEYS)
         assert len({assignment["profile_id"] for assignment in assignments.values()}) == 8
-        for index, role in enumerate(DEBATE_AGENT_ROLES):
+        for index, role in enumerate(DEBATE_ROLE_KEYS):
             assert assignments[role]["model"] == f"model-{role}"
             assert assignments[role]["profile_name"] == f"{role}-profile"
             assert assignments[role]["temperature"] == pytest.approx(index / 10)

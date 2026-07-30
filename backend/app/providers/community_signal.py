@@ -12,6 +12,8 @@ import re
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+from app.llm.json import DEFAULT_JSON_PARSER, JsonParser
+
 MAX_SIGNALS = 20
 TTL_DAYS = 14
 
@@ -277,10 +279,10 @@ def extract_community_signals(
     source_url: str,
     provider: str = "feishu",
     now: datetime | None = None,
+    *,
+    json_parser: JsonParser = DEFAULT_JSON_PARSER,
 ) -> dict[str, Any]:
     """单日社群文本抽取信号（chat 可选；None/失败/解析错误降级规则抽取）。"""
-    from app.services.research import parse_llm_json
-
     now = now or datetime.now(UTC)
     source_text = _clean(day_text)
     if not source_text:
@@ -288,7 +290,7 @@ def extract_community_signals(
     if chat is not None:
         try:
             system, user = build_signal_llm_payload(day_text, source_title, source_url, date, now.isoformat())
-            parsed = parse_llm_json(chat(system, user))
+            parsed = json_parser.parse_object(chat(system, user))
             raw = parsed.get("items") or parsed.get("signals") or []
             signals = normalize_signals(
                 raw if isinstance(raw, list) else [], date, source_title, source_url, provider, now

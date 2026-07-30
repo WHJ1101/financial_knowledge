@@ -13,10 +13,15 @@ import base64
 import hashlib
 import hmac
 import json
+import os
 import time
+from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 import httpx
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 FEISHU_BASE = "https://open.feishu.cn"
 _TIMEOUT = 10.0
@@ -25,23 +30,47 @@ _REFRESH_BUFFER = 300
 
 # 进程级 token 缓存 {app_id: (token, expires_at_ms)}
 _token_cache: dict[str, tuple[str, float]] = {}
+_REPOSITORY_ENV_FILE = Path(__file__).resolve().parents[3] / ".env"
+
+
+class _FeishuSettings(BaseSettings):
+    """Read process variables in production and the repository .env in local development."""
+
+    model_config = SettingsConfigDict(env_prefix="", extra="ignore")
+
+    app_id: str = Field(default="", validation_alias="FEISHU_APP_ID")
+    app_secret: str = Field(default="", validation_alias="FEISHU_APP_SECRET")
+    webhook_url: str = Field(default="", validation_alias="FEISHU_WEBHOOK_URL")
+    webhook_secret: str = Field(default="", validation_alias="FEISHU_WEBHOOK_SECRET")
+    push_chat_id: str = Field(default="", validation_alias="FEISHU_PUSH_CHAT_ID")
+    push_open_id: str = Field(default="", validation_alias="FEISHU_PUSH_OPEN_ID")
+    push_user_id: str = Field(default="", validation_alias="FEISHU_PUSH_USER_ID")
+    push_email: str = Field(default="", validation_alias="FEISHU_PUSH_EMAIL")
+    signal_wiki_url: str = Field(default="", validation_alias="FEISHU_SIGNAL_WIKI_URL")
+    signal_url: str = Field(default="", validation_alias="FEISHU_SIGNAL_URL")
 
 
 def _feishu_env() -> dict[str, str]:
-    """飞书相关环境（从 pydantic settings 的 extra 读，未配为空串）。"""
-    import os
+    """飞书相关配置；测试隔离真实 .env，生产优先使用容器环境。"""
+    env_file = None if os.environ.get("FINANCE_KNOWLEDGE_ENVIRONMENT") == "test" else _REPOSITORY_ENV_FILE
+    settings = _FeishuSettings(_env_file=env_file)
+    return {
+        "FEISHU_APP_ID": settings.app_id,
+        "FEISHU_APP_SECRET": settings.app_secret,
+        "FEISHU_WEBHOOK_URL": settings.webhook_url,
+        "FEISHU_WEBHOOK_SECRET": settings.webhook_secret,
+        "FEISHU_PUSH_CHAT_ID": settings.push_chat_id,
+        "FEISHU_PUSH_OPEN_ID": settings.push_open_id,
+        "FEISHU_PUSH_USER_ID": settings.push_user_id,
+        "FEISHU_PUSH_EMAIL": settings.push_email,
+        "FEISHU_SIGNAL_WIKI_URL": settings.signal_wiki_url,
+        "FEISHU_SIGNAL_URL": settings.signal_url,
+    }
 
-    keys = [
-        "FEISHU_APP_ID",
-        "FEISHU_APP_SECRET",
-        "FEISHU_WEBHOOK_URL",
-        "FEISHU_WEBHOOK_SECRET",
-        "FEISHU_PUSH_CHAT_ID",
-        "FEISHU_PUSH_OPEN_ID",
-        "FEISHU_PUSH_USER_ID",
-        "FEISHU_PUSH_EMAIL",
-    ]
-    return {k: os.environ.get(k, "") for k in keys}
+
+def signal_source_url() -> str:
+    env = _feishu_env()
+    return env["FEISHU_SIGNAL_WIKI_URL"] or env["FEISHU_SIGNAL_URL"]
 
 
 def is_feishu_configured() -> bool:
@@ -69,6 +98,26 @@ def _resolve_receiver() -> tuple[str, str] | None:
 
 def is_push_configured() -> bool:
     return is_feishu_configured() and _resolve_receiver() is not None
+
+
+def integration_status() -> dict[str, Any]:
+    """只返回配置完整度与脱敏目标提示。"""
+    env = _feishu_env()
+    receiver = _resolve_receiver()
+    if env["FEISHU_WEBHOOK_URL"]:
+        host = urlsplit(env["FEISHU_WEBHOOK_URL"]).netloc
+        target_hint = f"webhook@{host}" if host else "webhook"
+    elif receiver:
+        target_hint = f"{receiver[0]}:…{receiver[1][-4:]}"
+    else:
+        target_hint = None
+    return {
+        "credentials_configured": is_feishu_configured(),
+        "webhook_configured": is_webhook_configured(),
+        "app_bot_configured": is_push_configured(),
+        "channel": pick_channel(),
+        "target_hint": target_hint,
+    }
 
 
 def reset_token_cache() -> None:
@@ -245,34 +294,6 @@ def build_crossing_card(crossings: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-async def notify_pressure_crossings(themes: list[dict[str, Any]]) -> dict[str, Any]:
-    """跨阈值告警推送（无跨阈值/未配置则跳过；异常吞掉）。"""
-    crossings = [t for t in themes if t.get("crossing")]
-    if not crossings:
-        return {"skipped": True, "reason": "无跨阈值主题"}
-    if pick_channel() is None:
-        return {"skipped": True, "reason": "未配置飞书推送"}
-    try:
-        await send(card=build_crossing_card(crossings))
-        return {"ok": True, "count": len(crossings)}
-    except Exception as e:  # noqa: BLE001 —— 推送失败不阻断
-        return {"ok": False, "error": str(e)[:200]}
-
-
-async def notify_daily_briefing(themes: list[dict[str, Any]]) -> dict[str, Any]:
-    """每日压力摘要推送（无有效数据/未配置则跳过；异常吞掉）。"""
-    valid = [t for t in themes if t.get("composite") is not None]
-    if not valid:
-        return {"skipped": True, "reason": "无有效压力数据"}
-    if pick_channel() is None:
-        return {"skipped": True, "reason": "未配置飞书推送"}
-    try:
-        await send(card=build_daily_card(valid))
-        return {"ok": True, "count": len(valid)}
-    except Exception as e:  # noqa: BLE001
-        return {"ok": False, "error": str(e)[:200]}
-
-
 # ---- 社群信号源文档读取（移植 feishuSource.js：wiki/docx → 原文 → 按天切分）----
 
 import re  # noqa: E402
@@ -372,3 +393,45 @@ async def fetch_signal_source(input_url: str) -> dict[str, Any]:
 
     fallback = _dt.datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y-%m-%d")
     return {"title": title, "days": build_signal_days(content, title, fallback)}
+
+
+async def fetch_signal_source_metadata(input_url: str) -> dict[str, Any]:
+    """只验证资源解析和读取权限；不读取正文、不触发抽取。"""
+    resource = parse_feishu_resource(input_url)
+    async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
+        token = await _get_tenant_token(client)
+        headers = {"authorization": f"Bearer {token}"}
+        obj_type = resource["kind"]
+        obj_token = resource["token"]
+        title = "飞书社群信号"
+        if resource["kind"] == "wiki":
+            response = await client.get(
+                f"{FEISHU_BASE}/open-apis/wiki/v2/spaces/get_node",
+                params={"token": resource["token"]},
+                headers=headers,
+            )
+            response.raise_for_status()
+            data = response.json()
+            if data.get("code", 0) != 0:
+                raise RuntimeError(f"飞书来源检查失败: {data.get('msg')}")
+            node = (data.get("data") or {}).get("node") or {}
+            obj_type = str(node.get("obj_type") or "docx")
+            obj_token = str(node.get("obj_token") or "")
+            title = str(node.get("title") or title)
+        if obj_type != "docx" or not obj_token:
+            raise RuntimeError(f"暂不支持读取飞书对象类型：{obj_type}")
+        response = await client.get(
+            f"{FEISHU_BASE}/open-apis/docx/v1/documents/{obj_token}",
+            headers=headers,
+        )
+        response.raise_for_status()
+        data = response.json()
+        if data.get("code", 0) != 0:
+            raise RuntimeError(f"飞书文档权限检查失败: {data.get('msg')}")
+        document = (data.get("data") or {}).get("document") or {}
+        return {
+            "ok": True,
+            "kind": "docx",
+            "title": str(document.get("title") or title),
+            "revision_id": str(document.get("revision_id") or ""),
+        }

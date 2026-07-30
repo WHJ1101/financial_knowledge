@@ -13,15 +13,17 @@ from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field, field_validator
-from sqlalchemy import delete, select, update
+from sqlalchemy import delete, update
 from sqlalchemy.orm import Session
 
+from app.agents.decision.role_registry import DEBATE_ROLE_KEYS
 from app.config import get_settings
 from app.core.auth import get_current_user, require_csrf
 from app.core.crypto import decrypt_api_key, encrypt_api_key, mask_api_key
 from app.db import get_session
-from app.llm.context import DEBATE_AGENT_ROLES, LlmEndpointError, validate_endpoint
+from app.llm.context import LlmEndpointError, validate_endpoint
 from app.models import LlmAgentRoute, LlmProfile, User
+from app.repositories.scoping import scoped_get, scoped_select
 
 router = APIRouter(prefix="/api/v1", tags=["settings"])
 
@@ -103,9 +105,7 @@ def _profile_view(profile: LlmProfile) -> LlmProfileView:
 
 
 def _owned_profile(session: Session, user_id: uuid.UUID, profile_id: uuid.UUID) -> LlmProfile:
-    profile = session.execute(
-        select(LlmProfile).where(LlmProfile.id == profile_id, LlmProfile.user_id == user_id)
-    ).scalar_one_or_none()
+    profile = scoped_get(session, LlmProfile, profile_id, user_id)
     if profile is None:
         raise HTTPException(status_code=404, detail="llm_profile_not_found")
     return profile
@@ -135,13 +135,13 @@ def get_llm_settings(
 ) -> LlmSettingsView:
     profiles = list(
         session.execute(
-            select(LlmProfile).where(LlmProfile.user_id == user.id).order_by(LlmProfile.created_at, LlmProfile.name)
+            scoped_select(LlmProfile, user.id).order_by(LlmProfile.created_at, LlmProfile.name)
         ).scalars()
     )
     routes = list(
         session.execute(
-            select(LlmAgentRoute)
-            .where(LlmAgentRoute.user_id == user.id, LlmAgentRoute.purpose == "debate")
+            scoped_select(LlmAgentRoute, user.id)
+            .where(LlmAgentRoute.purpose == "debate")
             .order_by(LlmAgentRoute.role)
         ).scalars()
     )
@@ -150,7 +150,7 @@ def get_llm_settings(
         routes=[
             LlmRouteView(role=item.role, profile_id=item.profile_id, temperature=item.temperature) for item in routes
         ],
-        available_roles=list(DEBATE_AGENT_ROLES),
+        available_roles=list(DEBATE_ROLE_KEYS),
     )
 
 
@@ -167,11 +167,11 @@ def create_llm_profile(
 ) -> LlmProfileView:
     _validate_url(body.api_url)
     duplicate = session.execute(
-        select(LlmProfile.id).where(LlmProfile.user_id == user.id, LlmProfile.name == body.name.strip())
+        scoped_select(LlmProfile, user.id).where(LlmProfile.name == body.name.strip())
     ).first()
     if duplicate:
         raise HTTPException(status_code=409, detail="llm_profile_name_exists")
-    has_profile = session.execute(select(LlmProfile.id).where(LlmProfile.user_id == user.id)).first() is not None
+    has_profile = session.execute(scoped_select(LlmProfile, user.id)).first() is not None
     is_default = body.is_default or not has_profile
     if is_default:
         # PostgreSQL 的部分唯一索引要求任一时刻每个用户最多只有一个默认 Profile。
@@ -214,9 +214,7 @@ def update_llm_profile(
     if body.name is not None:
         name = body.name.strip()
         duplicate = session.execute(
-            select(LlmProfile.id).where(
-                LlmProfile.user_id == user.id, LlmProfile.name == name, LlmProfile.id != profile.id
-            )
+            scoped_select(LlmProfile, user.id).where(LlmProfile.name == name, LlmProfile.id != profile.id)
         ).first()
         if duplicate:
             raise HTTPException(status_code=409, detail="llm_profile_name_exists")
@@ -231,7 +229,9 @@ def update_llm_profile(
             raise HTTPException(status_code=409, detail="default_profile_must_be_enabled")
         if (
             not body.enabled
-            and session.execute(select(LlmAgentRoute.id).where(LlmAgentRoute.profile_id == profile.id)).first()
+            and session.execute(
+                scoped_select(LlmAgentRoute, user.id).where(LlmAgentRoute.profile_id == profile.id)
+            ).first()
         ):
             raise HTTPException(status_code=409, detail="llm_profile_in_use")
         profile.enabled = body.enabled
@@ -254,8 +254,8 @@ def delete_llm_profile(
     session.flush()
     if was_default:
         replacement = session.execute(
-            select(LlmProfile)
-            .where(LlmProfile.user_id == user.id, LlmProfile.enabled.is_(True))
+            scoped_select(LlmProfile, user.id)
+            .where(LlmProfile.enabled.is_(True))
             .order_by(LlmProfile.created_at)
             .limit(1)
         ).scalar_one_or_none()
@@ -277,7 +277,7 @@ def put_llm_routes(
 ) -> list[LlmRouteView]:
     seen: set[str] = set()
     for item in body:
-        if item.role not in DEBATE_AGENT_ROLES:
+        if item.role not in DEBATE_ROLE_KEYS:
             raise HTTPException(status_code=400, detail=f"invalid_agent_role:{item.role}")
         if item.role in seen:
             raise HTTPException(status_code=400, detail=f"duplicate_agent_role:{item.role}")

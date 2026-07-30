@@ -31,7 +31,6 @@ def test_repair_debate_queue_removes_orphans_and_links_namespaced_job() -> None:
         display_code="600000",
         name="队列测试",
         market="沪市主板",
-        provider_ids={},
         source="test",
         active=True,
         created_at=now,

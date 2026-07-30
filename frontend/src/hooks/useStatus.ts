@@ -15,6 +15,10 @@ export interface StatusView {
   llm: { configured: boolean };
   market: { ready: boolean };
   settings: { automationEnabled: boolean; dailyScheduleTime: string | null; llmConfigured: boolean };
+  operations?: {
+    latest_run: { id: string; status: string; kind: string } | null;
+    sources: Array<{ source_key: string; health: string }>;
+  };
 }
 
 export function useStatus() {
@@ -26,6 +30,12 @@ export interface ReportCreated {
   title: string;
   type: string;
   summary: string | null;
+}
+
+export interface AutomationRunCreated {
+  run_id: string;
+  status: "queued";
+  poll_url: string;
 }
 
 /** 发起主题研究（BYOK 未配则后端降级证据草稿）。 */
@@ -40,14 +50,13 @@ export function useCreateResearch() {
   });
 }
 
-/** 执行每日市场简报（超管）。 */
+/** 日更入队（超管）；执行状态由任务页轮询运行台账。 */
 export function useRunDaily() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: () => api.post<ReportCreated>("/jobs/daily"),
+    mutationFn: () => api.post<AutomationRunCreated>("/jobs/daily"),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["reports"] });
-      qc.invalidateQueries({ queryKey: ["status"] });
+      qc.invalidateQueries({ queryKey: ["automation-runs"] });
     },
   });
 }

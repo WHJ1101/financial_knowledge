@@ -70,6 +70,10 @@ def pytest_sessionstart(session: pytest.Session) -> None:
         from app.models import Base
         from app.queue import ensure_queue_schema
 
+        # DB-F removed the legacy decisions ORM/table. Clear a stale pre-DB-F
+        # test database before metadata-driven teardown no longer knows it.
+        with engine.begin() as connection:
+            connection.execute(text("DROP TABLE IF EXISTS decisions CASCADE"))
         Base.metadata.drop_all(engine)
         Base.metadata.create_all(engine)
         asyncio.run(ensure_queue_schema())

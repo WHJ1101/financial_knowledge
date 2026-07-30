@@ -1,6 +1,6 @@
 """行情 API（方案 §3.4/§11.1）。
 
-公共只读（登录成员）：/market/snapshot /market/indices /search /quote/{secid} /quotes/batch。
+公共只读（登录成员）：/market/snapshot /market/indices /quote/{secid} /quotes/batch。
 写手动行情覆盖限超管：POST/DELETE /quote-overrides（§3.4：手动行情属系统数据）。
 写操作过 CSRF；覆盖增删写审计日志（append_log）。
 """
@@ -9,14 +9,13 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user, require_csrf, require_superadmin
 from app.db import get_session
 from app.models import User
-from app.providers.eastmoney import search_stocks
 from app.services.logs import append_log
 from app.services.market import (
     delete_quote_override,
@@ -63,11 +62,6 @@ def market_session_status(_: User = Depends(get_current_user)) -> dict[str, Any]
 @router.get("/market/indices")
 def market_indices(_: User = Depends(get_current_user), session: Session = Depends(get_session)) -> dict[str, Any]:
     return {"indices": get_indices(session)}
-
-
-@router.get("/search")
-async def search(q: str = Query(min_length=1), _: User = Depends(get_current_user)) -> dict[str, Any]:
-    return {"results": await search_stocks(q)}
 
 
 @router.get("/quote/{secid:path}")

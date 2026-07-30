@@ -287,6 +287,12 @@ def test_report_content_visibility(tmp_data_dir, member):
     resp = client.get(f"/api/v1/reports/{rid}/content")
     assert resp.status_code == 200
     assert "报告正文" in resp.text
+    assert resp.headers["content-security-policy"].startswith("default-src 'none'")
+    assert "script-src 'none'" in resp.headers["content-security-policy"]
+    assert "form-action 'none'" in resp.headers["content-security-policy"]
+    assert resp.headers["x-content-type-options"] == "nosniff"
+    assert resp.headers["referrer-policy"] == "no-referrer"
+    assert resp.headers["cache-control"] == "private, no-store"
     # 他人访问私有内容 → 404
     other_name, other_uid = _mk_user()
     other = _login(other_name)

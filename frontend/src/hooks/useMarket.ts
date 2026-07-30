@@ -207,12 +207,25 @@ export interface SearchResult {
   name: string;
   market: string;
   secid: string;
+  candidateToken?: string;
 }
 
 export async function searchStocks(q: string): Promise<SearchResult[]> {
   if (!q.trim()) return [];
-  const r = await api.get<{ results: SearchResult[] }>(`/search?q=${encodeURIComponent(q)}`);
-  return r.results;
+  const r = await api.get<{ results: Array<{
+    canonical_symbol: string;
+    display_code: string;
+    name: string;
+    market: string;
+    candidate_token: string;
+  }> }>(`/instruments/search?q=${encodeURIComponent(q)}`);
+  return r.results.map((item) => ({
+    code: item.display_code || item.canonical_symbol,
+    name: item.name,
+    market: item.market,
+    secid: item.candidate_token,
+    candidateToken: item.candidate_token,
+  }));
 }
 
 export interface AssetReportLink {

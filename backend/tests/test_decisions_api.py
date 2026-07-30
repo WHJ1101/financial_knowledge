@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import delete, text
+from sqlalchemy import delete, select, text
 from ulid import ULID
 
 from app.core.crypto import encrypt_api_key
@@ -21,6 +21,7 @@ from app.models import (
     Position,
     User,
     UserSession,
+    WatchlistItem,
 )
 
 
@@ -64,7 +65,6 @@ def user_with_position():
             display_code=f"SZ{sym}",
             name="测试",
             market="创业板",
-            provider_ids={},
             created_at=datetime.now(UTC),
             updated_at=datetime.now(UTC),
         )
@@ -215,11 +215,11 @@ def test_failed_debate_can_resume_from_same_graph_thread(user_with_position):
         assert isinstance(resumed.queue_job_id, int)
 
 
-def test_instrument_not_in_portfolio_400(user_with_position):
+def test_arbitrary_catalog_instrument_can_start_debate_without_watchlist_write(user_with_position):
     username, uid, _ = user_with_position
     _set_byok(uid)
     client = _login(username)
-    # 一个不在持仓/自选的 instrument
+    # 一个不在持仓/自选的 Catalog instrument
     other_id = uuid.uuid4()
     with SessionLocal() as s:
         s.add(
@@ -231,7 +231,6 @@ def test_instrument_not_in_portfolio_400(user_with_position):
                 display_code="600000",
                 name="别的",
                 market="沪市主板",
-                provider_ids={},
                 created_at=datetime.now(UTC),
                 updated_at=datetime.now(UTC),
             )
@@ -240,7 +239,22 @@ def test_instrument_not_in_portfolio_400(user_with_position):
     resp = client.post(
         "/api/v1/debates", json={"instrument_id": str(other_id), "horizon": "swing"}, headers=_csrf(client)
     )
-    assert resp.status_code == 400
+    assert resp.status_code == 201, resp.text
     with SessionLocal() as s:
+        debate_id = resp.json()["id"]
+        debate = s.get(Debate, debate_id)
+        assert debate is not None
+        assert (
+            s.execute(
+                select(WatchlistItem.id).where(
+                    WatchlistItem.owner_id == uid,
+                    WatchlistItem.instrument_id == other_id,
+                )
+            ).first()
+            is None
+        )
+        if debate.queue_job_id is not None:
+            s.execute(text("DELETE FROM procrastinate_jobs WHERE id=:id"), {"id": debate.queue_job_id})
+        s.execute(delete(Debate).where(Debate.id == debate_id))
         s.execute(delete(Instrument).where(Instrument.id == other_id))
         s.commit()

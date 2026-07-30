@@ -2,6 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ApiError } from "@/api/client";
 import { GlassActionLink, GlassButton, GlassPanel } from "@/components/LiquidGlass";
+import { BottomSheet } from "@/components/mobile/BottomSheet";
+import { PullToRefresh } from "@/components/mobile/PullToRefresh";
+import { useInputCapabilities } from "@/hooks/useInputCapabilities";
 import {
   useDeleteReport,
   useMarkRead,
@@ -26,6 +29,7 @@ const TYPE_LABELS: { value: string; label: string }[] = [
 
 /** 知识库页（方案 §8.2/§11.F）：主题/来源/状态筛选 + 搜索 + 标星/归档/删除 + 导出。 */
 export function KnowledgePage() {
+  const capabilities = useInputCapabilities();
   const reports = useReports();
   const [params, setParams] = useSearchParams();
   const filter = (params.get("filter") || "all") as Filter;
@@ -43,6 +47,9 @@ export function KnowledgePage() {
   const actionPending = markRead.isPending || star.isPending || archive.isPending || del.isPending || visibility.isPending;
   const [actionNote, setActionNote] = useState<ActionNote | null>(null);
   const [queryInput, setQueryInput] = useState(q);
+  const [showFilters, setShowFilters] = useState(false);
+  const [mobileVisibleCount, setMobileVisibleCount] = useState(18);
+  const loadMoreRef = useRef<HTMLButtonElement>(null);
   const composingQuery = useRef(false);
 
   const actionError = (error: unknown, fallback: string) =>
@@ -83,7 +90,24 @@ export function KnowledgePage() {
     return rows;
   }, [reports.data, filter, filterDate, type, origin, q]);
   const pageCount = Math.max(1, Math.ceil(list.length / pageSize));
-  const visible = list.slice((Math.min(page, pageCount) - 1) * pageSize, Math.min(page, pageCount) * pageSize);
+  const visible = capabilities.isMobile
+    ? list.slice(0, mobileVisibleCount)
+    : list.slice((Math.min(page, pageCount) - 1) * pageSize, Math.min(page, pageCount) * pageSize);
+
+  useEffect(() => {
+    setMobileVisibleCount(18);
+  }, [filter, filterDate, origin, q, type]);
+
+  useEffect(() => {
+    if (!capabilities.isMobile || !loadMoreRef.current || mobileVisibleCount >= list.length) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        setMobileVisibleCount((count) => Math.min(list.length, count + 18));
+      }
+    }, { rootMargin: "180px" });
+    observer.observe(loadMoreRef.current);
+    return () => observer.disconnect();
+  }, [capabilities.isMobile, list.length, mobileVisibleCount]);
 
   useEffect(() => {
     if (page <= pageCount) return;
@@ -100,6 +124,7 @@ export function KnowledgePage() {
           <p className="muted">共享研报与你的私有报告，标星、归档与已读状态仅对你生效</p>
         </div>
         <div className="knowledge-export">
+          {capabilities.isMobile && <GlassButton tone="utility" onClick={() => setShowFilters(true)}>筛选</GlassButton>}
           <GlassActionLink tone="utility" href="/api/v1/export/reports.csv">导出 CSV</GlassActionLink>
           <GlassActionLink tone="utility" href="/api/v1/export/reports.json">导出 JSON</GlassActionLink>
         </div>
@@ -126,7 +151,7 @@ export function KnowledgePage() {
             }}
           />
         </label>
-        <div className="knowledge-selects">
+        <div className={`knowledge-selects ${capabilities.isMobile ? "mobile-hidden" : ""}`}>
           <select aria-label="报告类型" value={type} onChange={(e) => setFilterParam("type", e.target.value)}>
             {TYPE_LABELS.map((t) => (
               <option key={t.value} value={t.value}>
@@ -142,7 +167,8 @@ export function KnowledgePage() {
         </div>
       </div>
 
-      <div className="tab-bar inline" role="tablist" aria-label="报告状态">
+      <PullToRefresh disabled={!capabilities.isMobile} onRefresh={() => reports.refetch()}>
+      <div className="tab-bar inline knowledge-status-tabs" role="tablist" aria-label="报告状态">
         {(
           [
             ["all", "全部"],
@@ -200,13 +226,42 @@ export function KnowledgePage() {
           />
         ))}
       </div>
-      {pageCount > 1 && (
+      {capabilities.isMobile && mobileVisibleCount < list.length && (
+        <button
+          ref={loadMoreRef}
+          className="mobile-load-more"
+          onClick={() => setMobileVisibleCount((count) => Math.min(list.length, count + 18))}
+        >
+          上拉或点击加载更多
+        </button>
+      )}
+      {!capabilities.isMobile && pageCount > 1 && (
         <nav className="pagination" aria-label="报告分页">
           <GlassButton tone="utility" disabled={page <= 1} onClick={() => setFilterParam("page", String(page - 1))}>上一页</GlassButton>
           <span>{page} / {pageCount}</span>
           <GlassButton tone="utility" disabled={page >= pageCount} onClick={() => setFilterParam("page", String(page + 1))}>下一页</GlassButton>
         </nav>
       )}
+      </PullToRefresh>
+      <BottomSheet open={showFilters} title="筛选报告" onClose={() => setShowFilters(false)} height="compact">
+        <div className="mobile-filter-sheet">
+          <label>
+            报告类型
+            <select value={type} onChange={(event) => setFilterParam("type", event.target.value)}>
+              {TYPE_LABELS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+            </select>
+          </label>
+          <label>
+            报告来源
+            <select value={origin} onChange={(event) => setFilterParam("origin", event.target.value)}>
+              <option value="all">全部来源</option>
+              <option value="automation">自动化</option>
+              <option value="manual">手动</option>
+            </select>
+          </label>
+          <GlassButton tone="primary" onClick={() => setShowFilters(false)}>应用筛选</GlassButton>
+        </div>
+      </BottomSheet>
     </div>
   );
 }

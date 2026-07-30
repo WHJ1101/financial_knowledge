@@ -58,9 +58,10 @@ async function send<T>(
   body: unknown,
   csrf: string | null,
   canRefreshCsrf: boolean,
+  signal?: AbortSignal,
 ): Promise<T> {
   const headers: Record<string, string> = {};
-  const opts: RequestInit = { method, headers, credentials: "same-origin" };
+  const opts: RequestInit = { method, headers, credentials: "same-origin", signal };
   if (body !== undefined) {
     headers["Content-Type"] = "application/json";
     opts.body = JSON.stringify(body);
@@ -72,7 +73,7 @@ async function send<T>(
     const error = await responseError(resp, method, path);
     // 服务端在校验阶段已经拒绝了请求，可以安全续签并仅重试一次。
     if (method !== "GET" && canRefreshCsrf && error.status === 403 && error.detail === CSRF_FAILURE) {
-      return send<T>(method, path, body, await refreshCsrf(), false);
+      return send<T>(method, path, body, await refreshCsrf(), false, signal);
     }
     throw error;
   }
@@ -80,17 +81,17 @@ async function send<T>(
   return (await resp.json()) as T;
 }
 
-async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+async function request<T>(method: string, path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
   let csrf: string | null = null;
   if (method !== "GET") {
     csrf = readCookie(CSRF_COOKIE);
     if (!csrf) csrf = await refreshCsrf();
   }
-  return send<T>(method, path, body, csrf, true);
+  return send<T>(method, path, body, csrf, true, signal);
 }
 
 export const api = {
-  get: <T>(path: string) => request<T>("GET", path),
+  get: <T>(path: string, signal?: AbortSignal) => request<T>("GET", path, undefined, signal),
   post: <T>(path: string, body?: unknown) => request<T>("POST", path, body),
   put: <T>(path: string, body?: unknown) => request<T>("PUT", path, body),
   patch: <T>(path: string, body?: unknown) => request<T>("PATCH", path, body),

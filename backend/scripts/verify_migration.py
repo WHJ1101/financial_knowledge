@@ -1,6 +1,6 @@
 """SQLite → PostgreSQL 迁移强校验。
 
-以源记录主键/稳定映射逐条验证，允许目标库存在迁移后新增数据；所有 legacy 报告、决策和私人数据
+以源记录主键/稳定映射逐条验证，允许目标库存在迁移后新增数据；所有 legacy 报告和私人数据
 必须满足归属规则，正文缺失必须显式标记为 missing。任一失败返回非零。
 """
 
@@ -23,7 +23,6 @@ from app.models import (
     CommunitySignal,
     DailyBar,
     Debate,
-    Decision,
     Instrument,
     Position,
     Report,
@@ -212,14 +211,6 @@ def main() -> int:
             f"expected={len(expected_watchlist_instruments)} actual={len(migrated_watchlist)}",
         )
         check("legacy watchlist 全部归超管", all(item.owner_id == admin.id for item in migrated_watchlist))
-
-        decision_ids = {str(row["id"]) for row in _rows(conn, "decisions")}
-        decisions = list(session.execute(select(Decision).where(Decision.id.in_(decision_ids))).scalars())
-        check("legacy decisions 全覆盖", len(decisions) == len(decision_ids))
-        check(
-            "legacy decisions 全部私有且归超管",
-            all(item.visibility == "private" and item.owner_id == admin.id for item in decisions),
-        )
 
         print("=== 目标库一致性与污染检查 ===")
         false_ok = [

@@ -50,7 +50,6 @@ def test_daily_job_uses_only_execution_owner_positions(monkeypatch) -> None:
                     display_code="ADMIN_ONLY",
                     name="本人持仓",
                     market="A股",
-                    provider_ids={},
                     source="test",
                     active=True,
                     created_at=now,
@@ -64,7 +63,6 @@ def test_daily_job_uses_only_execution_owner_positions(monkeypatch) -> None:
                     display_code="MEMBER_PRIVATE",
                     name="他人私有持仓",
                     market="A股",
-                    provider_ids={},
                     source="test",
                     active=True,
                     created_at=now,
@@ -99,9 +97,6 @@ def test_daily_job_uses_only_execution_owner_positions(monkeypatch) -> None:
 
     captured: dict[str, object] = {}
 
-    async def fake_signal_sync(*_args):
-        return {"ok": True, "skipped": False, "written": 0, "processed_dates": []}
-
     async def fake_brief(_now, positions, signals, **_kwargs):
         captured["positions"] = positions
         captured["signals"] = signals
@@ -114,12 +109,12 @@ def test_daily_job_uses_only_execution_owner_positions(monkeypatch) -> None:
         captured["portfolio_owner"] = owner_id
         return []
 
-    async def fake_notify(_themes):
+    async def fake_notify(_session, _themes, **_kwargs):
         return {"skipped": True}
 
-    monkeypatch.setattr("app.services.signal_sync.sync_feishu_signals_async", fake_signal_sync)
+    monkeypatch.setattr("app.services.signal_ingestion.config.is_feishu_signal_configured", lambda: False)
     monkeypatch.setattr(
-        "app.services.signal_sync.top_community_signals", lambda *_args, **_kwargs: [{"theme": "公共信号"}]
+        "app.services.signal_ingestion.top_community_signals", lambda *_args, **_kwargs: [{"theme": "公共信号"}]
     )
     monkeypatch.setattr("app.services.daily_briefing.run_daily_briefing", fake_brief)
     monkeypatch.setattr(
@@ -129,7 +124,7 @@ def test_daily_job_uses_only_execution_owner_positions(monkeypatch) -> None:
     monkeypatch.setattr("app.services.pressure_monitor.run_pressure_monitor", fake_pressure)
     monkeypatch.setattr("app.services.pressure_monitor.get_pressure_snapshot", lambda *_args: [])
     monkeypatch.setattr("app.services.portfolio_history.sync_portfolio_bars", fake_portfolio)
-    monkeypatch.setattr("app.providers.feishu.notify_daily_briefing", fake_notify)
+    monkeypatch.setattr("app.services.notification_delivery.deliver_daily_briefing", fake_notify)
 
     with SessionLocal() as session:
         admin = session.get(User, admin_id)

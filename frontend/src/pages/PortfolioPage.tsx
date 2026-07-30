@@ -23,6 +23,9 @@ import { PortfolioAnalysisPanel } from "@/components/PortfolioAnalysisPanel";
 import { PositionDetail, WatchlistDetail } from "@/components/PortfolioDetailPanel";
 import { SearchField } from "@/components/SearchField";
 import { GlassActionLink, GlassButton, GlassPanel } from "@/components/LiquidGlass";
+import { BottomSheet } from "@/components/mobile/BottomSheet";
+import { SegmentedPager } from "@/components/mobile/SegmentedPager";
+import { useInputCapabilities } from "@/hooks/useInputCapabilities";
 
 type Tab = "positions" | "analysis" | "watchlist" | "etfs";
 type SortKey = "default" | "marketValue" | "pnlPct";
@@ -124,25 +127,22 @@ export function PortfolioPage() {
 
       <PortfolioTrendChart />
 
-      <div className="tab-bar" role="tablist" aria-label="投资组合视图">
-        {(
-          [
-            ["positions", "持仓"],
-            ["analysis", "组合分析"],
-            ["watchlist", "自选"],
-            ["etfs", "指数基金"],
-          ] as [Tab, string][]
-        ).map(([key, label]) => (
-          <button role="tab" aria-selected={tab === key} key={key} className={tab === key ? "tab active" : "tab"} onClick={() => setTab(key)}>
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {tab === "positions" && <PositionsTab />}
-      {tab === "analysis" && <AnalysisTab />}
-      {tab === "watchlist" && <WatchlistTab />}
-      {tab === "etfs" && <EtfsTab />}
+      <SegmentedPager
+        label="投资组合视图"
+        items={[
+          { key: "positions", label: "持仓" },
+          { key: "analysis", label: "组合分析" },
+          { key: "watchlist", label: "自选" },
+          { key: "etfs", label: "指数基金" },
+        ]}
+        value={tab}
+        onChange={setTab}
+      >
+        {tab === "positions" && <PositionsTab />}
+        {tab === "analysis" && <AnalysisTab />}
+        {tab === "watchlist" && <WatchlistTab />}
+        {tab === "etfs" && <EtfsTab />}
+      </SegmentedPager>
     </div>
   );
 }
@@ -156,6 +156,7 @@ function AnalysisTab() {
 }
 
 function PositionsTab() {
+  const capabilities = useInputCapabilities();
   const positions = usePositions();
   const analysis = usePortfolioAnalysis();
   const add = useAddPosition();
@@ -182,7 +183,9 @@ function PositionsTab() {
     });
   }, [holdings, sort]);
 
-  const active = sorted.find((h) => h.id === selected) ?? sorted[0] ?? null;
+  const active = sorted.find((h) => h.id === selected)
+    ?? (!capabilities.isMobile ? sorted[0] : null)
+    ?? null;
 
   const onAdd = (e: React.FormEvent) => {
     e.preventDefault();
@@ -208,6 +211,31 @@ function PositionsTab() {
   );
   const toggleSort = (key: SortKey) =>
     setSort((s) => (key === "default" ? { key, dir: "desc" } : s.key === key ? { key, dir: s.dir === "desc" ? "asc" : "desc" } : { key, dir: "desc" }));
+
+  const positionDetail = active ? (
+    <PositionDetail
+      holding={active}
+      analyzing={analyze.isPending}
+      deleting={del.isPending}
+      onAnalyze={() =>
+        analyze.mutate(active.id, {
+          onSuccess: () => setOperationNote({ text: `${active.name} 已进入分析队列`, error: false }),
+          onError: (error) => setOperationNote({ text: errorDetail(error, "发起分析失败"), error: true }),
+        })
+      }
+      onDelete={() => {
+        if (confirm(`确认删除「${active.name}」？`)) {
+          del.mutate(active.id, {
+            onSuccess: () => {
+              setSelected(null);
+              setOperationNote({ text: `${active.name} 已删除`, error: false });
+            },
+            onError: (error) => setOperationNote({ text: errorDetail(error, "删除持仓失败"), error: true }),
+          });
+        }
+      }}
+    />
+  ) : null;
 
   return (
     <div className="workbench">
@@ -285,30 +313,17 @@ function PositionsTab() {
         </div>
       </div>
 
-      {active ? (
-        <PositionDetail
-          holding={active}
-          analyzing={analyze.isPending}
-          deleting={del.isPending}
-          onAnalyze={() =>
-            analyze.mutate(active.id, {
-              onSuccess: () => setOperationNote({ text: `${active.name} 已进入分析队列`, error: false }),
-              onError: (error) => setOperationNote({ text: errorDetail(error, "发起分析失败"), error: true }),
-            })
-          }
-          onDelete={() => {
-            if (confirm(`确认删除「${active.name}」？`)) {
-              del.mutate(active.id, {
-                onSuccess: () => {
-                  setSelected(null);
-                  setOperationNote({ text: `${active.name} 已删除`, error: false });
-                },
-                onError: (error) => setOperationNote({ text: errorDetail(error, "删除持仓失败"), error: true }),
-              });
-            }
-          }}
-        />
-      ) : (
+      {capabilities.isMobile ? (
+        <BottomSheet
+          open={active !== null}
+          title={active?.name ?? "持仓详情"}
+          onClose={() => setSelected(null)}
+          height="full"
+          className="portfolio-detail-sheet"
+        >
+          {positionDetail}
+        </BottomSheet>
+      ) : positionDetail ?? (
         <GlassPanel as="aside" tone="data" className="detail-panel detail-empty">选择一行查看分析详情</GlassPanel>
       )}
     </div>
@@ -316,6 +331,7 @@ function PositionsTab() {
 }
 
 function WatchlistTab() {
+  const capabilities = useInputCapabilities();
   const watchlist = useWatchlist();
   const add = useAddWatchlist();
   const del = useDeleteWatchlist();
@@ -325,7 +341,9 @@ function WatchlistTab() {
   const [form, setForm] = useState({ code: "", name: "", market: "A股", thesis: "" });
 
   const items = watchlist.data ?? [];
-  const active = items.find((w) => w.id === selected) ?? items[0] ?? null;
+  const active = items.find((w) => w.id === selected)
+    ?? (!capabilities.isMobile ? items[0] : null)
+    ?? null;
 
   const onAdd = (e: React.FormEvent) => {
     e.preventDefault();
@@ -340,6 +358,31 @@ function WatchlistTab() {
       },
     );
   };
+
+  const watchlistDetail = active ? (
+    <WatchlistDetail
+      item={active as WatchlistItemView}
+      analyzing={analyze.isPending}
+      deleting={del.isPending}
+      onAnalyze={() =>
+        analyze.mutate(active.id, {
+          onSuccess: () => setOperationNote({ text: `${active.name || active.code} 已进入分析队列`, error: false }),
+          onError: (error) => setOperationNote({ text: errorDetail(error, "发起分析失败"), error: true }),
+        })
+      }
+      onDelete={() => {
+        if (confirm(`确认删除自选「${active.name || active.code}」？`)) {
+          del.mutate(active.id, {
+            onSuccess: () => {
+              setSelected(null);
+              setOperationNote({ text: `${active.name || active.code} 已删除`, error: false });
+            },
+            onError: (error) => setOperationNote({ text: errorDetail(error, "删除自选失败"), error: true }),
+          });
+        }
+      }}
+    />
+  ) : null;
 
   return (
     <div className="workbench">
@@ -386,30 +429,17 @@ function WatchlistTab() {
         </div>
       </div>
 
-      {active ? (
-        <WatchlistDetail
-          item={active as WatchlistItemView}
-          analyzing={analyze.isPending}
-          deleting={del.isPending}
-          onAnalyze={() =>
-            analyze.mutate(active.id, {
-              onSuccess: () => setOperationNote({ text: `${active.name || active.code} 已进入分析队列`, error: false }),
-              onError: (error) => setOperationNote({ text: errorDetail(error, "发起分析失败"), error: true }),
-            })
-          }
-          onDelete={() => {
-            if (confirm(`确认删除自选「${active.name || active.code}」？`)) {
-              del.mutate(active.id, {
-                onSuccess: () => {
-                  setSelected(null);
-                  setOperationNote({ text: `${active.name || active.code} 已删除`, error: false });
-                },
-                onError: (error) => setOperationNote({ text: errorDetail(error, "删除自选失败"), error: true }),
-              });
-            }
-          }}
-        />
-      ) : (
+      {capabilities.isMobile ? (
+        <BottomSheet
+          open={active !== null}
+          title={active?.name || active?.code || "自选详情"}
+          onClose={() => setSelected(null)}
+          height="full"
+          className="portfolio-detail-sheet"
+        >
+          {watchlistDetail}
+        </BottomSheet>
+      ) : watchlistDetail ?? (
         <GlassPanel as="aside" tone="data" className="detail-panel detail-empty">选择一行查看分析详情</GlassPanel>
       )}
     </div>

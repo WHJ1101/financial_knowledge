@@ -6,6 +6,7 @@ LLM brief 规整、证据草稿降级、数据质量。不打真实 LLM/网络�
 
 from __future__ import annotations
 
+from app.llm.json import LlmJsonError, parse_json_object
 from app.services.research import (
     Evidence,
     build_evidence_draft,
@@ -17,7 +18,6 @@ from app.services.research import (
     merge_tags,
     normalize_llm_brief,
     normalize_record,
-    parse_llm_json,
     run_research_pipeline,
     topic_terms,
 )
@@ -63,16 +63,16 @@ def test_filter_matching_falls_back_to_all():
 
 
 def test_parse_llm_json_variants():
-    assert parse_llm_json('{"summary": "x"}')["summary"] == "x"
-    assert parse_llm_json('```json\n{"summary": "y"}\n```')["summary"] == "y"
-    assert parse_llm_json('前缀噪声 {"summary": "z"} 后缀')["summary"] == "z"
+    assert parse_json_object('{"summary": "x"}')["summary"] == "x"
+    assert parse_json_object('```json\n{"summary": "y"}\n```')["summary"] == "y"
+    assert parse_json_object('前缀噪声 {"summary": "z"} 后缀')["summary"] == "z"
 
 
 def test_parse_llm_json_invalid_raises():
     import pytest
 
-    with pytest.raises(ValueError):
-        parse_llm_json("不是 JSON")
+    with pytest.raises(LlmJsonError):
+        parse_json_object("无有效对象")
 
 
 def test_normalize_llm_brief_fills_defaults():

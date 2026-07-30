@@ -20,7 +20,10 @@ dependencies = [
     "procrastinate>=3.0.0",
     # 外部 HTTP + 宏观数据
     "httpx>=0.28.0",
-    "akshare>=1.15.0",
+    "akshare==1.18.64",
+    # 外部报告 HTML 结构化清洗（版本固定，避免解析/序列化策略漂移）
+    "lxml==6.1.1",
+    "pyyaml==6.0.3",
     "exchange-calendars>=4.8.0",
     # LLM 编排 + 检查点（加密 Serializer 需 pycryptodome）
     "langchain-openai>=0.2.0",
@@ -63,7 +66,7 @@ plugins = ["pydantic.mypy"]
 
 # 行情/交易日历三方库未发布 py.typed；只在 provider/calendar 边界使用。
 [[tool.mypy.overrides]]
-module = ["akshare.*", "exchange_calendars.*", "pandas.*"]
+module = ["akshare.*", "exchange_calendars.*", "lxml.*", "pandas.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

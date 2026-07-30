@@ -17,6 +17,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import Instrument, Position, QuoteOverride, Report, ReportAssetLink, WatchlistItem
+from app.repositories.scoping import scope_condition
 
 _CODE_RE = re.compile(r"(?:^|[^\d])(\d{6})(?!\d)")
 
@@ -60,7 +61,7 @@ def get_asset_report_links(session: Session, asset_code: str, viewer_id: uuid.UU
         .join(Instrument, ReportAssetLink.instrument_id == Instrument.id)
         .where(
             (Instrument.canonical_symbol == canonical) | (Instrument.display_code == code),
-            (Report.visibility == "shared") | (Report.owner_id == viewer_id),
+            scope_condition(Report, viewer_id, access="visible"),
         )
         .order_by(Report.created_at.desc())
         .limit(50)

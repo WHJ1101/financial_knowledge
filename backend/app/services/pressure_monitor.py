@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 from datetime import UTC, datetime
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -187,6 +188,8 @@ def _crossing_signal(theme: dict[str, Any], now: datetime) -> CommunitySignal:
     evidence = "主导分项：" + "；".join(
         f"{item.get('label')} {item.get('score', '-')}（{item.get('rawText', '-')}）" for item in sub_scores
     )
+    summary = f"{theme['name']}压力指数{arrow} {threshold}（{theme.get('composite')}），{theme.get('status', '')}"
+    content_fingerprint = hashlib.sha256(f"{summary}|{evidence}".encode()).hexdigest()
     return CommunitySignal(
         id=f"pressure-{theme['id']}-{date}",
         date=date,
@@ -197,7 +200,7 @@ def _crossing_signal(theme: dict[str, Any], now: datetime) -> CommunitySignal:
         industry=theme.get("market"),
         related_assets=theme.get("secids") or [],
         signal_type="压力上穿" if is_up else "压力下穿",
-        summary=f"{theme['name']}压力指数{arrow} {threshold}（{theme.get('composite')}），{theme.get('status', '')}",
+        summary=summary,
         evidence=evidence,
         confidence="medium",
         verification_status="待验证",
@@ -206,6 +209,10 @@ def _crossing_signal(theme: dict[str, Any], now: datetime) -> CommunitySignal:
         imported_at=now.isoformat(),
         expires_at=None,
         signal_metadata={"composite": theme.get("composite"), "crossing": theme.get("crossing")},
+        section_key=f"pressure-monitor:{theme['id']}:{date}",
+        content_fingerprint=content_fingerprint,
+        version_no=1,
+        active=True,
         created_at=now,
         updated_at=now,
     )
@@ -213,8 +220,6 @@ def _crossing_signal(theme: dict[str, Any], now: datetime) -> CommunitySignal:
 
 async def run_pressure_monitor(session: Session, source: str = "manual") -> dict[str, Any]:
     """拉日线、计算压力、写跨阈值信号/运行摘要，并发送飞书告警。"""
-    from app.providers.feishu import notify_pressure_crossings
-
     sync_results = await sync_pressure_bars(session)
     themes = get_pressure_snapshot(session)
     now = datetime.now(UTC)
@@ -230,7 +235,9 @@ async def run_pressure_monitor(session: Session, source: str = "manual") -> dict
         )
         session.add_all([_crossing_signal(theme, now) for theme in crossings])
 
-    push_result = await notify_pressure_crossings(themes)
+    from app.services.notification_delivery import deliver_pressure_crossings
+
+    push_result = await deliver_pressure_crossings(session, themes)
     summary = {
         "ranAt": now.isoformat(),
         "themes": [

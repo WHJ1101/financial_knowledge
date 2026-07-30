@@ -12,7 +12,7 @@ import json
 import sqlite3
 import sys
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 from shutil import move
 from typing import Any, cast
@@ -27,8 +27,8 @@ from app.models import (
     CommunitySignal,
     DailyBar,
     Debate,
-    Decision,
     Instrument,
+    InstrumentProviderRef,
     Log,
     MarketIndex,
     Position,
@@ -36,11 +36,13 @@ from app.models import (
     Report,
     ReportAssetLink,
     Setting,
+    SignalSourceSection,
     User,
     UserReportState,
     WatchlistItem,
 )
-from app.services.instrument_identity import merge_provider_id, normalize
+from app.services.instrument_identity import normalize, provider_reference
+from app.services.signal_ingestion.fingerprint import section_key, signal_fingerprint
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = REPO_ROOT / "data"
@@ -74,7 +76,7 @@ def load_legacy_secid_rows(conn: sqlite3.Connection) -> dict[str, dict[str, Any]
     """读取旧行情身份映射；早期库缺 ``secid_map`` 时从持仓字段恢复。
 
     ``positions.quote_secid`` 是 ``secid_map`` 落表前的同源数据。场外基金统一转换为
-    ``OF.<code>``，保持与 ``daily_bars.secid`` 和新 ``provider_ids`` 的命名空间一致。
+    ``OF.<code>``，保持与 ``daily_bars.secid`` 和 Provider Ref 的命名空间一致。
     """
     has_secid_map = conn.execute(
         "SELECT 1 FROM sqlite_master WHERE type='table' AND name='secid_map'"
@@ -221,6 +223,10 @@ def _upsert_instruments(
         (item.exchange, item.asset_class, item.canonical_symbol): item
         for item in session.execute(select(Instrument)).scalars()
     }
+    refs_by_key = {
+        (item.provider, item.provider_key): item
+        for item in session.execute(select(InstrumentProviderRef)).scalars()
+    }
 
     def ensure(code: str, market: str | None, name: str = "") -> Instrument | None:
         source_row = secid_rows.get(str(code))
@@ -233,9 +239,6 @@ def _upsert_instruments(
         key = (normalized.exchange, normalized.asset_class, normalized.canonical_symbol)
         item = by_key.get(key)
         source_row = source_row or secid_rows.get(normalized.canonical_symbol)
-        provider_ids = dict(item.provider_ids or {}) if item else {}
-        if source_row:
-            provider_ids = merge_provider_id(provider_ids, source_row["secid"], source_row["kind"])
         if item is None:
             item = Instrument(
                 id=_stable_uuid("instrument", "|".join(key)),
@@ -245,7 +248,6 @@ def _upsert_instruments(
                 display_code=normalized.display_code,
                 name=name or normalized.display_code,
                 market=market or "",
-                provider_ids=provider_ids,
                 source="migration",
                 active=True,
                 created_at=now,
@@ -254,10 +256,37 @@ def _upsert_instruments(
             session.add(item)
             by_key[key] = item
         else:
-            item.provider_ids = provider_ids
             if name:
                 item.name = name
             item.updated_at = now
+        if source_row:
+            provider, provider_key, upstream_family = provider_reference(
+                source_row["secid"],
+                source_row["kind"],
+            )
+            ref_key = (provider, provider_key)
+            current_ref = refs_by_key.get(ref_key)
+            if current_ref is not None and current_ref.instrument_id != item.id:
+                ledger["reconciliation"].setdefault("provider_reference_conflicts", []).append(
+                    {
+                        "provider": provider,
+                        "provider_key": provider_key,
+                        "instrument_ids": [str(current_ref.instrument_id), str(item.id)],
+                    }
+                )
+            elif current_ref is None:
+                current_ref = InstrumentProviderRef(
+                    id=_stable_uuid("instrument-provider-ref", f"{provider}|{provider_key}"),
+                    instrument_id=item.id,
+                    provider=provider,
+                    provider_key=provider_key,
+                    upstream_family=upstream_family,
+                    ref_metadata={},
+                    created_at=now,
+                    updated_at=now,
+                )
+                session.add(current_ref)
+                refs_by_key[ref_key] = current_ref
         ledger["mappings"][f"instrument:{code}:{market or ''}"] = str(item.id)
         return item
 
@@ -292,17 +321,55 @@ def _upsert_public_data(conn: sqlite3.Connection, session: Any) -> None:
                 updated_at=_ts(row.get("updated_at")),
             )
         )
+    feishu_sections: dict[
+        str,
+        dict[str, Any],
+    ] = {}
     for row in _rows(conn, "community_signals"):
+        source = str(row["source"])
+        observed_date = str(row["date"])
+        source_url = str(row.get("source_url") or "")
+        signal_data = {
+            "theme": row.get("theme"),
+            "industry": row.get("industry"),
+            "relatedAssets": _jload(row.get("related_assets"), []),
+            "signalType": row.get("signal_type"),
+            "summary": row.get("summary"),
+            "evidence": row.get("evidence"),
+            "confidence": row.get("confidence") or "medium",
+            "verificationStatus": row.get("verification_status") or "待验证",
+            "importance": row.get("importance") or 3,
+        }
+        signal_fp = signal_fingerprint(signal_data)
+        if source == "feishu":
+            legacy_section_key = section_key(source_url, observed_date)
+            section = feishu_sections.setdefault(
+                legacy_section_key,
+                {
+                    "observed_date": observed_date,
+                    "source_title": row.get("source_title"),
+                    "source_url": source_url,
+                    "fingerprints": [],
+                    "created_at": _ts(row.get("created_at")),
+                    "updated_at": _ts(row.get("updated_at")),
+                },
+            )
+            section["fingerprints"].append(signal_fp)
+        else:
+            legacy_identity = hashlib.sha256(
+                f"{source}|{row['id']}|{observed_date}".encode()
+            ).hexdigest()[:32]
+            legacy_section_key = f"legacy:{source}:{legacy_identity}"
         session.merge(
             CommunitySignal(
                 id=row["id"],
-                date=row["date"],
-                source=row["source"],
+                date=observed_date,
+                source=source,
                 source_title=row.get("source_title"),
                 source_url=row.get("source_url"),
                 theme=row.get("theme"),
                 industry=row.get("industry"),
-                related_assets=_jload(row.get("related_assets"), []),
+                related_assets=signal_data["relatedAssets"],
                 signal_type=row.get("signal_type"),
                 summary=row.get("summary"),
                 evidence=row.get("evidence"),
@@ -313,10 +380,58 @@ def _upsert_public_data(conn: sqlite3.Connection, session: Any) -> None:
                 imported_at=row.get("imported_at"),
                 expires_at=row.get("expires_at"),
                 signal_metadata=_jload(row.get("metadata"), {}),
+                section_key=legacy_section_key,
+                content_fingerprint=signal_fp,
+                version_no=1,
+                supersedes_id=None,
+                superseded_at=None,
+                active=True,
+                source_sync_run_id=None,
                 created_at=_ts(row.get("created_at")),
                 updated_at=_ts(row.get("updated_at")),
             )
         )
+    for legacy_section_key, section in feishu_sections.items():
+        existing = session.execute(
+            select(SignalSourceSection).where(
+                SignalSourceSection.source_key == "feishu.signal",
+                SignalSourceSection.section_key == legacy_section_key,
+            )
+        ).scalar_one_or_none()
+        if existing is not None and (
+            existing.version_no > 1 or existing.latest_run_id is not None
+        ):
+            continue
+        fingerprints = sorted(str(item) for item in section["fingerprints"])
+        aggregate_hash = hashlib.sha256("|".join(fingerprints).encode()).hexdigest()
+        observed = str(section["observed_date"])
+        try:
+            observed_value = date.fromisoformat(observed)
+        except ValueError:
+            observed_value = datetime.now(UTC).date()
+        values = {
+            "source_key": "feishu.signal",
+            "section_key": legacy_section_key,
+            "observed_date": observed_value,
+            "source_title": section["source_title"],
+            "source_url": section["source_url"],
+            "latest_content_hash": aggregate_hash,
+            "latest_signal_set_hash": aggregate_hash,
+            "version_no": 1,
+            "latest_run_id": None,
+            "created_at": section["created_at"],
+            "updated_at": section["updated_at"],
+        }
+        if existing is None:
+            session.add(
+                SignalSourceSection(
+                    id=_stable_uuid("signal-section", legacy_section_key),
+                    **values,
+                )
+            )
+        else:
+            for key, value in values.items():
+                setattr(existing, key, value)
     for row in _rows(conn, "quote_overrides"):
         session.merge(
             QuoteOverride(
@@ -566,25 +681,6 @@ def _upsert_system_data(
             existing_tasks.append(task)
         claimed_task_ids.add(task.id)
     ledger["counts"]["automation_tasks"] = len(task_rows)
-    for row in _rows(conn, "decisions"):
-        session.merge(
-            Decision(
-                id=row["id"],
-                owner_id=admin.id,
-                visibility="private",
-                date=row.get("date"),
-                title=row["title"],
-                summary=row.get("summary"),
-                action=row.get("action"),
-                market=row.get("market"),
-                position_advice=_jload(row.get("position_advice"), []),
-                stock_advice=_jload(row.get("stock_advice"), []),
-                reports=_jload(row.get("reports"), []),
-                created_at=row.get("created_at"),
-            )
-        )
-
-
 def _cleanup_orphan_legacy_instruments(session: Any, ledger: dict[str, Any]) -> None:
     # SessionLocal 关闭了 autoflush。先把持仓/自选的证券重绑写入数据库，
     # 否则引用计数仍看到旧主键，可能把刚接管的新证券误判为孤儿并触发 FK 错误。

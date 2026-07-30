@@ -18,16 +18,6 @@ Purpose = Literal[
 ]
 
 AgentRole = Literal["technical", "fundamental", "macro", "sentiment", "bull", "bear", "judge", "risk"]
-DEBATE_AGENT_ROLES: tuple[AgentRole, ...] = (
-    "technical",
-    "fundamental",
-    "macro",
-    "sentiment",
-    "bull",
-    "bear",
-    "judge",
-    "risk",
-)
 
 
 @dataclass(frozen=True)

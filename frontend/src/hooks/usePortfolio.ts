@@ -26,6 +26,17 @@ export interface PositionAnalysisDetail {
   evidence_used?: string[];
   data_gaps?: string[];
   generated_at?: string;
+  quote_snapshot?: {
+    price: number | null;
+    change_pct?: string | null;
+    source?: string | null;
+    as_of: string;
+  };
+  position_snapshot?: {
+    shares: number;
+    cost: number;
+    pnl_pct: number | null;
+  };
 }
 export interface WatchlistItemView {
   id: string;

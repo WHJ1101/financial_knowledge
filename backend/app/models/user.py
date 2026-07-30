@@ -21,6 +21,8 @@ class User(Base, TimestampMixin):
     password_hash: Mapped[str] = mapped_column(Text)  # argon2-cffi
     role: Mapped[str] = mapped_column(String(16))  # superadmin | member
     status: Mapped[str] = mapped_column(String(16), default="active")  # active | disabled
+    must_change_password: Mapped[bool] = mapped_column(Boolean, default=False)
+    password_changed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class UserSession(Base):
